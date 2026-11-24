@@ -381,7 +381,13 @@ const arrangeSheet: Change = (f) => {
   };
   // routes drawn for the old places no longer apply
   const plain = f.edges.map((e) => {
-    const { waypoints, via, lift, ...rest } = e;
+    const {
+      path,
+      waypoints,
+      via,
+      lift,
+      ...rest
+    } = e;
     return rest;
   });
   const plan = planLayers(

@@ -525,8 +525,14 @@ const laySpec =
     const lifted =
       axis &&
       placeOnLayers(
-        { ...spec.graph, nodes: positioned },
+        {
+          nodes: positioned,
+          edges: spec.graph.edges.map(
+            (e, i) => routed.get(i) ?? e,
+          ),
+        },
         axis,
+        spec.layout?.direction ?? "right",
       );
     for (const n of lifted?.graph.nodes ?? [])
       if (computed.has(n.id))
@@ -553,9 +559,11 @@ const laySpec =
                 }),
               },
             }),
-            edges: spec.graph.edges.map(
-              (e, i) => routed.get(i) ?? e,
-            ),
+            edges:
+              lifted?.graph.edges ??
+              spec.graph.edges.map(
+                (e, i) => routed.get(i) ?? e,
+              ),
             layered: {
               options: spec.layout,
               computed,
@@ -767,7 +775,7 @@ const buildLines = (
           ...(options.layerAxis
             ? [
                 directive("axis", [
-                  quoted(
+                  name(
                     options.layerAxis.attribute,
                   ),
                   ...options.layerAxis.values.map(

@@ -1,3 +1,6 @@
+import { routeSpace } from "plgg-flow/space";
+import { placeOnLayers } from "plgg-flow/autoLayout";
+import { movePath } from "plgg-flow/path3";
 import { bodyDepth } from "plgg-flow/nodeBody";
 import type {
   RoomLayout,
@@ -91,6 +94,8 @@ export type Edge = Readonly<{
   data?: JsonObject;
   sourceHandle?: string;
   targetHandle?: string;
+  /** Complete world-space centreline, including both sockets. */
+  path?: readonly Point3[];
   via?: readonly Point[];
   lift?: number;
   waypoints?: readonly Point3[];
@@ -105,6 +110,14 @@ export type Edge = Readonly<{
 /** Sheet-coordinate decorations. Behind and front bracket the graph;
  * sorted primitives share its painter order at their mean depth.
  * Tones are CSS colors. Label offsets and type sizes are screen pixels. */
+const quietEdges = new WeakMap<Edge, Edge>();
+export const quietEdge = (edge: Edge) => {
+  const old = quietEdges.get(edge);
+  if (old) return old;
+  const quiet = { ...edge, quiet: true };
+  quietEdges.set(edge, quiet);
+  return quiet;
+};
 export type Scenery = {
   layer: "behind" | "sorted" | "front";
   tone: string;
@@ -304,9 +317,14 @@ export const moveSelectionGeometry = (
   );
   if (
     !(delta.x || delta.y || delta.z) ||
-    !flow.edges.some(
-      (e) => e.waypoints?.length || e.via?.length,
-    )
+    (!flow.rooms &&
+      !flow.layered?.options.layerAxis &&
+      !flow.edges.some(
+        (e) =>
+          e.path?.length ||
+          e.waypoints?.length ||
+          e.via?.length,
+      ))
   )
     return { nodes, edges: flow.edges };
   const moved = subtree(flow.nodes, roots);
@@ -320,17 +338,48 @@ export const moveSelectionGeometry = (
         : [];
     }),
   );
+  const graph = { nodes, edges: flow.edges };
+  const roomPaths =
+    flow.rooms &&
+    routeSpace(
+      graph,
+      flow.rooms.rooms,
+      nodeSize,
+      relocated,
+    );
+  const options = flow.layered?.options;
+  const layeredEdges =
+    options?.layerAxis &&
+    placeOnLayers(
+      graph,
+      options.layerAxis,
+      options.direction ?? "right",
+      relocated,
+    ).graph.edges;
   let activeEdge = flow.activeEdge,
     changed = false;
   const edges = flow.edges.map(
-    (original): Edge => {
-      const { via, ...rest } = original;
-      const e =
-        via &&
-        (relocated.has(original.source) ||
-          relocated.has(original.target))
-          ? rest
-          : original;
+    (original, i): Edge => {
+      const { via, path, ...rest } = original;
+      const touched =
+        relocated.has(original.source) ||
+        relocated.has(original.target);
+      let e = original;
+      if (touched) {
+        const next = roomPaths
+          ? roomPaths.get(original.id ?? i)
+          : layeredEdges
+            ? layeredEdges[i]?.path
+            : path &&
+              movePath(
+                path,
+                relocated.has(original.source),
+                relocated.has(original.target),
+                delta,
+              );
+        if (next) e = { ...rest, path: next };
+        else if (path || via) e = rest;
+      }
       if (e !== original) {
         changed = true;
         if (activeEdge === original)
@@ -438,7 +487,7 @@ export const fitWire: Change = (state) => {
   return fitGeometry(
     state,
     nodes,
-    edge.waypoints ?? [],
+    edge.path ?? edge.waypoints ?? [],
   );
 };
 export const selectedNodes = (

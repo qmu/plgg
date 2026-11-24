@@ -637,9 +637,9 @@ export const sheetProperties = <A>(
       ...(options
         ? [
             row(
-              "layer",
+              "層の軸",
               field(
-                "layer 軸の属性",
+                "層の軸",
                 options.layerAxis?.attribute ??
                   "",
                 (v) =>

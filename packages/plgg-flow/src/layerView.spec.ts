@@ -77,7 +77,8 @@ test("layer declarations validate their lines and survive printing", () => {
   const flow = specFlow(read(source)),
     printed = printSpec(flow, []);
   return check(
-    second.__tag === "Err" &&
+    printed.includes("axis 層 A B C") &&
+      second.__tag === "Err" &&
       second.content.includes("9") &&
       depth.__tag === "Err" &&
       printSpec(specFlow(read(printed)), []) ===

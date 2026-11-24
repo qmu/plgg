@@ -1,9 +1,8 @@
 import { roomFor } from "plgg-flow/autoLayout";
 import {
-  bodyDepth,
-  projectNodeBody,
+  cardBounds,
+  corners,
 } from "plgg-flow/nodeBody";
-import { nodeSize } from "plgg-flow/nodeSize";
 import {
   project,
   unproject,
@@ -103,12 +102,6 @@ const meets = (a: Box, b: Box) =>
   b.left < a.right + 1 &&
   a.top < b.bottom + 1 &&
   b.top < a.bottom + 1;
-const corners = (min: Point3, max: Point3) =>
-  [min.x, max.x].flatMap((x) =>
-    [min.y, max.y].flatMap((y) =>
-      [min.z, max.z].map((z) => ({ x, y, z })),
-    ),
-  );
 const labelBox = (l: {
   x: number;
   y: number;
@@ -147,58 +140,6 @@ type AxisLabel = {
   clear: boolean;
   size: number;
   span?: { from: Point3; to: Point3 };
-};
-const cardBounds = (
-  camera: Camera,
-  nodes: Flow["nodes"],
-) => {
-  const at = project(camera);
-  const cards: Box[] = [];
-  for (const node of nodes.filter(
-    (n) => !n.hidden,
-  )) {
-    const size = nodeSize(node),
-      p = node.position,
-      d = bodyDepth(node);
-    const pts = corners(
-      {
-        x: p.x - size.width / 2,
-        y: p.y - size.height / 2,
-        z: p.z - d,
-      },
-      {
-        x: p.x + size.width / 2,
-        y: p.y + size.height / 2,
-        z: p.z + d,
-      },
-    ).map(at);
-    const box = {
-      left: Math.min(...pts.map((v) => v.x)) - 4,
-      right: Math.max(...pts.map((v) => v.x)) + 4,
-      top: Math.min(...pts.map((v) => v.y)) - 4,
-      bottom:
-        Math.max(...pts.map((v) => v.y)) + 4,
-    };
-    cards.push(box);
-    // Reserve the full tag throughout its switching band.
-    if (
-      projectNodeBody(node, camera, true).tagged
-    ) {
-      const center = (box.left + box.right) / 2;
-      const half =
-        (size.width * camera.scale) / 2 + 2;
-      cards.push({
-        left: center - half,
-        right: center + half,
-        top:
-          box.top -
-          (10 + size.height / 2) * camera.scale -
-          2,
-        bottom: box.top + 4,
-      });
-    }
-  }
-  return cards;
 };
 const axisGeometry = (
   layout: RoomLayout,
@@ -736,7 +677,7 @@ export const spaceScenery = (
       );
       result.push({
         kind: "plane",
-        layer: "behind",
+        layer: "sorted",
         points: rect(
           "y",
           level,

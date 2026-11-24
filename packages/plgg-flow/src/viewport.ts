@@ -1,5 +1,7 @@
 import { drawScenery } from "plgg-flow/scenery";
 import {
+  crossingSpans,
+  crossingRuns,
   wireDepthRuns,
   type Occluder,
 } from "plgg-flow/wireDepth";
@@ -717,6 +719,15 @@ export const drawFlow = (
     html: Html<Change>;
     id: string;
   }[] = [];
+  const tagBoxes = new Map<
+    string,
+    {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
+  >();
   const paintLayers = () => {
     const silhouettes = new Map<
       string,
@@ -1285,27 +1296,86 @@ export const drawFlow = (
     const flat =
       state.camera.yaw === 0 &&
       state.camera.pitch === 0;
-    const boxes: Occluder[] = flat
-      ? []
-      : drawNodes.map((n) => {
-          const solid = bodies.get(n.item)!.solid;
-          const outline = solid.visible.flatMap(
-            (face) => face.points,
-          );
-          const xs = outline.map(
-              (p) => n.p.x + p.x * n.scale,
-            ),
-            ys = outline.map(
-              (p) => n.p.y + p.y * n.scale,
+    const boxes: Occluder[] =
+      flat &&
+      !tags.length &&
+      !wires.some((w) => w.edge.path)
+        ? []
+        : drawNodes.map((n) => {
+            const solid = bodies.get(
+              n.item,
+            )!.solid;
+            const outline = solid.visible.flatMap(
+              (face) => face.points,
             );
-          return {
-            left: Math.min(...xs),
-            right: Math.max(...xs),
-            top: Math.min(...ys),
-            bottom: Math.max(...ys),
-            depth: solidDepth.get(n.id) ?? n.p.z,
-          };
+            const xs = outline.map(
+                (p) => n.p.x + p.x * n.scale,
+              ),
+              ys = outline.map(
+                (p) => n.p.y + p.y * n.scale,
+              );
+            const box = {
+              left: Math.min(...xs),
+              right: Math.max(...xs),
+              top: Math.min(...ys),
+              bottom: Math.max(...ys),
+              depth:
+                solidDepth.get(n.id) ?? n.p.z,
+            };
+            if (tags.length)
+              tagBoxes.set(n.id, {
+                x: (box.left + box.right) / 2,
+                y: (box.top + box.bottom) / 2,
+                width: box.right - box.left,
+                height: box.bottom - box.top,
+              });
+            return box;
+          });
+    const spatialSheet = wires.some(
+      (w) => w.edge.path,
+    );
+    if (spatialSheet)
+      state.scenery?.forEach((item, i) => {
+        if (
+          item.kind !== "plane" ||
+          item.layer !== "sorted"
+        )
+          return;
+        const points = item.points.map(
+          project(state.camera),
+        );
+        boxes.push({
+          left: Math.min(
+            ...points.map((p) => p.x),
+          ),
+          right: Math.max(
+            ...points.map((p) => p.x),
+          ),
+          top: Math.min(
+            ...points.map((p) => p.y),
+          ),
+          bottom: Math.max(
+            ...points.map((p) => p.y),
+          ),
+          depth: scenery[i]!.depth,
         });
+      });
+    const spans = spatialSheet
+      ? crossingSpans(
+          wires.map((w) =>
+            bridgePoints(
+              w.points,
+              w.lift,
+              flat,
+            ).map(project(state.camera)),
+          ),
+        )
+      : undefined;
+    const crossings =
+      spans &&
+      new Map(
+        wires.map((w, i) => [w, spans[i]!]),
+      );
     const originalIndices = new Map(
       state.edges.map((e, i) => [e, i]),
     );
@@ -1336,15 +1406,20 @@ export const drawFlow = (
         state.hoveredNode !== to.id
           ? " quiet-wire"
           : "";
+      const hovered =
+        !!edge.path &&
+        state.hoveredEdge === original;
       const inputs = [
         tone,
+        hovered,
         index,
         original,
         state.camera,
         chosenWire,
         sharedArrival,
         originalIndex,
-        flat ? undefined : state.nodes,
+        flat && !spans ? undefined : state.nodes,
+        spans ? state.edges : undefined,
         frame,
         state.ink,
         cull,
@@ -1412,6 +1487,7 @@ export const drawFlow = (
       const controls = wire.controls;
       const line =
         flat &&
+        !spans &&
         controls &&
         (wire.source.z === wire.target.z ||
           !state.camera.perspective)
@@ -1436,7 +1512,7 @@ export const drawFlow = (
                 );
               })
               .join("")
-          : flat
+          : flat && !spans
             ? points
                 .map(
                   (p, i) =>
@@ -1448,7 +1524,7 @@ export const drawFlow = (
                 .join("")
             : "";
       const events = () => [
-        ...(original.quiet
+        ...(original.quiet || edge.path
           ? [
               onEvent<Change>(
                 "pointerenter",
@@ -1615,35 +1691,67 @@ export const drawFlow = (
       const paint = (
         path: string,
         visible: Html<Change>,
+        halo: boolean,
       ) => {
         const attributes = events();
         // a wire is a hairline; what takes the click is
         // a band around it wide enough for a finger
         const hitWidth =
           edge.interactionWidth ?? 16;
-        return hitWidth > 0
-          ? el("g", attributes, [
-              el(
-                "path",
-                [
-                  a("class", "edge-hit"),
-                  a("d", path),
-                  a("fill", "none"),
-                  a("stroke", "#000"),
-                  // unseen whatever a stylesheet does
-                  // to stroke colours
-                  a("stroke-opacity", 0),
-                  a("stroke-width", hitWidth),
-                  a("pointer-events", "stroke"),
-                ],
-                [],
-              ),
-              visible,
-            ])
-          : el("g", attributes, [visible]);
+        return el("g", attributes, [
+          ...(hitWidth > 0
+            ? [
+                el(
+                  "path",
+                  [
+                    a("class", "edge-hit"),
+                    a("d", path),
+                    a("fill", "none"),
+                    a("stroke", "#000"),
+                    // unseen whatever a stylesheet does
+                    // to stroke colours
+                    a("stroke-opacity", 0),
+                    a("stroke-width", hitWidth),
+                    a("pointer-events", "stroke"),
+                  ],
+                  [],
+                ),
+              ]
+            : []),
+          ...(halo
+            ? [
+                el(
+                  "path",
+                  [
+                    a("d", path),
+                    a("fill", "none"),
+                    a(
+                      "stroke",
+                      "var(--paper,white)",
+                    ),
+                    a("stroke-width", 3),
+                    a("pointer-events", "none"),
+                  ],
+                  [],
+                ),
+              ]
+            : []),
+          visible,
+        ]);
       };
       let length = 0;
-      const runs = wireDepthRuns(points, boxes);
+      const cuts = crossings?.get(wire);
+      const spatial =
+        cuts?.some((c) => c.length) || edge.path
+          ? crossingRuns(
+              points,
+              cuts ?? [],
+              boxes,
+            )
+          : undefined;
+      const runs =
+        spatial?.map((r) => r.run) ??
+        wireDepthRuns(points, boxes);
       for (const [
         indexInWire,
         run,
@@ -1662,18 +1770,23 @@ export const drawFlow = (
               : sum,
           0,
         );
-        const depth = flat
-          ? (a0.z + run[1]!.z) / 2
-          : Math.max(...run.map((p) => p.z));
+        const depth =
+          spatial?.[indexInWire]?.depth ??
+          (flat
+            ? (a0.z + run[1]!.z) / 2
+            : Math.max(...run.map((p) => p.z)));
         const fade = Math.min(
           1,
           Math.max(0, (depth + 300) / 600),
         );
-        const color = tone
-          ? "var(--pencil,gray)"
-          : edge.highlighted
-            ? "#e36731"
-            : `hsl(174 28% ${60 - fade * 38}%)`;
+        const color =
+          edge.path && !tone && !edge.highlighted
+            ? "var(--graphite,#333)"
+            : tone
+              ? "var(--pencil,gray)"
+              : edge.highlighted
+                ? "#e36731"
+                : `hsl(174 28% ${60 - fade * 38}%)`;
         const path =
           line ||
           run
@@ -1740,7 +1853,11 @@ export const drawFlow = (
               a(
                 "stroke-width",
                 (flat ? run[1]!.scale : b.scale) *
-                  (chosenWire ? 2.4 : 1),
+                  (chosenWire
+                    ? 2.4
+                    : hovered
+                      ? 1.8
+                      : 1),
               ),
               a("stroke-linecap", "round"),
             ],
@@ -1749,8 +1866,9 @@ export const drawFlow = (
         });
         items.push({
           chosen: chosenWire,
-          depth:
-            !chosenWire && !flat
+          depth: spatial
+            ? depth
+            : !chosenWire && !flat
               ? depth -
                 (runs.length > 1 ? 1e-8 : 0)
               : deckSegment
@@ -1780,7 +1898,12 @@ export const drawFlow = (
                       ? Infinity
                       : depth - 0.01,
           html: lazy(deferred, () =>
-            paint(path, visible),
+            paint(
+              path,
+              visible,
+              spatial?.[indexInWire]?.halo ??
+                false,
+            ),
           ),
         });
       }
@@ -1822,7 +1945,8 @@ export const drawFlow = (
                 z: 2 * wire.target.z - deck,
               })
           : atStart
-            ? (!edge.route ||
+            ? !edge.path &&
+              (!edge.route ||
                 edge.route === "curve") &&
               edge.source !== edge.target &&
               !sourceRiser
@@ -1861,6 +1985,9 @@ export const drawFlow = (
         const gap = Math.hypot(
           wire.source.x - wire.target.x,
           wire.source.y - wire.target.y,
+          edge.path
+            ? wire.source.z - wire.target.z
+            : 0,
         );
         const arrowScale =
           tip.scale *
@@ -1869,9 +1996,10 @@ export const drawFlow = (
             : Math.min(1, gap / 60));
         const sending = atStart || sharedArrival;
         const node = atStart ? from : to;
-        const radius = sending
-          ? socketRadius * node.scale
-          : 0;
+        const radius =
+          sending || edge.path
+            ? socketRadius * node.scale
+            : 0;
         const x =
           tip.x - radius * Math.cos(radians);
         const y =
@@ -2807,18 +2935,51 @@ export const drawFlow = (
         return tags
           .sort((a, b) => b.depth - a.depth)
           .map((tag) => {
-            let y = tag.y;
+            let x = tag.x,
+              y = tag.y;
+            const own = tagBoxes.get(tag.id)!;
+            const other = [
+              ...tagBoxes.values(),
+            ].filter((b) => b !== own);
+            const overlaps = (p: typeof own) =>
+              Math.abs(p.x - x) * 2 <=
+                p.width + tag.width &&
+              Math.abs(p.y - y) * 2 <=
+                p.height + tag.height;
             while (
-              placed.some(
-                (p) =>
-                  Math.abs(p.x - tag.x) * 2 <=
-                    p.width + tag.width &&
-                  Math.abs(p.y - y) * 2 <=
-                    p.height + tag.height,
-              )
-            )
+              placed.some(overlaps) ||
+              other.some(overlaps)
+            ) {
               y -= 4;
-            placed.push({ ...tag, y });
+              if (
+                tag.y - y > 24 &&
+                other.some(overlaps)
+              ) {
+                y = own.y;
+                for (
+                  let offset =
+                    (own.width + tag.width) / 2 +
+                    6;
+                  ;
+                  offset += 8
+                ) {
+                  x = own.x + offset;
+                  if (
+                    !placed.some(overlaps) &&
+                    !other.some(overlaps)
+                  )
+                    break;
+                  x = own.x - offset;
+                  if (
+                    !placed.some(overlaps) &&
+                    !other.some(overlaps)
+                  )
+                    break;
+                }
+                break;
+              }
+            }
+            placed.push({ ...tag, x, y });
             return el(
               "g",
               [
@@ -2827,18 +2988,20 @@ export const drawFlow = (
                 a("data-node-caption", "tag"),
               ],
               [
-                ...(tag.y - y > 6
+                ...(x !== tag.x || tag.y - y > 6
                   ? [
                       el(
                         "line",
                         [
-                          a("x1", tag.x),
+                          a("x1", x),
                           a("x2", tag.x),
                           a("y1", y),
                           a(
                             "y2",
-                            tag.y +
-                              10 * tag.scale,
+                            x !== tag.x
+                              ? own.y
+                              : tag.y +
+                                  10 * tag.scale,
                           ),
                           a(
                             "stroke",
@@ -2854,7 +3017,7 @@ export const drawFlow = (
                   [
                     a(
                       "transform",
-                      `translate(${tag.x} ${y}) scale(${tag.scale})`,
+                      `translate(${x} ${y}) scale(${tag.scale})`,
                     ),
                   ],
                   [tag.html],

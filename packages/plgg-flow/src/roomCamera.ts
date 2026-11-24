@@ -1,3 +1,5 @@
+import { routeSpace } from "plgg-flow/space";
+import { quietEdge } from "plgg-flow/model";
 import {
   project,
   type Camera,
@@ -74,8 +76,19 @@ export const roomFaceView = (
     changed = true;
     return { ...n, quiet };
   });
+  const quietIds = new Set(
+    nodes.filter((n) => n.quiet).map((n) => n.id),
+  );
   return {
     ...flow,
+    ...(quietIds.size && {
+      edges: flow.edges.map((e) =>
+        quietIds.has(e.source) ||
+        quietIds.has(e.target)
+          ? quietEdge(e)
+          : e,
+      ),
+    }),
     camera,
     nodes: changed ? nodes : flow.nodes,
   };
@@ -140,7 +153,7 @@ export const movingRooms = (flow: Flow): Flow => {
     from.nodes.map((n) => [n.id, n.position]),
   );
   const rooms = to.rooms;
-  return roomFaceView({
+  const scene = {
     ...flow,
     camera,
     nodes: to.nodes.map((n) => ({
@@ -162,6 +175,20 @@ export const movingRooms = (flow: Flow): Flow => {
           };
         }),
       },
+    }),
+  };
+  if (!scene.rooms) return roomFaceView(scene);
+  const routes = routeSpace(
+    scene,
+    scene.rooms.rooms,
+  );
+  return roomFaceView({
+    ...scene,
+    edges: scene.edges.map((e, i) => {
+      const path = routes.get(e.id ?? i);
+      if (path) return { ...e, path };
+      const { path: old, ...rest } = e;
+      return old ? rest : e;
     }),
   });
 };

@@ -1,3 +1,4 @@
+import { filletPath } from "plgg-flow/path3";
 import {
   socketRegion,
   fixedCurve,
@@ -237,9 +238,114 @@ const trayEndpoints = (
   });
   return { labels, routed };
 };
+const spatialWires = new WeakMap<Edge, Wire>();
+const pathWire = (edge: Edge): Wire => {
+  const cached = spatialWires.get(edge);
+  if (cached) return cached;
+  const knots = edge.path!,
+    source = knots[0]!,
+    target = knots[knots.length - 1]!,
+    next = knots[1]!,
+    prev = knots[knots.length - 2]!;
+  const sourceSide = facing(
+      next.x - source.x,
+      next.y - source.y,
+    ),
+    targetSide = facing(
+      prev.x - target.x,
+      prev.y - target.y,
+    );
+  const points = filletPath(knots);
+  const wire = {
+    edge,
+    source,
+    target,
+    sourceSide,
+    targetSide,
+    points,
+    corners: knots.length - 2,
+    arrow: {
+      at: target,
+      toward: {
+        x: 2 * target.x - prev.x,
+        y: 2 * target.y - prev.y,
+        z: 2 * target.z - prev.z,
+      },
+    },
+  };
+  spatialWires.set(edge, wire);
+  return wire;
+};
+const planarWires = new WeakMap<
+  Edge,
+  {
+    source: FlowNode;
+    target: FlowNode;
+    wire: Wire;
+    clearance: number | undefined;
+    radius: number | undefined;
+  }
+>();
 export const wireGraph = (
   graph: Graph,
   options: WiringOptions = {},
+): readonly Wire[] => {
+  if (
+    !graph.edges.some(
+      (e) => (e.path?.length ?? 0) >= 2,
+    )
+  )
+    return planarGraph(graph, options);
+  const byId = new Map(
+    graph.nodes
+      .filter((n) => !n.hidden)
+      .map((n) => [n.id, n]),
+  );
+  const wires = new Map<Edge, Wire>();
+  const plain = graph.edges.filter((e) => {
+    if ((e.path?.length ?? 0) >= 2) return false;
+    const old = planarWires.get(e);
+    if (
+      options.draggedNode &&
+      old &&
+      old.clearance === options.clearance &&
+      old.radius === options.radius &&
+      old.source === byId.get(e.source) &&
+      old.target === byId.get(e.target)
+    ) {
+      wires.set(e, old.wire);
+      return false;
+    }
+    return true;
+  });
+  if (plain.length)
+    for (const w of planarGraph(
+      { ...graph, edges: plain },
+      options,
+    )) {
+      wires.set(w.edge, w);
+      planarWires.set(w.edge, {
+        source: byId.get(w.edge.source)!,
+        target: byId.get(w.edge.target)!,
+        wire: w,
+        clearance: options.clearance,
+        radius: options.radius,
+      });
+    }
+  return graph.edges.flatMap((e) => {
+    const a = byId.get(e.source),
+      b = byId.get(e.target);
+    if (e.hidden || !a || !b) return [];
+    const wire =
+      (e.path?.length ?? 0) >= 2
+        ? pathWire(e)
+        : wires.get(e);
+    return wire ? [wire] : [];
+  });
+};
+const planarGraph = (
+  graph: Graph,
+  options: WiringOptions,
 ): readonly Wire[] => {
   const clearance = Math.max(
       0,

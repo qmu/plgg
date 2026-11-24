@@ -332,12 +332,12 @@ test("named views draw the standard solid and dimension labels", () => {
         spaceScenery(flow.rooms!, state).every(
           (item) =>
             item.layer === "front" ||
-            item.layer === "behind",
+            item.layer === "behind" ||
+            (item.kind === "plane" &&
+              item.layer === "sorted"),
         ) &&
         html.indexOf('fill-opacity="0.14"') >=
           0 &&
-        html.lastIndexOf('fill-opacity="0.14"') <
-          html.indexOf("data-node=") &&
         !!faces(html) &&
         faces(html) === faces(ordinary) &&
         JSON.stringify(
@@ -645,10 +645,15 @@ test("quiet space wires gain ink on incident hover and selection", () => {
     /class="edge quiet-wire"[^>]*data-edge-index="0"/.test(
       renderToString(flowView(state)),
     );
+  const pinned = {
+    ...f,
+    roomPins: { env: "test" },
+  };
   return check(
-    quiet(f) &&
-      !quiet({ ...f, hoveredNode: "B" }) &&
-      !quiet(selectNodes(["A"])(f)),
+    !quiet(f) &&
+      quiet(pinned) &&
+      !quiet({ ...pinned, hoveredNode: "B" }) &&
+      !quiet(selectNodes(["A"])(pinned)),
     toBe(true),
   );
 });
