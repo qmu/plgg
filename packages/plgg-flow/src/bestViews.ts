@@ -247,7 +247,12 @@ export const bestViews = (
         4 * Math.max(0, 11 - captionHeight) ** 2;
       for (const f of coveredFractions(drawing))
         if (ids.has(f.id))
-          score += 5 * weight(f.id) * f.fraction;
+          // A node mostly behind another is lost to this view:
+          // that outweighs larger lettering.
+          score +=
+            weight(f.id) *
+            (5 * f.fraction +
+              (f.fraction > 0.5 ? 30 : 0));
       const crossings = new Set<string>();
       const fills = drawing.fills
         .filter((f) => f.style === "node")
