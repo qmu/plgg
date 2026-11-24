@@ -201,19 +201,26 @@ const axisLabels = (
       clear: boolean,
       halfSpan = 0,
     ) => {
+      const across = Math.abs(tx) > Math.abs(ty);
       const l = {
         axis,
         letter,
         x: p.x,
         y: p.y,
-        dx: clear ? tx * 12 : nx * 12,
-        dy: clear ? ty * 12 : ny * 12,
+        // An axis that runs across the sheet carries its name beside
+        // the tip, reading back along the axis, so it costs no width.
+        dx: clear && !across ? tx * 12 : nx * 12,
+        dy: clear && !across ? ty * 12 : ny * 12,
         anchor:
-          (clear ? tx : nx) < -0.25
-            ? "end"
-            : (clear ? tx : nx) > 0.25
-              ? "start"
-              : "middle",
+          clear && across
+            ? tx > 0
+              ? "end"
+              : "start"
+            : (clear ? tx : nx) < -0.25
+              ? "end"
+              : (clear ? tx : nx) > 0.25
+                ? "start"
+                : "middle",
         value,
         attribute: definition.attribute,
         clear,

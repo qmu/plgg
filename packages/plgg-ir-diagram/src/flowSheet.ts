@@ -120,7 +120,8 @@ export const fitDemo = (original: Flow): Flow => {
     },
   );
   const frame = frameOf(flow),
-    open = frame.x - (flow.cover ?? 0);
+    open = frame.x - (flow.cover ?? 0),
+    margin = 96;
   // A projected label scales with its edge, while its clearance and
   // glyphs stay in screen pixels. Fit both parts inside the open frame.
   const labels = flow.rooms
@@ -157,7 +158,11 @@ export const fitDemo = (original: Flow): Flow => {
             };
       }),
     ];
-    let scale = face ? 1.5 : 1;
+    let scale = face
+      ? 1.5
+      : flow.rooms
+        ? 1.25
+        : 1;
     for (const a of spans)
       for (const b of spans)
         if (b.at > a.at)
@@ -165,7 +170,7 @@ export const fitDemo = (original: Flow): Flow => {
             scale,
             Math.max(
               1,
-              available - 96 - b.hi + a.lo,
+              available - margin - b.hi + a.lo,
             ) /
               (b.at - a.at),
           );
@@ -227,8 +232,8 @@ export const fitDemo = (original: Flow): Flow => {
         y: (frame.y - top - bottom) / 2,
       };
       const ratio = Math.min(
-        (open - 96) / (right - left),
-        (frame.y - 96) / (bottom - top),
+        (open - margin) / (right - left),
+        (frame.y - margin) / (bottom - top),
       );
       if (ratio >= 1 - 1e-8 || i === 15) break;
       scale *= Math.max(0.1, ratio * 0.99);
