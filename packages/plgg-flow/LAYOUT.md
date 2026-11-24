@@ -1850,3 +1850,32 @@ To fix:
    the DSL overlay: the fit must include every label box.
 4. View search: a caption forced to a tag costs 2 per node (it
    picked a view along the service axis for rooms, all tags).
+
+## Shooting round 3 (four architectures read cold) — reviewer's score: cakes 78
+
+Front-rim drops adopted (space audit crossings 99 → 103, bends
+597 → 630, within the allowance). Read cold, without the intended
+sentence: TCP/IP — "everything comes down into IP and leaves to
+two links": plain now. データ基盤 — "three sources into one lake,
+out to three tables": plain. ネットワークのゾーン — "down through
+two firewalls; 管理 sits apart": plain. クリーンアーキテクチャ —
+"arrows only go down": readable. These are diagrams one could
+paste into a document.
+
+What still looks wrong:
+
+1. **A caption's clearance cuts its own box.** The "text has the
+   right of way" rule breaks the node's own outline where the
+   caption box touches it (gaps in the top edges of HTTP, DNS,
+   コントローラ…). A label never clears strokes of the thing it
+   names; and a face must be tall enough that its caption's box
+   (text + 2) lies inside the face at the fitted scale.
+2. **Front-rim drops take long detours** (DNS → UDP leaves far to
+   the left and comes back). Among the visible ways down — front
+   rim, left rim, a hole in front of the node rows — take the
+   shortest; the fixed order only breaks ties.
+3. **Boards are mostly empty**: nodes stand in the back-left
+   third, the rest of the board is bare. The footprint is the
+   nodes' bounds plus 32 and the aisles in use, the same for all
+   boards, the nodes centred on it. A smaller board is a larger
+   drawing.
