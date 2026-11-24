@@ -323,6 +323,11 @@ test("clear lettering leaves a two pixel margin in a crossing stroke", () => {
           style: "ink",
           points: [p(-12, -4, 4), p(20, -4, 4)],
         },
+        {
+          id: "text",
+          style: "outline",
+          points: [p(-12, -8, 4), p(20, -8, 4)],
+        },
       ],
     },
     camera,
@@ -331,7 +336,7 @@ test("clear lettering leaves a two pixel margin in a crossing stroke", () => {
   return check(
     drawing.strokes
       .map((s) => s.points.map((q) => q.x).join())
-      .join("|") === "-12,-2|10,20",
+      .join("|") === "-12,-2|10,20|-12,20",
     toBe(true),
   );
 });

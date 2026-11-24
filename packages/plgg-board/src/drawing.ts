@@ -150,7 +150,8 @@ export const clearLabelStrokes = (
 ) => {
   const labels = painted
     .filter((l) => l.clear)
-    .map(({ box: b }) => ({
+    .map(({ id, box: b }) => ({
+      id,
       box: {
         left: b.left - 2,
         right: b.right + 2,
@@ -177,7 +178,8 @@ export const clearLabelStrokes = (
       dx = b.x - a.x,
       dy = b.y - a.y;
     const cuts: Interval[] = [];
-    query(segmentBounds(a, b), ({ box }) => {
+    query(segmentBounds(a, b), ({ id, box }) => {
+      if (id === s.id) return;
       let lo = 0,
         hi = 1;
       for (const [start, delta, min, max] of [

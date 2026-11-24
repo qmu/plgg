@@ -8,6 +8,7 @@ import type {
   View,
   Role,
 } from "plgg-flow/spaceView";
+import { bodyDepth } from "plgg-flow/nodeBody";
 import { nodeSize } from "plgg-flow/nodeSize";
 
 const round = (n: number) =>
@@ -33,7 +34,7 @@ export const planSpace = (
       cake ? 144 : 256,
     ),
     z: values("z").map((): number =>
-      cake ? 160 : 176,
+      cake ? 64 : 176,
     ),
   };
   const index = (address: number[], role: Role) =>
@@ -136,7 +137,8 @@ export const planSpace = (
         : Math.floor(t / count);
       rows.set(col, row + 1);
       const left = (cake ? 32 : 16) + pitch * col;
-      const z = 32 + 80 * row;
+      const z =
+        32 + (cake ? bodyDepth(n) : 0) + 80 * row;
       local.set(n.id, {
         x: left + width / 2,
         y: (cake ? 0 : 16) + height / 2,
@@ -145,15 +147,16 @@ export const planSpace = (
 
       spans.x[i] = Math.max(
         spans.x[i]!,
-        cake
-          ? round(left + width + 32)
-          : left + pitch,
+        cake ? left + width + 32 : left + pitch,
       );
       spans.y[j] = Math.max(
         spans.y[j]!,
         round(height) + 32,
       );
-      spans.z[k] = Math.max(spans.z[k]!, z + 32);
+      spans.z[k] = Math.max(
+        spans.z[k]!,
+        z + 32 + (cake ? bodyDepth(n) : 0),
+      );
     });
   }
   // Wider boards need more headroom for a wire to reach the rim
@@ -239,16 +242,19 @@ export const planSpace = (
               spans.x[i]!,
             ),
             z: middle(
-              placed.map((q) => q.p.z),
-              placed.map((q) => q.p.z),
+              placed.map(
+                (q) =>
+                  q.p.z -
+                  (cake ? bodyDepth(q.n) : 0),
+              ),
+              placed.map(
+                (q) =>
+                  q.p.z +
+                  (cake ? bodyDepth(q.n) : 0),
+              ),
               spans.z[k]!,
             ),
           };
-          // Keep the same slot grid across an aisle, even when a cell is sparse.
-          if (cake) {
-            shift.x = 0;
-            shift.z = 0;
-          }
           if (view.z) {
             const pitch = pitches[i]!;
             // Reserve the widest occupant of an exchangeable slot.

@@ -204,8 +204,10 @@ export const routeAssignment = (
       }
       return line;
     };
+    const drop = stack && a.p.y !== b.p.y;
+    const bendCost = drop ? 0.0001 : 10000;
     const scorePath = (path: Point3[]) => {
-      let score = (path.length - 2) * 10000;
+      let score = (path.length - 2) * bendCost;
       let length = 0;
       if (score >= cost) return;
       for (let j = 1; j < path.length; j++) {
@@ -240,7 +242,8 @@ export const routeAssignment = (
                     start.x < stack.max.x
                   ? 2
                   : 3;
-          score += rank * 60000;
+          score +=
+            rank === 3 ? 180000 : rank * 0.001;
         }
         const lo = Math.min(start[k], end[k]),
           hi = Math.max(start[k], end[k]);
@@ -311,7 +314,7 @@ export const routeAssignment = (
       }
       if (
         path.length < 2 ||
-        (path.length - 2) * 10000 >= cost
+        (path.length - 2) * bendCost >= cost
       )
         return;
       for (const index of [0, path.length - 1]) {
@@ -424,13 +427,7 @@ export const routeAssignment = (
           }
       }
     }
-    if (
-      !best ||
-      cost >=
-        (stack && a.p.y !== b.p.y
-          ? 30000
-          : 1000000)
-    )
+    if (!best || drop || cost >= 1000000)
       candidates(a.p, b.p, true);
     if (stack && a.p.y !== b.p.y && !best) {
       for (const k of ["x", "z"] satisfies (

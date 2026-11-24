@@ -6,6 +6,7 @@ import {
   clearLabelStrokes,
   pick,
   facingXYPlane,
+  project,
   type Solid,
   type Sheet,
   type Line,
@@ -320,6 +321,7 @@ export const engineView = (
     tagged.get(flow.nodes),
   );
   tagged.set(flow.nodes, upright);
+  const at = project(camera);
   for (const n of nodes) {
     const id = "node:" + n.id,
       size = nodeSize(n),
@@ -389,7 +391,44 @@ export const engineView = (
       ...p,
       z: tray ? p.z : p.z + sign * d,
     };
-    const tag = !tray && upright;
+    const fitsFace = () => {
+      const centre = at(face);
+      const corner = (x: number, y: number) =>
+        at({
+          x: face.x + sign * x,
+          y: face.y + y,
+          z: face.z,
+        });
+      const u = corner(1, 0),
+        v = corner(0, 1);
+      const w = size.width / 2,
+        h = size.height / 2;
+      const corners = [
+        corner(-w, -h),
+        corner(w, -h),
+        corner(w, h),
+        corner(-w, h),
+      ];
+      return corners.every((p, i) => {
+        const q = corners[(i + 1) % 4]!;
+        const nx = q.y - p.y,
+          ny = p.x - q.x;
+        // Compare the face edge with the transformed text rectangle
+        // and its two screen pixels of clearance on each side.
+        const alongNormal = (q: Point) =>
+          Math.abs(
+            nx * (q.x - centre.x) +
+              ny * (q.y - centre.y),
+          );
+        return (
+          alongNormal(p) >=
+          (alongNormal(u) * width) / 2 +
+            alongNormal(v) * 8 +
+            2 * (Math.abs(nx) + Math.abs(ny))
+        );
+      });
+    };
+    const tag = !tray && (upright || !fitsFace());
     const eye = {
       x:
         -Math.sin(camera.yaw) *
