@@ -1,40 +1,40 @@
 ---
 layout: sheet
-description: 軸の値をクリックすると、その区画が浮かびます。⌘（Ctrl）＋ドラッグで回せます。
+description: 同じ通販サイトを、サービス・層・環境の3つの軸で分けています。軸の値をクリックすると、その区画が浮かびます。
 ---
 
 # 部屋に分ける
 
 ```plgg-flow fill dsl
 layout rooms
-axis x 層 入口 処理 保存
-axis y 担当 顧客 注文 基盤
-axis z 環境 本番 検証
-node Web 層=入口 担当=顧客 環境=本番
-node Preview 層=入口 担当=顧客 環境=検証
-node Gateway 層=入口 担当=基盤 環境=本番
-node Checkout 層=入口 担当=注文 環境=本番
-node Auth 層=処理 担当=顧客 環境=本番
-node Orders 層=処理 担当=注文 環境=本番
-node Payments 層=処理 担当=注文 環境=本番
-node Sandbox 層=処理 担当=注文 環境=検証
-node Monitor 層=処理 担当=基盤 環境=本番
-node Users 層=保存 担当=顧客 環境=本番
-node Ledger 層=保存 担当=注文 環境=本番
-node Fixtures 層=保存 担当=注文 環境=検証
-node Logs 層=保存 担当=基盤 環境=本番
-node Trace 層=保存 担当=基盤 環境=検証
-Web -> Gateway
-Checkout -> Gateway
-Gateway -> Auth
-Gateway -> Orders
-Auth -> Users
-Orders -> Payments
-Payments -> Ledger
-Orders -> Monitor
-Monitor -> Logs
-Preview -> Sandbox
-Sandbox -> Fixtures
-Sandbox -> Trace
-Trace -> Logs
+axis サービス 会員 注文 決済
+axis 層 画面 処理 永続化
+axis 環境 本番 検証
+view x=サービス y=層 z=環境
+node 会員画面 サービス=会員 層=画面 環境=本番
+node 会員API サービス=会員 層=処理 環境=本番
+node 会員DB サービス=会員 層=永続化 環境=本番
+node 注文画面 サービス=注文 層=画面 環境=本番
+node 注文API サービス=注文 層=処理 環境=本番
+node 注文DB サービス=注文 層=永続化 環境=本番
+node 決済API サービス=決済 層=処理 環境=本番
+node 決済履歴 サービス=決済 層=永続化 環境=本番
+node 会員画面(検証) サービス=会員 層=画面 環境=検証
+node 会員API(検証) サービス=会員 層=処理 環境=検証
+node 会員DB(検証) サービス=会員 層=永続化 環境=検証
+node 注文画面(検証) サービス=注文 層=画面 環境=検証
+node 注文API(検証) サービス=注文 層=処理 環境=検証
+node 注文DB(検証) サービス=注文 層=永続化 環境=検証
+会員画面 -> 会員API
+会員API -> 会員DB
+注文画面 -> 注文API
+注文API -> 注文DB
+注文API -> 会員API
+注文API -> 決済API
+決済API -> 決済履歴
+会員画面(検証) -> 会員API(検証)
+会員API(検証) -> 会員DB(検証)
+注文画面(検証) -> 注文API(検証)
+注文API(検証) -> 注文DB(検証)
+注文API(検証) -> 会員API(検証)
 ```

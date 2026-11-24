@@ -126,105 +126,120 @@ DB -> Catalog
   demo(
     "layers",
     "レイヤーに分ける",
-    "軸を1つ足すと、ノードが層ごとの面に乗ります。",
+    "通販サイトの3層です。軸を1つ足すと、ノードが層ごとの板に乗ります。",
     `layout layered down
-axis 層 画面 業務 データ
-node Web 層=画面
-node Mobile 層=画面
-node Checkout 層=画面
-node Auth 層=業務
-node Orders 層=業務
-node Catalog 層=業務
-node Payments 層=業務
-node Users 層=データ
-node Stock 層=データ
-node Ledger 層=データ
-Web -> Checkout
-Mobile -> Checkout
-Checkout -> Auth
-Checkout -> Catalog
-Checkout -> Orders
-Auth -> Orders
-Catalog -> Orders
-Orders -> Payments
-Auth -> Users
-Catalog -> Stock
-Orders -> Stock
-Payments -> Ledger
+axis 層 画面 処理 永続化
+node 商品ページ 層=画面
+node カート 層=画面
+node 注文フォーム 層=画面
+node 認証 層=処理
+node 在庫引当 層=処理
+node 注文受付 層=処理
+node 決済 層=処理
+node 会員DB 層=永続化
+node 在庫DB 層=永続化
+node 注文DB 層=永続化
+node 決済履歴 層=永続化
+商品ページ -> カート
+カート -> 注文フォーム
+カート -> 在庫引当
+注文フォーム -> 認証
+注文フォーム -> 注文受付
+注文受付 -> 在庫引当
+注文受付 -> 決済
+認証 -> 会員DB
+在庫引当 -> 在庫DB
+注文受付 -> 注文DB
+決済 -> 決済履歴
 `,
   ),
   demo(
     "rooms",
     "部屋に分ける",
-    "軸の値をクリックすると、その区画が浮かびます。⌘（Ctrl）＋ドラッグで回せます。",
+    "同じ通販サイトを、サービス・層・環境の3つの軸で分けています。軸の値をクリックすると、その区画が浮かびます。",
     `layout rooms
-axis 層 入口 処理 保存
-axis 担当 顧客 注文 基盤
+axis サービス 会員 注文 決済
+axis 層 画面 処理 永続化
 axis 環境 本番 検証
-node Web 層=入口 担当=顧客 環境=本番
-node Preview 層=入口 担当=顧客 環境=検証
-node Gateway 層=入口 担当=基盤 環境=本番
-node Checkout 層=入口 担当=注文 環境=本番
-node Auth 層=処理 担当=顧客 環境=本番
-node Orders 層=処理 担当=注文 環境=本番
-node Payments 層=処理 担当=注文 環境=本番
-node Sandbox 層=処理 担当=注文 環境=検証
-node Monitor 層=処理 担当=基盤 環境=本番
-node Users 層=保存 担当=顧客 環境=本番
-node Ledger 層=保存 担当=注文 環境=本番
-node Fixtures 層=保存 担当=注文 環境=検証
-node Logs 層=保存 担当=基盤 環境=本番
-node Trace 層=保存 担当=基盤 環境=検証
-Web -> Gateway
-Checkout -> Gateway
-Gateway -> Auth
-Gateway -> Orders
-Auth -> Users
-Orders -> Payments
-Payments -> Ledger
-Orders -> Monitor
-Monitor -> Logs
-Preview -> Sandbox
-Sandbox -> Fixtures
-Sandbox -> Trace
-Trace -> Logs`,
+view x=サービス y=層 z=環境
+node 会員画面 サービス=会員 層=画面 環境=本番
+node 会員API サービス=会員 層=処理 環境=本番
+node 会員DB サービス=会員 層=永続化 環境=本番
+node 注文画面 サービス=注文 層=画面 環境=本番
+node 注文API サービス=注文 層=処理 環境=本番
+node 注文DB サービス=注文 層=永続化 環境=本番
+node 決済API サービス=決済 層=処理 環境=本番
+node 決済履歴 サービス=決済 層=永続化 環境=本番
+node 会員画面(検証) サービス=会員 層=画面 環境=検証
+node 会員API(検証) サービス=会員 層=処理 環境=検証
+node 会員DB(検証) サービス=会員 層=永続化 環境=検証
+node 注文画面(検証) サービス=注文 層=画面 環境=検証
+node 注文API(検証) サービス=注文 層=処理 環境=検証
+node 注文DB(検証) サービス=注文 層=永続化 環境=検証
+会員画面 -> 会員API
+会員API -> 会員DB
+注文画面 -> 注文API
+注文API -> 注文DB
+注文API -> 会員API
+注文API -> 決済API
+決済API -> 決済履歴
+会員画面(検証) -> 会員API(検証)
+会員API(検証) -> 会員DB(検証)
+注文画面(検証) -> 注文API(検証)
+注文API(検証) -> 注文DB(検証)
+注文API(検証) -> 会員API(検証)
+`,
   ),
   demo(
     "dimensions",
     "次元を足す",
-    "4つ目の軸は、空間そのものを並べて見せます。",
+    "4つ目の軸（地域）は、空間そのものを並べて見せます。",
     `layout rooms
-axis 層 入口 処理 保存
-axis 担当 顧客 注文 基盤
+axis サービス 会員 注文 決済
+axis 層 画面 処理 永続化
 axis 環境 本番 検証
 axis 地域 東京 大阪
-node Web 層=入口 担当=顧客 環境=本番 地域=東京
-node Preview 層=入口 担当=顧客 環境=検証 地域=大阪
-node Gateway 層=入口 担当=基盤 環境=本番 地域=東京
-node Checkout 層=入口 担当=注文 環境=本番 地域=大阪
-node Auth 層=処理 担当=顧客 環境=本番 地域=東京
-node Orders 層=処理 担当=注文 環境=本番 地域=東京
-node Payments 層=処理 担当=注文 環境=本番 地域=大阪
-node Sandbox 層=処理 担当=注文 環境=検証 地域=大阪
-node Monitor 層=処理 担当=基盤 環境=本番 地域=東京
-node Users 層=保存 担当=顧客 環境=本番 地域=東京
-node Ledger 層=保存 担当=注文 環境=本番 地域=大阪
-node Fixtures 層=保存 担当=注文 環境=検証 地域=大阪
-node Logs 層=保存 担当=基盤 環境=本番 地域=東京
-node Trace 層=保存 担当=基盤 環境=検証 地域=大阪
-Web -> Gateway
-Checkout -> Gateway
-Gateway -> Auth
-Gateway -> Orders
-Auth -> Users
-Orders -> Payments
-Payments -> Ledger
-Orders -> Monitor
-Monitor -> Logs
-Preview -> Sandbox
-Sandbox -> Fixtures
-Sandbox -> Trace
-Trace -> Logs`,
+view x=サービス y=層 z=環境 column=地域
+node 会員画面 サービス=会員 層=画面 環境=本番 地域=東京
+node 会員API サービス=会員 層=処理 環境=本番 地域=東京
+node 会員DB サービス=会員 層=永続化 環境=本番 地域=東京
+node 注文画面 サービス=注文 層=画面 環境=本番 地域=東京
+node 注文API サービス=注文 層=処理 環境=本番 地域=東京
+node 注文DB サービス=注文 層=永続化 環境=本番 地域=東京
+node 決済API サービス=決済 層=処理 環境=本番 地域=東京
+node 決済履歴 サービス=決済 層=永続化 環境=本番 地域=東京
+node 会員画面(検証) サービス=会員 層=画面 環境=検証 地域=東京
+node 会員API(検証) サービス=会員 層=処理 環境=検証 地域=東京
+node 会員DB(検証) サービス=会員 層=永続化 環境=検証 地域=東京
+node 注文画面(検証) サービス=注文 層=画面 環境=検証 地域=東京
+node 注文API(検証) サービス=注文 層=処理 環境=検証 地域=東京
+node 注文DB(検証) サービス=注文 層=永続化 環境=検証 地域=東京
+node 会員画面(大阪) サービス=会員 層=画面 環境=本番 地域=大阪
+node 会員API(大阪) サービス=会員 層=処理 環境=本番 地域=大阪
+node 会員DB(大阪) サービス=会員 層=永続化 環境=本番 地域=大阪
+node 注文画面(大阪) サービス=注文 層=画面 環境=本番 地域=大阪
+node 注文API(大阪) サービス=注文 層=処理 環境=本番 地域=大阪
+node 注文DB(大阪) サービス=注文 層=永続化 環境=本番 地域=大阪
+会員画面 -> 会員API
+会員API -> 会員DB
+注文画面 -> 注文API
+注文API -> 注文DB
+注文API -> 会員API
+注文API -> 決済API
+決済API -> 決済履歴
+会員画面(検証) -> 会員API(検証)
+会員API(検証) -> 会員DB(検証)
+注文画面(検証) -> 注文API(検証)
+注文API(検証) -> 注文DB(検証)
+注文API(検証) -> 会員API(検証)
+会員画面(大阪) -> 会員API(大阪)
+会員API(大阪) -> 会員DB(大阪)
+注文画面(大阪) -> 注文API(大阪)
+注文API(大阪) -> 注文DB(大阪)
+注文API(大阪) -> 会員API(大阪)
+会員DB -> 会員DB(大阪)
+注文DB -> 注文DB(大阪)
+`,
   ),
   demo(
     "split",

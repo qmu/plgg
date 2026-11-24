@@ -1,41 +1,54 @@
 ---
 layout: sheet
-description: 4つ目の軸は、空間そのものを並べて見せます。
+description: 4つ目の軸（地域）は、空間そのものを並べて見せます。
 ---
 
 # 次元を足す
 
 ```plgg-flow fill dsl
 layout rooms
-axis 層 入口 処理 保存
-axis 担当 顧客 注文 基盤
+axis サービス 会員 注文 決済
+axis 層 画面 処理 永続化
 axis 環境 本番 検証
 axis 地域 東京 大阪
-node Web 層=入口 担当=顧客 環境=本番 地域=東京
-node Preview 層=入口 担当=顧客 環境=検証 地域=大阪
-node Gateway 層=入口 担当=基盤 環境=本番 地域=東京
-node Checkout 層=入口 担当=注文 環境=本番 地域=大阪
-node Auth 層=処理 担当=顧客 環境=本番 地域=東京
-node Orders 層=処理 担当=注文 環境=本番 地域=東京
-node Payments 層=処理 担当=注文 環境=本番 地域=大阪
-node Sandbox 層=処理 担当=注文 環境=検証 地域=大阪
-node Monitor 層=処理 担当=基盤 環境=本番 地域=東京
-node Users 層=保存 担当=顧客 環境=本番 地域=東京
-node Ledger 層=保存 担当=注文 環境=本番 地域=大阪
-node Fixtures 層=保存 担当=注文 環境=検証 地域=大阪
-node Logs 層=保存 担当=基盤 環境=本番 地域=東京
-node Trace 層=保存 担当=基盤 環境=検証 地域=大阪
-Web -> Gateway
-Checkout -> Gateway
-Gateway -> Auth
-Gateway -> Orders
-Auth -> Users
-Orders -> Payments
-Payments -> Ledger
-Orders -> Monitor
-Monitor -> Logs
-Preview -> Sandbox
-Sandbox -> Fixtures
-Sandbox -> Trace
-Trace -> Logs
+view x=サービス y=層 z=環境 column=地域
+node 会員画面 サービス=会員 層=画面 環境=本番 地域=東京
+node 会員API サービス=会員 層=処理 環境=本番 地域=東京
+node 会員DB サービス=会員 層=永続化 環境=本番 地域=東京
+node 注文画面 サービス=注文 層=画面 環境=本番 地域=東京
+node 注文API サービス=注文 層=処理 環境=本番 地域=東京
+node 注文DB サービス=注文 層=永続化 環境=本番 地域=東京
+node 決済API サービス=決済 層=処理 環境=本番 地域=東京
+node 決済履歴 サービス=決済 層=永続化 環境=本番 地域=東京
+node 会員画面(検証) サービス=会員 層=画面 環境=検証 地域=東京
+node 会員API(検証) サービス=会員 層=処理 環境=検証 地域=東京
+node 会員DB(検証) サービス=会員 層=永続化 環境=検証 地域=東京
+node 注文画面(検証) サービス=注文 層=画面 環境=検証 地域=東京
+node 注文API(検証) サービス=注文 層=処理 環境=検証 地域=東京
+node 注文DB(検証) サービス=注文 層=永続化 環境=検証 地域=東京
+node 会員画面(大阪) サービス=会員 層=画面 環境=本番 地域=大阪
+node 会員API(大阪) サービス=会員 層=処理 環境=本番 地域=大阪
+node 会員DB(大阪) サービス=会員 層=永続化 環境=本番 地域=大阪
+node 注文画面(大阪) サービス=注文 層=画面 環境=本番 地域=大阪
+node 注文API(大阪) サービス=注文 層=処理 環境=本番 地域=大阪
+node 注文DB(大阪) サービス=注文 層=永続化 環境=本番 地域=大阪
+会員画面 -> 会員API
+会員API -> 会員DB
+注文画面 -> 注文API
+注文API -> 注文DB
+注文API -> 会員API
+注文API -> 決済API
+決済API -> 決済履歴
+会員画面(検証) -> 会員API(検証)
+会員API(検証) -> 会員DB(検証)
+注文画面(検証) -> 注文API(検証)
+注文API(検証) -> 注文DB(検証)
+注文API(検証) -> 会員API(検証)
+会員画面(大阪) -> 会員API(大阪)
+会員API(大阪) -> 会員DB(大阪)
+注文画面(大阪) -> 注文API(大阪)
+注文API(大阪) -> 注文DB(大阪)
+注文API(大阪) -> 会員API(大阪)
+会員DB -> 会員DB(大阪)
+注文DB -> 注文DB(大阪)
 ```

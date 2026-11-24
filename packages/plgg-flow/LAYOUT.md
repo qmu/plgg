@@ -1767,3 +1767,33 @@ camera, the way axis values already are:
 Specs: at the four named views and 12 turned ones no board name
 meets a node box, another name, or a board polygon; names share
 one candidate index wherever a clean common one exists.
+
+## Parity, solid nodes, clear names, embracing axes — review, adopted; real samples in
+
+Checked in the browser: on 「立体交差」 a selected node shows its
+four dots again and the grid is back; 「自動配置」 is a third
+shorter (return-wire gap 192 → 128) and its text is larger.
+Audits: engine 0/0, space 0/0 (crossings 179 → 112), layout 0/0.
+
+The three space samples are now a real system (owner: "the example
+does not click at all — a real multi-layer architecture"): the
+cake is a shop's three tiers (画面 / 処理 / 永続化), rooms is the
+same shop by サービス × 層 × 環境, dimensions adds 地域. Nine
+architectures and ten subjects are in `subjects/`.
+
+With Japanese names, seen:
+
+1. **Captions come out two ways on one sheet** — some on the face
+   in a shrunken font (商品ページ), most as tags floating above
+   small boxes. A node's box must be wide enough for its caption
+   at 13px (full-width glyphs are 13 wide, not 7), on every sheet;
+   then the face rule decides alike for all nodes at one camera.
+2. **The world grid is drawn across space sheets**, tilted, behind
+   and through the boards. A cake or a rooms block has its own
+   ground (boards, floors): no world grid there. Plain 3D sheets
+   keep it.
+3. **Rooms stack bottom-up** (永続化 on top, 画面 at the bottom).
+   The first-written value of the storey axis is the top storey,
+   as on a cake and as one reads a layered architecture.
+4. Board names still at a fixed corner (the "placed by
+   calculation" section is not yet implemented).
