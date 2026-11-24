@@ -1348,3 +1348,19 @@ reading without the loops, for the owner to choose:
    another side only if that side faces the source within 45° (a
    diagonal neighbour); otherwise as in 1.
 3. The strict rule, accepting the loops.
+
+## Round 32 — arrivals land beside the dot (option 1, the default the reviewer announced)
+
+On a side that sends, the dot stays at the side's centre and is where
+wires leave. A wire **arriving** on such a side ends 8u from the
+centre along the side, on the half toward its source (for a source
+dead ahead: the half with fewer arrivals, ties to the top / left).
+Several arrivals on one half share that point, as arrivals share a
+socket today; the arrowhead stays perpendicular to the side. A side
+that only receives is unchanged: arrivals at its centre, no dot.
+
+Nothing else moves: sides are chosen as in round 30. The canonical
+cubic simply ends at the shifted point. The audit: `arrow-on-dot`
+(an arrival within 6u of a sending side's centre; 176 today) must be
+0, `arrival-too-far-from-dot` 0, and every other count no worse than
+today (sev3 0; moderate without `arrow-on-dot` 80; drag 4 + 12).

@@ -93,6 +93,9 @@ const audit = (g, wires, style) => {
   if (wires.length !== g.edges.length) add(3, "missing", null, `${wires.length}/${g.edges.length} wires`);
   const R = wires.map((w) => resample(w.points.map((p) => ({ x: p.x, y: p.y }))));
   const stemFree = (p, w) => Math.hypot(p.x - w.source.x, p.y - w.source.y) > 22 && Math.hypot(p.x - w.target.x, p.y - w.target.y) > 22;
+  // sides that send a wire: on these the dot sits at the centre and arrivals land beside it
+  const sideKey = (m, p) => { const q = box(m); return m.id + ":" + (Math.abs(p.x - q.l) < 1.5 ? "L" : Math.abs(p.x - q.r) < 1.5 ? "R" : Math.abs(p.y - q.t) < 1.5 ? "T" : "B"); };
+  const sending = new Set(wires.filter((w) => w.edge.source !== w.edge.target).map((w) => sideKey(by.get(w.edge.source), w.source)));
   let crossings = 0;
   wires.forEach((w, i) => {
     const pts = w.points, r = R[i]; if (pts.length < 2) return add(3, "empty", w, "");
@@ -106,8 +109,12 @@ const audit = (g, wires, style) => {
     for (const [q, m, end, other, nm] of [[sb, s, pts[0], t, "start"], [tb, t, pts[pts.length - 1], s, "end"]]) {
       const cx = (q.l + q.r) / 2, cy = (q.t + q.b) / 2;
       const onV = Math.abs(end.x - q.l) < 1.5 || Math.abs(end.x - q.r) < 1.5, onH = Math.abs(end.y - q.t) < 1.5 || Math.abs(end.y - q.b) < 1.5;
-      const centred = (onV && Math.abs(end.y - cy) < 1.5) || (onH && Math.abs(end.x - cx) < 1.5);
-      if (!centred) add(2, "socket-off-centre-" + nm, w, "");
+      const off = onV ? Math.abs(end.y - cy) : onH ? Math.abs(end.x - cx) : 99;
+      const centred = off < 1.5;
+      // an arrival on a side that also sends lands beside the dot (8u), never on it
+      const beside = nm === "end" && s.id !== t.id && sending.has(sideKey(m, end));
+      if (beside ? off < 6 : !centred) add(2, beside ? "arrow-on-dot" : "socket-off-centre-" + nm, w, beside ? "arrives on a start; it should land 8u beside the dot" : "");
+      else if (beside && off > 10) add(2, "arrival-too-far-from-dot", w, off.toFixed(0) + "u");
       if (s.id !== t.id) { const nx = end.x - cx, ny = end.y - cy, tx = other.position.x - cx, ty = other.position.y - cy; const cos = (nx * tx + ny * ty) / ((Math.hypot(nx, ny) || 1) * (Math.hypot(tx, ty) || 1)); if (cos < -0.3) add(2, "side-faces-away-" + nm, w, cos.toFixed(2)); }
     }
     // foreign nodes
@@ -188,11 +195,7 @@ const audit = (g, wires, style) => {
   // a socket that both receives and sends makes direction unreadable
   { const use = new Map(); const key = (m, p) => { const q = box(m); return m.id + ":" + (Math.abs(p.x - q.l) < 1.5 ? "L" : Math.abs(p.x - q.r) < 1.5 ? "R" : Math.abs(p.y - q.t) < 1.5 ? "T" : "B"); };
     wires.forEach((w) => { if (w.edge.source === w.edge.target) return; const a = key(by.get(w.edge.source), w.source), b = key(by.get(w.edge.target), w.target); use.set(a, (use.get(a) ?? 0) | 1); use.set(b, (use.get(b) ?? 0) | 2); });
-    // (owner, 2026-11-24) a side that sends is a start; arrows arrive on one of the other three. Mixing is only excused when no other side can take the arrow: every other side sends too, faces away from where the arrow comes from, or is walled in by a neighbouring node.
-    const outs = new Map(); wires.forEach((w) => { if (w.edge.source === w.edge.target) return; const [id, sd] = key(by.get(w.edge.source), w.source).split(":"); (outs.get(id) ?? outs.set(id, new Set()).get(id)).add(sd); });
-    const NN = { L: [-1, 0], R: [1, 0], T: [0, -1], B: [0, 1] };
-    const walled = (m, sd) => { const q = box(m), z = sd === "L" ? { l: q.l - 24, r: q.l, t: q.t, b: q.b } : sd === "R" ? { l: q.r, r: q.r + 24, t: q.t, b: q.b } : sd === "T" ? { l: q.l, r: q.r, t: q.t - 24, b: q.t } : { l: q.l, r: q.r, t: q.b, b: q.b + 24 }; return g.nodes.some((x) => { if (x.id === m.id || x.group) return false; const o2 = box(x); return o2.l < z.r && o2.r > z.l && o2.t < z.b && o2.b > z.t; }); };
-    for (const [k, v] of use) { if (v !== 3) continue; const [id, sd] = k.split(":"), m = by.get(id); const avoidable = wires.some((w) => { if (w.edge.target !== id || w.edge.source === id || key(m, w.target) !== k) return false; const o2 = by.get(w.edge.source), dx = o2.position.x - m.position.x, dy = o2.position.y - m.position.y, l = Math.hypot(dx, dy) || 1; return ["L", "R", "T", "B"].some((c) => c !== sd && !outs.get(id)?.has(c) && (NN[c][0] * dx + NN[c][1] * dy) / l >= -0.2 && !walled(m, c)); }); add(avoidable ? 2 : 1, "mixed-socket", null, k + (avoidable ? " — another side could take the arrow" : "")); } }
+    for (const [k, v] of use) if (v === 3) add(1, "mixed-socket", null, k); }
   // baseline crossings: straight centre-to-centre lines
   let base = 0; const C = g.edges.map((x) => [by.get(x.source).position, by.get(x.target).position]);
   for (let i = 0; i < C.length; i++) for (let j = i + 1; j < C.length; j++) if (g.edges[i].source !== g.edges[j].source && g.edges[i].target !== g.edges[j].target && g.edges[i].source !== g.edges[j].target && g.edges[i].target !== g.edges[j].source && segX(C[i][0], C[i][1], C[j][0], C[j][1])) base++;
