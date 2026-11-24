@@ -23,7 +23,8 @@ import {
   defaultView,
   planSpace,
 } from "plgg-flow/autoLayout";
-import type { Graph } from "./model";
+import type { Point3 } from "plgg-board";
+import type { Graph, FlowNode } from "./model";
 const graph: Graph = {
   nodes: Array.from({ length: 40 }, (_, i) => ({
     id: String(i),
@@ -222,6 +223,26 @@ const inspectRoutes = (
     occupied.push(...runs);
     const first = path[0]!,
       last = path[path.length - 1]!;
+    for (const [node, tip, next] of [
+      [byId.get(edge.source)!, first, path[1]!],
+      [
+        byId.get(edge.target)!,
+        last,
+        path[path.length - 2]!,
+      ],
+    ] satisfies [FlowNode, Point3, Point3][]) {
+      if (
+        tip.z !== node.position.z ||
+        next.z !== tip.z ||
+        Math.hypot(
+          next.x - tip.x,
+          next.y - tip.y,
+        ) < 16
+      )
+        throw Error(
+          "invalid flank approach " + node.id,
+        );
+    }
     const manhattan =
       Math.abs(first.x - last.x) +
       Math.abs(first.y - last.y) +
@@ -300,8 +321,8 @@ const inspectRoutes = (
             p.y + s.height / 2 + 6 &&
           Math.max(a.y, b.y) >
             p.y - s.height / 2 - 6 &&
-          Math.min(a.z, b.z) < p.z + depth + 6 &&
-          Math.max(a.z, b.z) > p.z - depth - 6
+          Math.min(a.z, b.z) < p.z + depth + 30 &&
+          Math.max(a.z, b.z) > p.z - depth - 30
         )
           throw Error(
             edge.source +

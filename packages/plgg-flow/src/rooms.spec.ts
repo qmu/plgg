@@ -701,3 +701,18 @@ test("an unpinned space clears hover emphasis and draws the stage with the engin
     toBe(true),
   );
 });
+
+test("room storeys receive node shadows and never cast a storey shadow", () => {
+  const f = viewAt(0.6, -0.5)(read(sheet));
+  const html = renderToString(
+    drawFlow({
+      ...f,
+      scenery: spaceScenery(f.rooms!, f),
+    }),
+  );
+  return check(
+    html.includes('class="node shadow"') &&
+      !html.includes('class="board shadow"'),
+    toBe(true),
+  );
+});

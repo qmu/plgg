@@ -3,6 +3,7 @@ import {
   slab,
   render,
   strokePath,
+  clearLabelStrokes,
   project,
   projectedScale,
   pick,
@@ -43,10 +44,7 @@ import {
   type Wire,
   type Side,
 } from "plgg-flow/wiring";
-import {
-  portsFor,
-  type Port,
-} from "plgg-flow/connections";
+import { type Port } from "plgg-flow/connections";
 
 const off = (p: Point3) => p.z !== 0;
 export const spatialDrawing = (
@@ -74,9 +72,9 @@ export const spatialDrawing = (
                 )),
       ),
   );
-type Target = {
+export type SheetTarget = {
   node?: string;
-  resize?: boolean;
+
   id?: string;
   edge?: Edge;
   port?: {
@@ -123,14 +121,14 @@ export const engineView = (
     marks: Mark[] = [],
     labels: Label[] = [];
   const captions = new Map<string, FlowNode>();
-  const targets = new Map<string, Target>(),
+  const targets = new Map<string, SheetTarget>(),
     offsets = new Map<string, Point>(),
     styles = new Map<string, string>();
   const { camera } = flow,
     selected = new Set(selectedNodes(flow)),
     chosen = new Set(selectedEdges(flow));
-  const ports = portsFor(flow),
-    occupied = new Set<string>();
+
+  const endpoints = new Map<string, Point3[]>();
   const socket = (
     node: string,
     side: Side,
@@ -146,7 +144,7 @@ export const engineView = (
       handle,
     ]);
     if (targets.has(id)) return;
-    occupied.add(JSON.stringify([node, side]));
+
     targets.set(id, {
       port: { node, point, direction, handle },
     });
@@ -154,6 +152,10 @@ export const engineView = (
   };
   const originals = new Map(
     edges.map((e) => [e.edge, e.original]),
+  );
+  const wireItems = new Map<string, Wire>();
+  const edgeIndices = new Map(
+    flow.edges.map((edge, i) => [edge, i]),
   );
   for (const [index, w] of wires.entries()) {
     const id = "wire" + index,
@@ -171,7 +173,17 @@ export const engineView = (
           : edge.quiet
             ? " quiet"
             : "");
+    for (const end of [
+      "source",
+      "target",
+    ] satisfies ("source" | "target")[]) {
+      const node = edge[end],
+        list = endpoints.get(node) ?? [];
+      list.push(w[end]);
+      endpoints.set(node, list);
+    }
     targets.set(id, { edge });
+    wireItems.set(id, w);
     lines.push({
       id,
       style,
@@ -194,6 +206,7 @@ export const engineView = (
       sheets.push({
         id,
         style: "arrow",
+        opaqueInk: true,
         points: [
           tip,
           {
@@ -223,7 +236,23 @@ export const engineView = (
       edge.arrows !== "none" &&
       edge.arrows !== "backward"
     )
-      arrow(w.arrow.at, w.arrow.toward);
+      arrow(w.target, {
+        ...w.target,
+        x:
+          w.target.x +
+          (w.targetSide === "right"
+            ? -1
+            : w.targetSide === "left"
+              ? 1
+              : 0),
+        y:
+          w.target.y +
+          (w.targetSide === "bottom"
+            ? -1
+            : w.targetSide === "top"
+              ? 1
+              : 0),
+      });
     if (
       edge.arrows === "both" ||
       edge.arrows === "backward"
@@ -237,13 +266,17 @@ export const engineView = (
         z: 2 * p.z - q.z,
       });
     }
-    socket(
-      edge.source,
-      w.sourceSide,
-      w.source,
-      "source",
-      edge.sourceHandle,
-    );
+    if (
+      !selected.has(edge.source) &&
+      !isSome(flow.source)
+    )
+      socket(
+        edge.source,
+        w.sourceSide,
+        w.source,
+        "source",
+        edge.sourceHandle,
+      );
     if (edge.label)
       labels.push({
         id,
@@ -323,15 +356,11 @@ export const engineView = (
         x: p.x + (x! * size.width) / 2,
         y: p.y + (y! * size.height) / 2,
       }));
-      sheets.push({ id, style: "tray", points });
-      marks.push({
-        id: "handle:" + id,
-        style: "handle",
-        point: points[2]!,
-      });
-      targets.set("handle:" + id, {
-        node: n.id,
-        resize: true,
+      sheets.push({
+        id,
+        style: "tray",
+        opaqueInk: true,
+        points,
       });
     } else
       solids.push(
@@ -345,6 +374,7 @@ export const engineView = (
           {
             id,
             style,
+            opaqueInk: true,
             casts: !!receiver(p),
             shadowReceiver: receiver(p) ?? "",
           },
@@ -362,13 +392,46 @@ export const engineView = (
       scale = projectedScale(camera, at(p).z);
     const across = at({ ...face, x: face.x + 1 }),
       down = at({ ...face, y: face.y + 1 });
+    const halfWidth =
+      (width * Math.abs(across.x - center.x) +
+        16 * Math.abs(down.x - center.x)) /
+      2;
+    const halfHeight =
+      (width * Math.abs(across.y - center.y) +
+        16 * Math.abs(down.y - center.y)) /
+      2;
     const tag =
+      (!tray &&
+        [
+          ...(endpoints.get(n.id) ?? []),
+          ...(selected.has(n.id) ||
+          isSome(flow.source)
+            ? (
+                [
+                  "right",
+                  "left",
+                  "top",
+                  "bottom",
+                ] satisfies Side[]
+              ).map((side) =>
+                portPosition(n, side, 0),
+              )
+            : []),
+        ].some((world) => {
+          const socket = at(world);
+          return (
+            Math.abs(socket.x - center.x) <=
+              halfWidth + 3 &&
+            Math.abs(socket.y - center.y) <=
+              halfHeight + 3
+          );
+        })) ||
       Math.min(
         Math.abs(across.x - center.x),
         Math.abs(down.y - center.y),
       ) /
         scale <
-      (tagged.get(n) ? 0.75 : 0.7);
+        (tagged.get(n) ? 0.75 : 0.7);
     tagged.set(n, tag);
     const eye = {
       x:
@@ -399,6 +462,7 @@ export const engineView = (
     labels.push({
       id,
       style: tag ? "tag" : "caption",
+      clear: true,
       text: n.label,
       point,
       size: { x: width, y: 16 },
@@ -409,37 +473,6 @@ export const engineView = (
         },
       }),
     });
-    if (
-      n.connectable !== false &&
-      (selected.has(n.id) || isSome(flow.source))
-    )
-      for (const side of [
-        "right",
-        "left",
-        "top",
-        "bottom",
-      ] satisfies Side[]) {
-        if (
-          occupied.has(
-            JSON.stringify([n.id, side]),
-          )
-        )
-          continue;
-        const direction = isSome(flow.source)
-          ? "target"
-          : "source";
-        socket(
-          n.id,
-          side,
-          portPosition(n, side, 0),
-          direction,
-          ports
-            .get(n.id)
-            ?.find(
-              (v) => v.direction === direction,
-            )?.id,
-        );
-      }
   }
   for (const [i, s] of (
     flow.scenery ?? []
@@ -455,6 +488,7 @@ export const engineView = (
       labels.push({
         id,
         style,
+        clear: true,
         text: s.text,
         point: s.anchor,
         size: {
@@ -491,7 +525,9 @@ export const engineView = (
           {
             id,
             style: "board",
-            casts: !!receiver(s.points[0]!),
+            casts:
+              s.casts !== false &&
+              !!receiver(s.points[0]!),
             shadowReceiver:
               receiver(s.points[0]!) ?? "",
             receives: true,
@@ -507,7 +543,11 @@ export const engineView = (
         s.points,
         ...(s.patches ?? []),
       ])
-        sheets.push({ id, style, points });
+        sheets.push({
+          id,
+          style,
+          points,
+        });
     }
   }
   const prior = geometry.get(flow.edges);
@@ -522,6 +562,7 @@ export const engineView = (
       return old &&
         old.id === s.id &&
         old.style === s.style &&
+        old.casts === s.casts &&
         old.shadowReceiver === s.shadowReceiver &&
         samePoints(points(old), points(s))
         ? old
@@ -549,6 +590,7 @@ export const engineView = (
     { ...shapes, lines, marks, labels },
     camera,
     { direction: { x: 0.45, y: 1, z: -0.35 } },
+    { deferLabelClear: true },
   );
   const children: Html<Change>[] = [];
   const shape = (
@@ -584,38 +626,7 @@ export const engineView = (
         path(s.points) + "Z",
       ),
     );
-  const batches = new Map<
-    string,
-    Map<string, string>
-  >();
-  const stroke = strokePath(drawing);
-  for (const [
-    i,
-    s,
-  ] of drawing.strokes.entries()) {
-    if (
-      s.style === "arrow" ||
-      (s.kind === "hidden" &&
-        (flow.hidden === "none" ||
-          (s.style.startsWith("node") &&
-            !s.outline) ||
-          (!s.style.startsWith("node") &&
-            !s.style.startsWith("wire"))))
-    )
-      continue;
-    const key = s.style + "|" + s.kind;
-    const d = stroke(i);
-    const item =
-      batches.get(s.id) ??
-      new Map<string, string>();
-    item.set(key, (item.get(key) ?? "") + d);
-    batches.set(s.id, item);
-  }
-  for (const [id, item] of batches)
-    for (const [key, d] of item) {
-      const [style, kind] = key.split("|");
-      children.push(shape(style!, kind!, d, id));
-    }
+  const strokeIndex = children.length;
   for (const m of drawing.marks)
     if (!m.covered && m.kind !== "gap")
       children.push(
@@ -632,11 +643,18 @@ export const engineView = (
             ),
             attr(
               "rx",
-              m.kind === "hole" ? "3" : "2",
+              m.style === "socket" ||
+                m.kind === "hole"
+                ? "3"
+                : "2",
             ),
             attr(
               "ry",
-              m.kind === "hole" ? "1.5" : "2",
+              m.kind === "hole"
+                ? "1.5"
+                : m.style === "socket"
+                  ? "3"
+                  : "2",
             ),
           ],
           [],
@@ -793,6 +811,84 @@ export const engineView = (
         ),
       );
   }
+  clearLabelStrokes(drawing, placed);
+  const strokes: Html<Change>[] = [];
+  const batches = new Map<
+    string,
+    Map<string, string>
+  >();
+  const stroke = strokePath(drawing);
+  for (const [
+    i,
+    s,
+  ] of drawing.strokes.entries()) {
+    if (
+      s.style === "arrow" ||
+      (s.kind === "hidden" &&
+        (flow.hidden === "none" ||
+          (s.style.startsWith("node") &&
+            !s.outline) ||
+          (!s.style.startsWith("node") &&
+            !s.style.startsWith("wire"))))
+    )
+      continue;
+    const key = s.style + "|" + s.kind;
+    const d = stroke(i);
+    const item =
+      batches.get(s.id) ??
+      new Map<string, string>();
+    item.set(key, (item.get(key) ?? "") + d);
+    batches.set(s.id, item);
+  }
+  for (const [id, item] of batches)
+    for (const [key, d] of item) {
+      const [style, kind] = key.split("|");
+      const w = wireItems.get(id);
+      const visible = shape(style!, kind!, d, id);
+      strokes.push(
+        w && kind === "line"
+          ? el(
+              "g",
+              [
+                attr(
+                  "data-wire-control",
+                  String(
+                    edgeIndices.get(
+                      originals.get(w.edge) ??
+                        w.edge,
+                    ) ?? -1,
+                  ),
+                ),
+              ],
+              [
+                el(
+                  "path",
+                  [
+                    attr("class", "edge-hit"),
+                    attr("d", d),
+                    attr("fill", "none"),
+                    attr("stroke", "transparent"),
+                    attr(
+                      "stroke-width",
+                      String(
+                        w.edge.interactionWidth ??
+                          16,
+                      ),
+                    ),
+                    attr(
+                      "pointer-events",
+                      "stroke",
+                    ),
+                  ],
+                  [],
+                ),
+                visible,
+              ],
+            )
+          : visible,
+      );
+    }
+  children.splice(strokeIndex, 0, ...strokes);
   const hit = (p: Point) =>
     targets.get(pick(drawing, p) ?? "");
   return {
@@ -802,49 +898,6 @@ export const engineView = (
       children,
     ),
     hit,
-    region: (inside: (p: Point) => boolean) => {
-      const selectedNodes = new Set<string>(),
-        selectedEdges = new Set<Edge>();
-      const consider = (p: Point) => {
-        if (!inside(p)) return;
-        const target = hit(p);
-        const node =
-          target?.node ?? target?.port?.node;
-        if (node) selectedNodes.add(node);
-        if (target?.edge)
-          selectedEdges.add(target.edge);
-      };
-      for (const f of drawing.fills)
-        consider({
-          x:
-            f.points.reduce(
-              (v, p) => v + p.x,
-              0,
-            ) / f.points.length,
-          y:
-            f.points.reduce(
-              (v, p) => v + p.y,
-              0,
-            ) / f.points.length,
-        });
-      for (const s of drawing.strokes)
-        if (s.kind === "line") {
-          const [a, b] = s.points;
-          consider({
-            x: (a.x + b.x) / 2,
-            y: (a.y + b.y) / 2,
-          });
-        }
-      for (const l of drawing.labels)
-        if (!l.covered)
-          consider({
-            x: (l.box.left + l.box.right) / 2,
-            y: (l.box.top + l.box.bottom) / 2,
-          });
-      return {
-        nodes: [...selectedNodes],
-        edges: [...selectedEdges],
-      };
-    },
+    drawing,
   };
 };

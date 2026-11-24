@@ -1,11 +1,18 @@
+import { roomViews } from "plgg-flow/roomCamera";
 import { project } from "plgg-board";
 import {
   projectNodeBody,
+  portPosition,
   bodyDepth,
 } from "plgg-flow/nodeBody";
 import { test, check, toBe } from "plgg-test";
 import { some } from "plgg";
-import { renderToString } from "plgg-view";
+import { engineView } from "plgg-flow/engineView";
+import {
+  wireGraph,
+  type Side,
+} from "plgg-flow/wiring";
+import { renderToString, text } from "plgg-view";
 import {
   orbitByDrag,
   settleOrbit,
@@ -322,4 +329,94 @@ test("an opaque cover changes the same wire, outline and caption together", () =
     ) && opaque.includes('class="wire line"'),
     toBe(true),
   );
+});
+
+test("wire tips and flank dots clear their caption in named and turned views", () => {
+  const flow = selectNodes(["a", "b"])(
+    createFlow({
+      nodes: [
+        { id: "a", label: "Orders", position: p },
+        {
+          id: "b",
+          label: "Auth",
+          position: { x: 320, y: 48, z: 80 },
+        },
+      ],
+      edges: [{ source: "a", target: "b" }],
+    }),
+  );
+  const wires = wireGraph(flow);
+  const views = [
+    ...roomViews.map(([, yaw, pitch]) => [
+      yaw,
+      pitch,
+    ]),
+    [0, 0],
+    [Math.PI / 2, 0],
+    [0, Math.PI / 2],
+    [Math.PI, 0],
+    ...Array.from({ length: 12 }, (_, i) => [
+      (i * Math.PI) / 6,
+      0.5 * Math.cos(i),
+    ]),
+  ];
+  for (const [yaw, pitch] of views) {
+    const camera = {
+      ...flow.camera,
+      yaw: yaw!,
+      pitch: pitch!,
+    };
+    const { drawing } = engineView(
+      { ...flow, camera },
+      flow.nodes,
+      flow.edges.map((edge) => ({
+        edge,
+        original: edge,
+      })),
+      wires,
+      (n) => text(n.label),
+    );
+    for (const node of flow.nodes) {
+      const caption = drawing.labels.find(
+        (l) => l.id === "node:" + node.id,
+      );
+      if (!caption) continue;
+      const sockets = (
+        [
+          "left",
+          "right",
+          "top",
+          "bottom",
+        ] satisfies Side[]
+      ).map((side) =>
+        portPosition(node, side, 0),
+      );
+      for (const world of [
+        ...sockets,
+        ...wires.flatMap((w) =>
+          node.id === w.edge.source
+            ? [w.source]
+            : [w.target],
+        ),
+      ]) {
+        const q = project(camera)(world),
+          b = caption.box;
+        if (
+          q.x >= b.left &&
+          q.x <= b.right &&
+          q.y >= b.top &&
+          q.y <= b.bottom
+        )
+          throw Error(
+            "socket inside caption " +
+              node.id +
+              " at " +
+              yaw +
+              "," +
+              pitch,
+          );
+      }
+    }
+  }
+  return check(true, toBe(true));
 });

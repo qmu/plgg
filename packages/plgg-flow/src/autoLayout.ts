@@ -843,7 +843,8 @@ export const planLayers = (
       gap = Math.max(
         gap,
         ...group.map(
-          (v) => 2 * Math.max(v.main, v.size),
+          // room for a return wire to turn, not two node widths
+          (v) => 2 * v.main + 4 * grid,
         ),
       );
     if (tree || wrapped) {
@@ -973,6 +974,7 @@ export type Room = {
   members: readonly string[];
   block: number;
   caption: string;
+  blockAddress?: { row: string; column: string };
   index: [number, number, number];
   values: [string, string, string];
   min: Point3;
@@ -1027,6 +1029,7 @@ const computeRooms = (
     b.cells.map((c) => {
       return {
         block,
+        blockAddress: b.address,
         caption: [
           ...(view.column
             ? [b.address.column]

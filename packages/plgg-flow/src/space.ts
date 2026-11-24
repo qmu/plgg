@@ -33,7 +33,7 @@ export const planSpace = (
       cake ? 144 : 256,
     ),
     z: values("z").map((): number =>
-      cake ? 64 : 176,
+      cake ? 160 : 176,
     ),
   };
   const index = (address: number[], role: Role) =>
@@ -514,7 +514,7 @@ export const planSpace = (
     if (nodes.length <= 20) {
       for (const [a, b] of swaps.slice(
         0,
-        links.length > 24 ? 3 : 12,
+        links.length > 24 ? 2 : 4,
       )) {
         if (result.cost < 1000000) break;
         const alt = exchange(chosen, a, b),
@@ -526,8 +526,13 @@ export const planSpace = (
       }
     }
   }
-  if (result.cost >= 1000000) {
-    result = routeAssignment(
+  for (
+    let pass = 0;
+    pass < (nodes.length > 20 ? 1 : 2) &&
+    result.cost >= 1000000;
+    pass++
+  ) {
+    const improved = routeAssignment(
       {
         nodes: nodes.map((n, i) => ({
           ...n,
@@ -540,6 +545,8 @@ export const planSpace = (
       undefined,
       result,
     );
+    if (improved.cost >= result.cost) break;
+    result = improved;
   }
   nodes.forEach((n, i) =>
     positions.set(n.id, chosen[i]!),

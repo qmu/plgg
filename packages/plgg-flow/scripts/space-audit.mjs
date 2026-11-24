@@ -264,8 +264,8 @@ const measure = (g, pos, routes) => {
       const p = pos.get(n.id);
       return {
         id: n.id,
-        min: { x: p.x - n.width / 2 - 4, y: p.y - n.height / 2 - 4, z: p.z - 12 },
-        max: { x: p.x + n.width / 2 + 4, y: p.y + n.height / 2 + 4, z: p.z + 12 },
+        min: { x: p.x - n.width / 2 - 4, y: p.y - n.height / 2 - 4, z: p.z - 36 },
+        max: { x: p.x + n.width / 2 + 4, y: p.y + n.height / 2 + 4, z: p.z + 36 },
       };
     });
   for (const r of runs)
@@ -286,14 +286,18 @@ const measure = (g, pos, routes) => {
       }
       if (hi - lo > 1e-6) pierce++;
     }
+  // (the box above is grown by 24 toward the lettered faces: the
+  // air before a caption is kept clear; nodes themselves are 12 deep)
   let nodeOverlap = 0;
   for (let i = 0; i < boxes.length; i++)
     for (let j = i + 1; j < boxes.length; j++)
       if (
         AX.every(
           (k) =>
-            boxes[i].min[k] + 4 < boxes[j].max[k] - 4 &&
-            boxes[j].min[k] + 4 < boxes[i].max[k] - 4,
+            boxes[i].min[k] + (k === "z" ? 28 : 4) <
+              boxes[j].max[k] - (k === "z" ? 28 : 4) &&
+            boxes[j].min[k] + (k === "z" ? 28 : 4) <
+              boxes[i].max[k] - (k === "z" ? 28 : 4),
         )
       )
         nodeOverlap++;

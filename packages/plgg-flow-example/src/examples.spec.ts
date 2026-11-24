@@ -225,7 +225,10 @@ test("room labels fit with a 40 pixel margin beside the DSL overlay", () => {
     f.nodes,
   );
   return check(
-    labels.length === 16 &&
+    labels.length === 17 &&
+      labels.some(
+        (l) => "outer" in l && l.outer,
+      ) &&
       labels.every((l) => {
         const width = l.value.length * 13;
         const left =

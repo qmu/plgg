@@ -1,3 +1,4 @@
+import { splitEdge } from "plgg-flow/graph";
 import { routeSpace } from "plgg-flow/space";
 import { movePath } from "plgg-flow/path3";
 import { bodyDepth } from "plgg-flow/nodeBody";
@@ -46,6 +47,7 @@ import {
   moveExpandingParents,
 } from "plgg-flow/hierarchy";
 import {
+  reconnect,
   connectionIssue,
   edgeIndex,
   type Port,
@@ -129,6 +131,7 @@ export type Scenery = {
       kind: "plane";
       points: readonly Point3[];
       thickness?: number;
+      casts?: boolean;
       patches?: readonly (readonly Point3[])[];
       fill: string;
       opacity: number;
@@ -178,6 +181,10 @@ export type Drag = Readonly<{
     | "lasso"
     | "frame";
   socket?: Point3;
+  endpoint?: {
+    edge: Edge;
+    end: Port["direction"];
+  };
   outline?: readonly Point[];
   waypoint?: number;
   frameOffset?: Point;
@@ -605,6 +612,61 @@ export const deleteSelected: Change = (state) => {
     drag: none(),
   };
 };
+export const renameLabel =
+  (id: string, label: string): Change =>
+  (s) => ({
+    ...s,
+    nodes: s.nodes.map((n) =>
+      n.id === id && !n.locked
+        ? { ...n, label }
+        : n,
+    ),
+  });
+export const replaceEndpoint =
+  (
+    edge: Edge,
+    end: Port["direction"],
+    node: string,
+    handle?: string,
+  ): Change =>
+  (s) => {
+    const {
+      path,
+      sourceHandle,
+      targetHandle,
+      ...rest
+    } = edge;
+    const source =
+        end === "source" ? handle : sourceHandle,
+      target =
+        end === "target" ? handle : targetHandle;
+    const graph = reconnect(
+      s,
+      edge,
+      {
+        ...rest,
+        [end]: node,
+        ...(source !== undefined && {
+          sourceHandle: source,
+        }),
+        ...(target !== undefined && {
+          targetHandle: target,
+        }),
+      },
+      s.allowConnection,
+    );
+    const updated =
+      graph.edges[edgeIndex(s.edges, edge)];
+    const idle = {
+      ...s,
+      ...graph,
+      source: none(),
+      drag: none(),
+    };
+    return updated
+      ? chooseEdges([updated])(idle)
+      : idle;
+  };
 export const connect =
   (
     id: string,
@@ -1547,4 +1609,39 @@ export const resizeNode = (
       ),
     },
   };
+};
+
+export const insertOnEdge: Change = (f) => {
+  const e = f.activeEdge
+      ? f.edges[edgeIndex(f.edges, f.activeEdge)]
+      : f.edges[0],
+    a = f.nodes.find((n) => n.id === e?.source),
+    b = f.nodes.find((n) => n.id === e?.target);
+  if (!e || !a || !b) return f;
+  const id =
+    Array.from(
+      { length: f.nodes.length + 1 },
+      (_, i) => "Step " + (i + 1),
+    ).find(
+      (id) => !f.nodes.some((n) => n.id === id),
+    ) ?? "Step";
+  const graph = splitEdge(
+    f,
+    e,
+    {
+      id,
+      label: id,
+      position: {
+        x: (a.position.x + b.position.x) / 2,
+        y: (a.position.y + b.position.y) / 2 + 65,
+        z: (a.position.z + b.position.z) / 2,
+      },
+    },
+    f.allowConnection
+      ? { allow: f.allowConnection }
+      : {},
+  );
+  return graph === f
+    ? f
+    : selectNodes([id])({ ...f, ...graph });
 };

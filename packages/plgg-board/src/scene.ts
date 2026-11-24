@@ -5,6 +5,7 @@ import type {
 export type Item = Readonly<{
   id: string;
   style: string;
+  opaqueInk?: boolean;
   casts?: boolean;
   shadowReceiver?: string;
   receives?: boolean;
@@ -26,7 +27,11 @@ export type PlaneAxes = Readonly<{
 export type Mark = Item &
   Readonly<{ point: Point3; axes?: PlaneAxes }>;
 export type Label = Mark &
-  Readonly<{ text: string; size?: Point }>;
+  Readonly<{
+    text: string;
+    clear?: boolean;
+    size?: Point;
+  }>;
 export type Scene = Readonly<{
   solids: readonly Solid[];
   sheets: readonly Sheet[];

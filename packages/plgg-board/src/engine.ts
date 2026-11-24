@@ -37,6 +37,7 @@ import {
   type Surface,
 } from "plgg-board/visibility";
 import { shadows } from "plgg-board/shadow";
+import { clearLabelStrokes } from "plgg-board/drawing";
 import type {
   Drawing,
   Ink,
@@ -48,6 +49,7 @@ export const render = (
   scene: Scene,
   camera: Camera,
   light: Light,
+  options: { deferLabelClear?: boolean } = {},
 ): Drawing => {
   const model = compiled(scene),
     projected = project(camera),
@@ -149,10 +151,14 @@ export const render = (
       points: polygon,
     });
   });
-  const covered = (p: Point3) => {
+  const covered = (
+    p: Point3,
+    opaqueOnly = false,
+  ) => {
     let result = false;
     query(segmentBounds(p, p), (s) => {
       if (
+        (!opaqueOnly || s.face.item.opaqueInk) &&
         depth(s, p) > p.z + epsilon &&
         inside(s, p)
       )
@@ -196,6 +202,7 @@ export const render = (
     a = vertex(a);
     b = vertex(b);
     const intervals: Interval[] = [];
+    const suppressed: Interval[] = [];
     if (interior.length) {
       const dx = b.x - a.x,
         dy = b.y - a.y;
@@ -220,7 +227,7 @@ export const render = (
       }
     }
     const outline = kind === "silhouette";
-    const emit = (
+    const write = (
       kind: Ink["kind"],
       lo: number,
       hi: number,
@@ -235,6 +242,21 @@ export const render = (
           hi === 1 ? b : mix(a, b, hi),
         ],
       });
+    const emit = (
+      ink: Ink["kind"],
+      lo: number,
+      hi: number,
+    ) => {
+      if (ink === "hidden")
+        for (const part of suppressed) {
+          if (part.lo >= hi) break;
+          if (part.lo > lo)
+            write(ink, lo, part.lo);
+          lo = Math.max(lo, part.hi);
+          if (lo >= hi) return;
+        }
+      write(ink, lo, hi);
+    };
     if (kind === "hidden") {
       emit(kind, 0, 1);
       return;
@@ -242,8 +264,13 @@ export const render = (
     query(segmentBounds(a, b), (s) => {
       if (own.includes(s.face)) return;
       const interval = hidden(a, b, s);
-      if (interval) intervals.push(interval);
+      if (interval) {
+        intervals.push(interval);
+        if (s.face.item.opaqueInk)
+          suppressed.push(interval);
+      }
     });
+    suppressed.sort((x, y) => x.lo - y.lo);
     intervals.sort((x, y) => x.lo - y.lo);
     let cursor = 0,
       start = 0;
@@ -435,10 +462,12 @@ export const render = (
         x: l.text.length * 8,
         y: 16,
       };
+    if (covered(vertex(l.point), true)) continue;
     drawing.labels.push({
       id: l.id,
       style: l.style,
       text: l.text,
+      ...(l.clear && { clear: true }),
       point: vertex(l.point),
       matrix: transform,
       covered:
@@ -454,5 +483,7 @@ export const render = (
       ),
     });
   }
+  if (!options.deferLabelClear)
+    clearLabelStrokes(drawing);
   return drawing;
 };

@@ -256,3 +256,81 @@ test("a line crossing a closed solid has two holes and a hidden interior", () =>
     toBe("line,hidden,line|-4,4|-4,4"),
   );
 });
+test("opaque solids interrupt board-hidden ink and suppress covered captions", () => {
+  const d = render(
+    {
+      ...scene,
+      solids: [
+        box(p(0, 0, 0), p(4, 4, 4), {
+          id: "node",
+          style: "node",
+          opaqueInk: true,
+        }),
+      ],
+      sheets: [sheet("board", 0)],
+      lines: [
+        {
+          id: "wire",
+          style: "wire",
+          points: [p(-12, 0, -5), p(12, 0, -5)],
+        },
+      ],
+      labels: [
+        {
+          id: "behind",
+          style: "caption",
+          point: p(0, 0, -5),
+          text: "behind",
+        },
+      ],
+    },
+    camera,
+    light,
+  );
+  return check(
+    d.labels.length === 0 &&
+      d.strokes
+        .filter(
+          (s) =>
+            s.id === "wire" &&
+            s.kind === "hidden",
+        )
+        .map((s) =>
+          s.points.map((q) => q.x).join(),
+        )
+        .join("|") === "-8,-2|2,8",
+    toBe(true),
+  );
+});
+test("clear lettering leaves a two pixel margin in a crossing stroke", () => {
+  const drawing = render(
+    {
+      ...scene,
+      labels: [
+        {
+          id: "text",
+          style: "caption",
+          clear: true,
+          point: p(0, 0, 0),
+          text: "X",
+          size: { x: 8, y: 12 },
+        },
+      ],
+      lines: [
+        {
+          id: "wire",
+          style: "ink",
+          points: [p(-12, -4, 4), p(20, -4, 4)],
+        },
+      ],
+    },
+    camera,
+    light,
+  );
+  return check(
+    drawing.strokes
+      .map((s) => s.points.map((q) => q.x).join())
+      .join("|") === "-12,-2|10,20",
+    toBe(true),
+  );
+});

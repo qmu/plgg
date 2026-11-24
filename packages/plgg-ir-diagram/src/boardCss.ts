@@ -155,7 +155,7 @@ export const boardCss = (root: string) => `
   .flow-board .tray-label {
     font-weight: 600;
   }
-  .flow-board [data-node] [data-group-handle] {
+  .flow-board [data-group-handle] {
     cursor: nwse-resize;
   }
   :focus:not(:focus-visible),

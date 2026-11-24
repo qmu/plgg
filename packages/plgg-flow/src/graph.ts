@@ -75,6 +75,7 @@ export const splitEdge = (
     targetHandle,
     id,
     waypoints,
+    path,
     ...rest
   } = edge;
   const incoming: Edge = {

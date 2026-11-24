@@ -5,6 +5,7 @@ import {
 import {
   engineView,
   spatialDrawing,
+  type SheetTarget,
 } from "plgg-flow/engineView";
 import { drawScenery } from "plgg-flow/scenery";
 import { move } from "plgg-flow/wireGeometry";
@@ -15,6 +16,7 @@ import {
 } from "plgg-flow/nodeSize";
 import {
   type Side,
+  type Wire,
   wireGraph,
 } from "plgg-flow/wiring";
 import {
@@ -74,6 +76,9 @@ import {
 } from "plgg-flow/hierarchy";
 import {
   releasePointer,
+  renameLabel,
+  insertOnEdge,
+  replaceEndpoint,
   settleOrbit,
   beginStroke,
   movePointer,
@@ -630,7 +635,7 @@ export const drawFlow = (
     string,
     Partial<Record<Side, Socket[]>>
   >();
-  for (const w of engine ? [] : wires)
+  for (const w of wires)
     for (const direction of [
       "source",
       "target",
@@ -693,6 +698,78 @@ export const drawFlow = (
   const lookup = new Map(
     projected.map((n) => [n.id, n]),
   );
+  const hitTarget = (
+    element: Element | null,
+    point: Point,
+  ): SheetTarget => {
+    const dot = element?.closest("[data-port]");
+    const port = dot?.getAttribute("data-port");
+    const side = dot?.getAttribute("data-side");
+    if (
+      port &&
+      dot &&
+      (side === "top" ||
+        side === "bottom" ||
+        side === "left" ||
+        side === "right")
+    ) {
+      const node = lookup.get(port);
+      if (node)
+        return {
+          port: {
+            node: port,
+            direction:
+              dot.getAttribute(
+                "data-direction",
+              ) === "target"
+                ? "target"
+                : "source",
+            handle:
+              dot.getAttribute("data-handle") ??
+              undefined,
+            point:
+              attachments.get(port)?.[side]?.[
+                Number(
+                  dot.getAttribute(
+                    "data-socket-index",
+                  ) ?? -1,
+                )
+              ]?.point ??
+              portPosition(
+                node,
+                side,
+                Number(
+                  dot.getAttribute("data-offset"),
+                ),
+              ),
+          },
+        };
+    }
+    const handle = element
+      ?.closest("[data-group-handle]")
+      ?.getAttribute("data-group-handle");
+    if (handle) return { node: handle };
+    const wire = element?.closest(
+      "[data-wire-control]",
+    );
+    if (wire) {
+      const edge =
+        state.edges[
+          Number(
+            wire.getAttribute(
+              "data-wire-control",
+            ),
+          )
+        ];
+      if (edge) return { edge };
+    }
+    const node = element
+      ?.closest("[data-node]")
+      ?.getAttribute("data-node");
+    return node
+      ? { node }
+      : (engine?.hit(point) ?? {});
+  };
   const cull =
     registry.cull ??
     projected.length + scene.edges.length > 500;
@@ -728,12 +805,138 @@ export const drawFlow = (
     state.edges[
       edgeIndex(state.edges, state.activeEdge)
     ];
+  const activeRoute =
+    active &&
+    routes.get(
+      scene.edges.find(
+        (e) => e.original === active,
+      )?.edge ?? active,
+    );
+  const endpoint = isSome(state.drag)
+    ? state.drag.content.endpoint
+    : undefined;
   const picked = new Set(
     selectedEdges(state).map(
       (e) =>
         state.edges[edgeIndex(state.edges, e)],
     ),
   );
+  const sockets = (
+    n: (typeof projected)[number],
+    accepts: (side: Side) => boolean,
+    editing: boolean,
+  ) =>
+    (
+      [
+        "right",
+        "left",
+        "top",
+        "bottom",
+      ] satisfies Side[]
+    ).flatMap((side) => {
+      if (!accepts(side)) return [];
+      const usedSockets = attachments.get(n.id)?.[
+        side
+      ] ?? [undefined];
+      return usedSockets.flatMap(
+        (used, index) => {
+          const connecting = isSome(state.source),
+            canConnect =
+              n.connectable !== false &&
+              (chosen.has(n.id) || connecting);
+          if (
+            editing !== canConnect ||
+            (!used && !canConnect)
+          )
+            return [];
+          // where arrows arrive, the arrowhead is the mark:
+          // no dot under it
+          if (
+            !canConnect &&
+            used?.direction === "target"
+          )
+            return [];
+          const direction =
+            endpoint?.end ??
+            (canConnect
+              ? connecting
+                ? "target"
+                : "source"
+              : (used?.direction ?? "source"));
+          const handle =
+            used?.direction === direction
+              ? used.handle
+              : ports
+                  .get(n.id)
+                  ?.find(
+                    (p) =>
+                      p.direction === direction,
+                  )?.id;
+          const description = n.ports?.find(
+            (p) =>
+              p.direction === direction &&
+              p.id === handle,
+          )?.description;
+          const title =
+            (handle ?? direction) +
+            (description
+              ? " — " + description
+              : "");
+          const offset = 0;
+          const socket =
+            used &&
+            (engine || (n.group && !n.collapsed))
+              ? project(state.camera)(used.point)
+              : projectSocket(
+                  n,
+                  state.camera,
+                  side,
+                  offset,
+                );
+          const x = (socket.x - n.p.x) / n.scale,
+            y = (socket.y - n.p.y) / n.scale;
+          // A socket is a ball on the box's flank: it
+          // looks round from every side, so wires
+          // never lose their ends when the view turns.
+          const control = el<Change>(
+            "circle",
+            [
+              a("data-port", n.id),
+              a("data-side", side),
+              ...((engine || n.group) && used
+                ? [a("data-socket-index", index)]
+                : []),
+              a("data-offset", offset),
+              a("data-direction", direction),
+              ...(handle === undefined
+                ? []
+                : [a("data-handle", handle)]),
+              a("cy", y),
+              a("tabindex", 0),
+              a("role", "button"),
+              a(
+                "aria-label",
+                n.label + " " + title,
+              ),
+              a("cx", x),
+              a("stroke", "#215f57"),
+              a("r", socketRadius),
+              a(
+                "fill",
+                isSome(state.source) &&
+                  state.source.content === n.id
+                  ? "#ed623a"
+                  : direction === "source"
+                    ? "#167b70"
+                    : "#e6f4ef",
+              ),
+            ],
+            [el("title", [], [text(title)])],
+          );
+          return [control];
+        },
+      );
+    });
   const paintFlatSheet = () => {
     const turned = new Map<
       string,
@@ -838,124 +1041,6 @@ export const drawFlow = (
         return old.value;
       // A socket earns its dot by carrying a wire; a bare
       // one shows only while it can take a new connection.
-      const sockets = (behind: boolean) =>
-        (
-          [
-            "right",
-            "left",
-            "top",
-            "bottom",
-          ] satisfies Side[]
-        ).flatMap((side) => {
-          if (behind !== away[side]) return [];
-          const usedSockets = attachments.get(
-            n.id,
-          )?.[side] ?? [undefined];
-          return usedSockets.flatMap(
-            (used, index) => {
-              const connecting = isSome(
-                  state.source,
-                ),
-                canConnect =
-                  n.connectable !== false &&
-                  (chosen.has(n.id) ||
-                    connecting);
-              if (!used && !canConnect) return [];
-              // where arrows arrive, the arrowhead is the mark:
-              // no dot under it
-              if (
-                !canConnect &&
-                used?.direction === "target"
-              )
-                return [];
-              const direction = canConnect
-                ? connecting
-                  ? "target"
-                  : "source"
-                : (used?.direction ?? "source");
-              const handle =
-                used?.direction === direction
-                  ? used.handle
-                  : ports
-                      .get(n.id)
-                      ?.find(
-                        (p) =>
-                          p.direction ===
-                          direction,
-                      )?.id;
-              const description = n.ports?.find(
-                (p) =>
-                  p.direction === direction &&
-                  p.id === handle,
-              )?.description;
-              const title =
-                (handle ?? direction) +
-                (description
-                  ? " — " + description
-                  : "");
-              const offset = 0;
-              const socket =
-                used && n.group && !n.collapsed
-                  ? project(state.camera)(
-                      used.point,
-                    )
-                  : projectSocket(
-                      n,
-                      state.camera,
-                      side,
-                      offset,
-                    );
-              const x =
-                  (socket.x - n.p.x) / n.scale,
-                y = (socket.y - n.p.y) / n.scale;
-              // A socket is a ball on the box's flank: it
-              // looks round from every side, so wires
-              // never lose their ends when the view turns.
-              const control = el<Change>(
-                "circle",
-                [
-                  a("data-port", n.id),
-                  a("data-side", side),
-                  ...(n.group && used
-                    ? [
-                        a(
-                          "data-socket-index",
-                          index,
-                        ),
-                      ]
-                    : []),
-                  a("data-offset", offset),
-                  a("data-direction", direction),
-                  ...(handle === undefined
-                    ? []
-                    : [a("data-handle", handle)]),
-                  a("cy", y),
-                  a("tabindex", 0),
-                  a("role", "button"),
-                  a(
-                    "aria-label",
-                    n.label + " " + title,
-                  ),
-                  a("cx", x),
-                  a("stroke", "#215f57"),
-                  a("r", socketRadius),
-                  a(
-                    "fill",
-                    isSome(state.source) &&
-                      state.source.content ===
-                        n.id
-                      ? "#ed623a"
-                      : direction === "source"
-                        ? "#167b70"
-                        : "#e6f4ef",
-                  ),
-                ],
-                [el("title", [], [text(title)])],
-              );
-              return [control];
-            },
-          );
-        });
       const value = {
         depth: solid.depth,
         html: lazy(deferred, () =>
@@ -963,26 +1048,6 @@ export const drawFlow = (
             "g",
             [
               a("data-node", n.id),
-              onEvent<Change>(
-                "pointerenter",
-                () =>
-                  some((s) => ({
-                    ...s,
-                    hoveredNode: n.id,
-                  })),
-              ),
-              onEvent<Change>(
-                "pointerleave",
-                () =>
-                  some((s) =>
-                    s.hoveredNode === n.id
-                      ? {
-                          ...s,
-                          hoveredNode: undefined,
-                        }
-                      : s,
-                  ),
-              ),
               ...(quiet
                 ? [
                     a("class", "quiet-node"),
@@ -1066,27 +1131,13 @@ export const drawFlow = (
                       ],
                       [text(n.label)],
                     ),
-                    el<Change>(
-                      "polygon",
-                      [
-                        a(
-                          "data-group-handle",
-                          n.id,
-                        ),
-                        a(
-                          "points",
-                          polygonPoints(
-                            solid.handle,
-                          ),
-                        ),
-                        a("fill", "var(--paper)"),
-                        a("stroke", "var(--ink)"),
-                      ],
-                      [],
-                    ),
                   ]
                 : []),
-              ...sockets(true),
+              ...sockets(
+                n,
+                (side) => away[side],
+                false,
+              ),
               ...(solid.outline
                 ? [
                     el<Change>(
@@ -1254,7 +1305,11 @@ export const drawFlow = (
                     ),
                   ]
                 : []),
-              ...sockets(false),
+              ...sockets(
+                n,
+                (side) => !away[side],
+                false,
+              ),
             ],
           ),
         ),
@@ -1449,177 +1504,17 @@ export const drawFlow = (
                     p.y,
                 )
                 .join("");
-      const events = () => [
-        ...(original.quiet || edge.path
-          ? [
-              onEvent<Change>(
-                "pointerenter",
-                () =>
-                  some((s) => ({
-                    ...s,
-                    hoveredEdge: original,
-                  })),
-              ),
-              onEvent<Change>(
-                "pointerleave",
-                () =>
-                  some((s) =>
-                    s.hoveredEdge === original
-                      ? {
-                          ...s,
-                          hoveredEdge: undefined,
-                        }
-                      : s,
-                  ),
-              ),
-            ]
-          : []),
-
-        onEvent<Change>("pointerdown", (e) => {
-          if (
-            !(e instanceof PointerEvent) ||
-            !e.isPrimary ||
-            e.button !== 0
-          )
-            return none();
-          if (
-            state.ink === "pen" ||
-            (e.pointerType === "touch" &&
-              !e.isPrimary)
-          )
-            return none();
-          e.stopPropagation();
-          if (
-            e.altKey &&
-            e.currentTarget instanceof
-              SVGGraphicsElement &&
-            e.currentTarget.ownerSVGElement
-          ) {
-            const pointer = local(
-              e.currentTarget,
-              e,
-            );
-            if (isSome(pointer)) {
-              const q = pointer.content;
-              let nearest = 1,
-                best = Infinity,
-                fraction = 0;
-              for (
-                let k = 1;
-                k < points.length;
-                k++
-              ) {
-                const a = points[k - 1],
-                  b = points[k];
-                if (!a || !b) continue;
-                const dx = b.x - a.x,
-                  dy = b.y - a.y,
-                  t = Math.max(
-                    0,
-                    Math.min(
-                      1,
-                      ((q.x - a.x) * dx +
-                        (q.y - a.y) * dy) /
-                        (dx * dx + dy * dy || 1),
-                    ),
-                  );
-                const dist = Math.hypot(
-                  q.x - a.x - t * dx,
-                  q.y - a.y - t * dy,
-                );
-                if (dist < best) {
-                  nearest = k;
-                  fraction = t;
-                  best = dist;
-                }
-              }
-              const a = points[nearest - 1],
-                b = points[nearest],
-                z =
-                  a && b
-                    ? a.z + fraction * (b.z - a.z)
-                    : wire.source.z,
-                p = unproject(state.camera, q, z),
-                prev = original.waypoints ?? [],
-                at = Math.min(
-                  prev.length,
-                  Math.max(0, nearest - 2),
-                );
-              const next = {
-                ...original,
-                waypoints: [
-                  ...prev.slice(0, at),
-                  p,
-                  ...prev.slice(at),
-                ],
-              };
-              return some((s) => ({
-                ...s,
-                chosenEdges: [
-                  ...selectedEdges(s).filter(
-                    (e) => e !== original,
-                  ),
-                  next,
-                ],
-                activeEdge: next,
-                edges: s.edges.map((v) =>
-                  v === original ? next : v,
-                ),
-              }));
-            }
-          }
-          if (
-            e.pointerType === "touch" &&
-            e.currentTarget instanceof SVGElement
-          ) {
-            const svg =
-              e.currentTarget.ownerSVGElement;
-            if (svg) {
-              const point = local(svg, e);
-              if (isSome(point)) {
-                e.preventDefault();
-                svg.setPointerCapture(
-                  e.pointerId,
-                );
-                return some((s) => ({
-                  ...selectNodes([])(s),
-                  chosenEdges: [original],
-                  activeEdge: original,
-                  source: none(),
-                  drag: some<Drag>({
-                    pointer: e.pointerId,
-                    mode: "pan",
-                    node: "",
-                    last: point.content,
-                  }),
-                }));
-              }
-            }
-          }
-          return some((s) => {
-            const prev = selectedEdges(s);
-            const next = e.shiftKey
-              ? prev.includes(original)
-                ? prev.filter(
-                    (v) => v !== original,
-                  )
-                : [...prev, original]
-              : [original];
-            return chooseEdges(next)(
-              e.shiftKey ? s : selectNodes([])(s),
-            );
-          });
-        }),
-        onEvent<Change>("dblclick", () =>
-          some(disconnect(original)),
-        ),
-      ];
       const paint = (
         path: string,
         visible: Html<Change>,
         halo: boolean,
       ) => {
-        const attributes = events();
+        const attributes = [
+          a(
+            "data-wire-control",
+            originalIndex ?? -1,
+          ),
+        ];
         // a wire is a hairline; what takes the click is
         // a band around it wide enough for a finger
         const hitWidth =
@@ -2016,13 +1911,6 @@ export const drawFlow = (
   const selectRegion = (
     inside: (p: Point) => boolean,
   ) => {
-    if (engine) {
-      const selection = engine.region(inside);
-      return selectArea(
-        selection.nodes,
-        selection.edges,
-      );
-    }
     const projectPoint = project(state.camera);
     const edges = scene.edges.flatMap(
       ({ edge, original }) => {
@@ -2146,73 +2034,61 @@ export const drawFlow = (
             ),
           );
         }
-        const pickedItem = engine?.hit(
+        const end = e.target
+          .closest("[data-endpoint]")
+          ?.getAttribute("data-endpoint");
+        if (
+          active &&
+          activeRoute &&
+          (end === "target" || end === "source")
+        ) {
+          const fixed =
+            end === "source"
+              ? "target"
+              : "source";
+          svg.setPointerCapture(e.pointerId);
+          return some((s) => ({
+            ...s,
+            source: some(active[fixed]),
+            drag: some<Drag>({
+              mode: "connect",
+              node: active[fixed],
+              endpoint: { edge: active, end },
+              socket: activeRoute[fixed],
+              pointer: e.pointerId,
+              last: point.content,
+            }),
+          }));
+        }
+        const pickedItem = hitTarget(
+          e.target,
           point.content,
         );
-        if (pickedItem?.label?.press)
+        if (pickedItem.label?.press)
           return some(pickedItem.label.press);
-        const edge = pickedItem?.edge;
-        if (edge) {
-          const prev = selectedEdges(state);
-          return some(
-            chooseEdges(
-              e.shiftKey
-                ? prev.includes(edge)
-                  ? prev.filter((v) => v !== edge)
-                  : [...prev, edge]
-                : [edge],
-            ),
-          );
+        const edge = pickedItem.edge;
+        if (edge && e.button === 0) {
+          const shown = scene.edges.find(
+            (pair) => pair.original === edge,
+          )?.edge;
+          const wire = shown && routes.get(shown);
+          if (wire)
+            return pressEdge(
+              state,
+              edge,
+              wire,
+              point.content,
+              e,
+              svg,
+            );
         }
-        const port =
-          pickedItem?.port?.node ??
-          e.target
-            .closest("[data-port]")
-            ?.getAttribute("data-port");
-        const handle =
-          pickedItem?.port?.handle ??
-          e.target
-            .closest("[data-port]")
-            ?.getAttribute("data-handle") ??
-          undefined;
-        const direction =
-          pickedItem?.port?.direction ??
-          (e.target
-            .closest("[data-port]")
-            ?.getAttribute("data-direction") ===
-          "target"
-            ? "target"
-            : "source");
-        if (port) {
-          const dot = e.target.closest(
-              "[data-port]",
-            ),
-            side = dot?.getAttribute("data-side"),
-            node = lookup.get(port);
-          const socket =
-            pickedItem?.port?.point ??
-            (node &&
-            (side === "left" ||
-              side === "right" ||
-              side === "top" ||
-              side === "bottom")
-              ? (attachments.get(port)?.[side]?.[
-                  Number(
-                    dot?.getAttribute(
-                      "data-socket-index",
-                    ) ?? -1,
-                  )
-                ]?.point ??
-                portPosition(
-                  node,
-                  side,
-                  Number(
-                    dot?.getAttribute(
-                      "data-offset",
-                    ),
-                  ),
-                ))
-              : undefined);
+        if (pickedItem.port) {
+          const {
+            node: port,
+            handle,
+            direction,
+            point: socket,
+          } = pickedItem.port;
           svg.setPointerCapture(e.pointerId);
           return some((s) => {
             const next = connect(
@@ -2225,7 +2101,7 @@ export const drawFlow = (
                   ...next,
                   drag: some<Drag>({
                     mode: "connect",
-                    ...(socket ? { socket } : {}),
+                    socket,
                     node: port,
                     last: point.content,
                     pointer: e.pointerId,
@@ -2234,21 +2110,11 @@ export const drawFlow = (
               : next;
           });
         }
-        const node =
-          pickedItem?.node ??
-          (engine
-            ? null
-            : e.target
-                .closest("[data-node]")
-                ?.getAttribute("data-node")) ??
-          "";
+        const node = pickedItem.node ?? "";
         const group = lookup.get(node);
         if (
           group &&
-          (pickedItem?.resize ||
-            e.target.closest(
-              "[data-group-handle]",
-            ))
+          e.target.closest("[data-group-handle]")
         ) {
           const hit = pickPlane(
             state.camera,
@@ -2338,7 +2204,6 @@ export const drawFlow = (
       }),
       onEvent<Change>("pointerleave", (e) => {
         if (
-          !engine ||
           !(
             e.currentTarget instanceof
             SVGSVGElement
@@ -2372,22 +2237,29 @@ export const drawFlow = (
           return none();
         const point = local(e.currentTarget, e);
         if (!isSome(state.drag) && !state.pinch) {
-          if (!engine || !isSome(point))
-            return none();
-          const item = engine.hit(point.content);
+          if (!isSome(point)) return none();
+          const target =
+            e.target instanceof Element
+              ? e.target
+              : undefined;
+          const hit = hitTarget(
+            target ?? null,
+            point.content,
+          );
+          const node = hit.node ?? hit.port?.node;
           const svg = e.currentTarget,
             previous = hoverLabels.get(svg),
-            changed = item?.id !== previous?.id;
+            changed = hit?.id !== previous?.id;
           if (
             !changed &&
-            item?.node === state.hoveredNode &&
-            item?.edge === state.hoveredEdge
+            node === state.hoveredNode &&
+            hit.edge === state.hoveredEdge
           )
             return none();
-          if (item?.id)
+          if (hit?.id)
             hoverLabels.set(svg, {
-              id: item.id,
-              leave: item.label?.leave,
+              id: hit.id,
+              leave: hit.label?.leave,
             });
           else hoverLabels.delete(svg);
           return some((s) => {
@@ -2396,13 +2268,13 @@ export const drawFlow = (
                 ? previous.leave(s)
                 : s;
             const next =
-              changed && item?.label?.enter
-                ? item.label.enter(left)
+              changed && hit?.label?.enter
+                ? hit.label.enter(left)
                 : left;
             return {
               ...next,
-              hoveredNode: item?.node,
-              hoveredEdge: item?.edge,
+              hoveredNode: node,
+              hoveredEdge: hit.edge,
             };
           });
         }
@@ -2530,16 +2402,11 @@ export const drawFlow = (
             );
           const release = local(svg, e);
           const socket =
-            engine && isSome(release)
-              ? engine.hit(release.content)?.port
+            isSome(release) && svg.contains(hit)
+              ? hitTarget(hit, release.content)
+                  .port
               : undefined;
-          const target =
-            socket?.node ??
-            (svg.contains(hit)
-              ? hit
-                  ?.closest("[data-port]")
-                  ?.getAttribute("data-port")
-              : null);
+          const target = socket?.node;
           return some((s) => {
             if (
               isSome(s.drag) &&
@@ -2622,25 +2489,24 @@ export const drawFlow = (
                 ...released,
                 source: none(),
               };
+            if (s.drag.content.endpoint) {
+              const { edge, end } =
+                s.drag.content.endpoint;
+              return target
+                ? replaceEndpoint(
+                    edge,
+                    end,
+                    target,
+                    socket?.handle,
+                  )(released)
+                : { ...released, source: none() };
+            }
             return target &&
               target !== s.drag.content.node
               ? connect(
                   target,
-                  socket?.handle ??
-                    hit
-                      ?.closest("[data-port]")
-                      ?.getAttribute(
-                        "data-handle",
-                      ) ??
-                    undefined,
-                  socket?.direction ??
-                    (hit
-                      ?.closest("[data-port]")
-                      ?.getAttribute(
-                        "data-direction",
-                      ) === "source"
-                      ? "source"
-                      : "target"),
+                  socket?.handle,
+                  socket?.direction,
                 )(released)
               : released;
           });
@@ -2672,6 +2538,35 @@ export const drawFlow = (
         return isSome(p)
           ? some(wheelZoom(p.content, e.deltaY))
           : none();
+      }),
+      onEvent<Change>("dblclick", (e) => {
+        if (
+          !(e instanceof MouseEvent) ||
+          !(e.target instanceof Element) ||
+          !(
+            e.currentTarget instanceof
+            SVGSVGElement
+          )
+        )
+          return none();
+        const point = local(e.currentTarget, e);
+        if (!isSome(point)) return none();
+        const item = hitTarget(
+          e.target,
+          point.content,
+        );
+        if (item.edge)
+          return some(disconnect(item.edge));
+        const id = item.node;
+        const node = id && lookup.get(id);
+        if (!node || node.locked) return none();
+        const label = window.prompt(
+          "名前",
+          node.label,
+        );
+        return label === null
+          ? none()
+          : some(renameLabel(node.id, label));
       }),
       onEvent<Change>("keydown", (e) => {
         if (
@@ -2726,6 +2621,11 @@ export const drawFlow = (
               source: none(),
               drag: none(),
             });
+        else if (
+          e.key === "Insert" &&
+          state.activeEdge
+        )
+          command = insertOnEdge;
         else if (e.key === "Home")
           command = fitFlow;
         else if (
@@ -2811,7 +2711,13 @@ export const drawFlow = (
     ],
     easeDrawing([
       ...(engine
-        ? []
+        ? [
+            gridLayer(
+              state.camera,
+              [state.frame],
+              () => worldGrid(state),
+            ),
+          ]
         : state.scenery
           ? scenery
               .filter((s) => s.layer === "behind")
@@ -2899,6 +2805,75 @@ export const drawFlow = (
           )
         : lazy(emptyPreview, undefined),
       engine?.html ?? paintFlatSheet(),
+      ...drawNodes
+        .filter(
+          (n) =>
+            chosen.has(n.id) ||
+            isSome(state.source),
+        )
+        .map((n) =>
+          el(
+            "g",
+            [
+              a(
+                "transform",
+                `translate(${n.p.x} ${n.p.y}) scale(${n.scale})`,
+              ),
+            ],
+            sockets(n, () => true, true),
+          ),
+        ),
+      ...drawNodes
+        .filter(
+          (n) =>
+            !n.locked &&
+            (chosen.has(n.id) ||
+              (n.group && !n.collapsed)),
+        )
+        .map((n) => {
+          const size = nodeSize(n);
+          const corner = at({
+            ...n.position,
+            x: n.position.x + size.width / 2,
+            y: n.position.y + size.height / 2,
+          });
+          return el(
+            "rect",
+            [
+              a("data-group-handle", n.id),
+              a("data-id", "handle:node:" + n.id),
+              a("x", corner.x - 3),
+              a("y", corner.y - 3),
+              a("width", 6),
+              a("height", 6),
+              a("fill", "white"),
+              a("stroke", "currentColor"),
+            ],
+            [],
+          );
+        }),
+      ...(activeRoute && !isSome(state.source)
+        ? (
+            [
+              "source",
+              "target",
+            ] satisfies Port["direction"][]
+          ).map((end) => {
+            const p = at(activeRoute[end]);
+            return el(
+              "circle",
+              [
+                a("data-endpoint", end),
+                a("cx", p.x),
+                a("cy", p.y),
+                a("r", 4),
+                a("stroke", "currentColor"),
+                a("fill", "white"),
+              ],
+              [],
+            );
+          })
+        : []),
       ...scenery
         .filter((s) => s.layer === "front")
         .map((s) => s.html),
@@ -3072,6 +3047,116 @@ export const drawFlow = (
         : [scrollHint(state.scrollHint, frame)]),
     ]),
   );
+};
+
+const pressEdge = (
+  state: Flow,
+  original: Edge,
+  wire: Wire,
+  q: Point,
+  e: PointerEvent,
+  svg: SVGSVGElement,
+): Option<Change> => {
+  if (e.altKey) {
+    const points = (
+      wire.edge.path ?? wire.points
+    ).map(project(state.camera));
+    let nearest = 1,
+      best = Infinity,
+      fraction = 0;
+    for (let k = 1; k < points.length; k++) {
+      const a = points[k - 1],
+        b = points[k];
+      if (!a || !b) continue;
+      const dx = b.x - a.x,
+        dy = b.y - a.y,
+        t = Math.max(
+          0,
+          Math.min(
+            1,
+            ((q.x - a.x) * dx +
+              (q.y - a.y) * dy) /
+              (dx * dx + dy * dy || 1),
+          ),
+        );
+      const dist = Math.hypot(
+        q.x - a.x - t * dx,
+        q.y - a.y - t * dy,
+      );
+      if (dist < best) {
+        nearest = k;
+        fraction = t;
+        best = dist;
+      }
+    }
+    const a = points[nearest - 1],
+      b = points[nearest],
+      z =
+        a && b
+          ? a.z + fraction * (b.z - a.z)
+          : project(state.camera)(wire.source).z,
+      p = unproject(state.camera, q, z),
+      prev =
+        original.path?.slice(1, -1) ??
+        original.waypoints ??
+        [],
+      at = Math.min(
+        prev.length,
+        Math.max(
+          0,
+          nearest - (original.path ? 1 : 2),
+        ),
+      );
+    const { path, ...editable } = original;
+    const next = {
+      ...editable,
+      waypoints: [
+        ...prev.slice(0, at),
+        p,
+        ...prev.slice(at),
+      ],
+    };
+    return some((s) => ({
+      ...s,
+      chosenEdges: [
+        ...selectedEdges(s).filter(
+          (e) => e !== original,
+        ),
+        next,
+      ],
+      activeEdge: next,
+      edges: s.edges.map((v) =>
+        v === original ? next : v,
+      ),
+    }));
+  }
+  if (e.pointerType === "touch") {
+    e.preventDefault();
+    svg.setPointerCapture(e.pointerId);
+    return some((s) => ({
+      ...selectNodes([])(s),
+      chosenEdges: [original],
+      activeEdge: original,
+      source: none(),
+      drag: some<Drag>({
+        pointer: e.pointerId,
+        mode: "pan",
+        node: "",
+        last: q,
+      }),
+    }));
+  }
+  return some((s) => {
+    const prev = selectedEdges(s);
+    const next = e.shiftKey
+      ? prev.includes(original)
+        ? prev.filter((v) => v !== original)
+        : [...prev, original]
+      : [original];
+    return chooseEdges(next)(
+      e.shiftKey ? s : selectNodes([])(s),
+    );
+  });
 };
 
 export const flowView = drawFlow;

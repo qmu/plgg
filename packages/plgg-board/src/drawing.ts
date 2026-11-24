@@ -1,8 +1,14 @@
+import { mix } from "plgg-board/geometry";
 import type {
   Point3,
   Point,
 } from "plgg-board/index";
-import type { Bounds } from "plgg-board/visibility";
+import {
+  grid,
+  segmentBounds,
+  type Interval,
+  type Bounds,
+} from "plgg-board/visibility";
 export type Tone = "up" | "lit" | "shade";
 export type Fill = {
   id: string;
@@ -40,6 +46,7 @@ export type DrawMark = {
   strokeIndex?: number;
 };
 export type DrawLabel = {
+  clear?: boolean;
   id: string;
   style: string;
   text: string;
@@ -135,4 +142,101 @@ export const pick = (
     if (pos !== neg) return f.id;
   }
   return undefined;
+};
+
+export const clearLabelStrokes = (
+  drawing: Drawing,
+  painted: readonly DrawLabel[] = drawing.labels,
+) => {
+  const labels = painted
+    .filter((l) => l.clear)
+    .map(({ box: b }) => ({
+      box: {
+        left: b.left - 2,
+        right: b.right + 2,
+        top: b.top - 2,
+        bottom: b.bottom + 2,
+      },
+    }));
+  if (!labels.length) return;
+  const query = grid(labels);
+  const gaps = new Map<number, DrawMark[]>();
+  for (const mark of drawing.marks) {
+    if (mark.strokeIndex === undefined) continue;
+    const list = gaps.get(mark.strokeIndex) ?? [];
+    list.push(mark);
+    gaps.set(mark.strokeIndex, list);
+  }
+  const strokes: Ink[] = [];
+  const removed = new Set<DrawMark>();
+  for (const [
+    index,
+    s,
+  ] of drawing.strokes.entries()) {
+    const [a, b] = s.points,
+      dx = b.x - a.x,
+      dy = b.y - a.y;
+    const cuts: Interval[] = [];
+    query(segmentBounds(a, b), ({ box }) => {
+      let lo = 0,
+        hi = 1;
+      for (const [start, delta, min, max] of [
+        [a.x, dx, box.left, box.right],
+        [a.y, dy, box.top, box.bottom],
+      ] satisfies [
+        number,
+        number,
+        number,
+        number,
+      ][]) {
+        if (!delta) {
+          if (start < min || start > max) return;
+          continue;
+        }
+        const u = (min - start) / delta,
+          v = (max - start) / delta;
+        lo = Math.max(lo, Math.min(u, v));
+        hi = Math.min(hi, Math.max(u, v));
+      }
+      if (lo < hi) cuts.push({ lo, hi });
+    });
+    const marks = gaps.get(index);
+    const emit = (lo: number, hi: number) => {
+      for (const m of marks ?? []) {
+        const t =
+          Math.abs(dx) > Math.abs(dy)
+            ? (m.point.x - a.x) / dx
+            : (m.point.y - a.y) / dy;
+        if (t >= lo && t <= hi) {
+          m.strokeIndex = strokes.length;
+          removed.delete(m);
+        }
+      }
+      strokes.push(
+        lo === 0 && hi === 1
+          ? s
+          : {
+              ...s,
+              points: [
+                mix(a, b, lo),
+                mix(a, b, hi),
+              ],
+            },
+      );
+    };
+    for (const m of marks ?? []) removed.add(m);
+    let cursor = 0;
+    for (const { lo, hi } of cuts.sort(
+      (u, v) => u.lo - v.lo,
+    )) {
+      if (lo > cursor) emit(cursor, lo);
+      cursor = Math.max(cursor, hi);
+    }
+    if (cursor < 1) emit(cursor, 1);
+  }
+  drawing.strokes = strokes;
+  if (removed.size)
+    drawing.marks = drawing.marks.filter(
+      (m) => !removed.has(m),
+    );
 };

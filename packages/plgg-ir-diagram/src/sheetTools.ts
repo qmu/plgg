@@ -1,5 +1,5 @@
 import {
-  splitEdge,
+  insertOnEdge,
   viewAt,
   type Flow,
   type Change,
@@ -16,40 +16,6 @@ export type SheetTool = Readonly<{
   name: string;
   view: (flow: Flow) => Html<Change>;
 }>;
-const insert: Change = (f) => {
-  const e = f.edges[0],
-    a = f.nodes.find((n) => n.id === e?.source),
-    b = f.nodes.find((n) => n.id === e?.target);
-  if (!e || !a || !b) return f;
-  const id =
-    Array.from(
-      { length: f.nodes.length + 1 },
-      (_, i) => "Step " + (i + 1),
-    ).find(
-      (id) => !f.nodes.some((n) => n.id === id),
-    ) ?? "Step";
-  return {
-    ...f,
-    ...splitEdge(
-      f,
-      e,
-      {
-        id,
-        label: id,
-        position: {
-          x: (a.position.x + b.position.x) / 2,
-          y:
-            (a.position.y + b.position.y) / 2 +
-            65,
-          z: (a.position.z + b.position.z) / 2,
-        },
-      },
-      f.allowConnection
-        ? { allow: f.allowConnection }
-        : {},
-    ),
-  };
-};
 const button = (
   label: string,
   fn: Change,
@@ -123,7 +89,7 @@ const tools: readonly SheetTool[] = [
           ...(!flow.edges.length
             ? [attr("disabled", "")]
             : []),
-          onClick(insert),
+          onClick(insertOnEdge),
         ],
         [text("接続の途中に挿入")],
       ),

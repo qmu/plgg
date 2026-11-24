@@ -129,7 +129,6 @@ const labelBox = (l: {
 };
 type AxisLabel = {
   axis: Direction;
-  letter: Direction;
   z: number;
   x: number;
   y: number;
@@ -259,7 +258,7 @@ const axisGeometry = (
       .sort((a, b) => b.extent - a.extent);
     return (
       axis === "x" ? ordered : ordered.slice(0, 1)
-    ).map(({ min, max, cells }, i) => {
+    ).map(({ min, max, cells }) => {
       const origins = corners(min, max)
         .filter(
           (p) =>
@@ -296,11 +295,6 @@ const axisGeometry = (
           dy = ny * normal;
         const position = (v: number) =>
           at({ ...origin, [axis]: v });
-        const start = at(origin),
-          tip = position(
-            (dir === 1 ? max : min)[axis] +
-              dir * 40,
-          );
         const boxes = [...occupied];
         const labels: AxisLabel[] = [];
         let blocked = false;
@@ -322,10 +316,16 @@ const axisGeometry = (
           clear: boolean,
           span?: { from: Point3; to: Point3 },
         ) => {
-          const gap = clear ? reach(value) : row;
+          const gap = clear
+            ? Math.max(
+                row,
+                ...labels.map((l) =>
+                  Math.hypot(l.dx, l.dy),
+                ),
+              ) + 16
+            : row;
           const l: AxisLabel = {
             axis,
-            letter: axis,
             z: p.z,
             x: p.x,
             y: p.y,
@@ -364,16 +364,23 @@ const axisGeometry = (
               to: position(r.max[axis]),
             },
           );
-        if (!i)
+        if (
+          axis !== "x" ||
+          cells[0]!.block ===
+            groups[0]!.cells[0]!.block
+        )
           add(
-            tip,
-            axis + " " + definition.attribute,
+            position((min[axis] + max[axis]) / 2),
+            definition.attribute,
             true,
+            {
+              from: position(min[axis]),
+              to: position(max[axis]),
+            },
           );
         return {
           position,
-          start,
-          tip,
+
           dx,
           dy,
           labels,
@@ -387,36 +394,11 @@ const axisGeometry = (
           ? edge(false, true)
           : other;
       }
-      const {
-        start,
-        tip,
-        position,
-        dx,
-        dy,
-        labels,
-      } = chosen;
+      const { position, labels } = chosen;
       occupied.push(...labels.map(labelBox));
       const path = hidden
         ? []
         : [
-            ...mark(
-              start.x,
-              start.y,
-              tip.x - start.x,
-              tip.y - start.y,
-            ),
-            ...mark(
-              tip.x,
-              tip.y,
-              -6 * tx + 3 * dx,
-              -6 * ty + 3 * dy,
-            ),
-            ...mark(
-              tip.x,
-              tip.y,
-              -6 * tx - 3 * dx,
-              -6 * ty - 3 * dy,
-            ),
             ...labels
               .flatMap((l) => {
                 if (!l.span) return [];
@@ -446,18 +428,41 @@ const axisGeometry = (
                 const over = out
                   ? (out + 3) / out
                   : 0;
+                const tickStart = (p: Point3) => {
+                  const value =
+                    l.clear &&
+                    labels.find(
+                      (v) =>
+                        !v.clear &&
+                        v.span &&
+                        [
+                          v.span.from,
+                          v.span.to,
+                        ].some(
+                          (q) =>
+                            q.x === p.x &&
+                            q.y === p.y,
+                        ),
+                    );
+                  return {
+                    x: value ? value.dx : 0,
+                    y: value ? value.dy : 0,
+                  };
+                };
+                const first = tickStart(from),
+                  last = tickStart(to);
                 return [
                   mark(
-                    from.x,
-                    from.y,
-                    l.dx * over,
-                    l.dy * over,
+                    from.x + first.x,
+                    from.y + first.y,
+                    l.dx * over - first.x,
+                    l.dy * over - first.y,
                   ),
                   mark(
-                    to.x,
-                    to.y,
-                    l.dx * over,
-                    l.dy * over,
+                    to.x + last.x,
+                    to.y + last.y,
+                    l.dx * over - last.x,
+                    l.dy * over - last.y,
                   ),
                   ...(run > 2
                     ? [
@@ -481,7 +486,6 @@ const axisGeometry = (
           ];
       return {
         axis,
-        letter: axis,
         block: cells[0]!.block,
         position,
         mark,
@@ -498,45 +502,102 @@ const blockLabels = (
 ) => {
   const at = project(camera);
   const occupied = [...cards];
-  return layout.rooms
-    .filter(
-      (c) =>
-        c.caption &&
-        c.index[0] === 0 &&
-        c.index[1] === 0 &&
-        c.index[2] === 0,
-    )
+  const blocks = groupsOf(layout)
+    .filter((c) => c[0]?.caption)
     .map((c) => {
-      const bounds = stageBounds(
-        layout.rooms.filter(
-          (r) => r.block === c.block,
+      const { min, max } = stageBounds(c);
+      const points = corners(min, max).map(at);
+      return {
+        value: c[0]!.caption,
+        address: c[0]!.blockAddress,
+        left: Math.min(...points.map((p) => p.x)),
+        right: Math.max(
+          ...points.map((p) => p.x),
+        ),
+        bottom: Math.max(
+          ...points.map((p) => p.y),
+        ),
+      };
+    });
+  const labels = [];
+  const baseline =
+    Math.max(...blocks.map((b) => b.bottom)) + 24;
+  const add = (
+    value: string,
+    left: number,
+    right: number,
+    y: number,
+    outer: boolean,
+  ) => {
+    const label = {
+      x: (left + right) / 2,
+      y,
+      z: 0,
+      dx: 0,
+      dy: 0,
+      anchor: "middle",
+      value,
+      left,
+      right,
+      outer,
+    };
+    while (
+      occupied.some((b) =>
+        meets(b, labelBox(label)),
+      )
+    )
+      label.dy += 4;
+    occupied.push(labelBox(label));
+    return label;
+  };
+  let y = baseline;
+  for (const role of ["column", "row"] satisfies (
+    | "column"
+    | "row"
+  )[]) {
+    const axis = layout.axes[role];
+    if (!axis || !blocks.length) continue;
+    const spans = new Map<
+      string,
+      { left: number; right: number }
+    >();
+    for (const block of blocks) {
+      const value =
+        block.address?.[role] ?? block.value;
+      const span = spans.get(value);
+      spans.set(value, {
+        left: Math.min(
+          block.left,
+          span?.left ?? Infinity,
+        ),
+        right: Math.max(
+          block.right,
+          span?.right ?? -Infinity,
+        ),
+      });
+    }
+    for (const [value, span] of spans)
+      labels.push(
+        add(
+          value,
+          span.left,
+          span.right,
+          y,
+          false,
         ),
       );
-      const p = at({
-        ...bounds.max,
-        x: (bounds.min.x + bounds.max.x) / 2,
-        z:
-          at(bounds.max).y >=
-          at({ ...bounds.max, z: bounds.min.z }).y
-            ? bounds.max.z
-            : bounds.min.z,
-      });
-      const label = {
-        ...p,
-        dx: 0,
-        dy: 44,
-        anchor: "middle",
-        value: c.caption,
-      };
-      while (
-        occupied.some((b) =>
-          meets(b, labelBox(label)),
-        )
-      )
-        label.dy += 4;
-      occupied.push(labelBox(label));
-      return label;
-    });
+    const name = add(
+      axis.attribute,
+      Math.min(...blocks.map((b) => b.left)),
+      Math.max(...blocks.map((b) => b.right)),
+      Math.max(...labels.map((l) => l.y + l.dy)) +
+        16,
+      true,
+    );
+    labels.push(name);
+    y = name.y + name.dy + 20;
+  }
+  return labels;
 };
 export const roomLabels = (
   layout: RoomLayout,
@@ -710,6 +771,7 @@ export const spaceScenery = (
           layer: "sorted",
           surface: level,
           thickness: cake ? 6 : 4,
+          casts: !!cake,
           order: 1,
           width: 1.25,
           points: [p, q, r, t],
@@ -802,17 +864,45 @@ export const spaceScenery = (
         strokes: strokes.slice(1),
       });
   };
-  for (const l of blocks)
+  for (const l of blocks) {
+    const y = l.y + l.dy,
+      half = labelBox(l).right - l.x + 2;
+    const segments = [
+      ...clearLine(l.left, y - 16, 0, 19, cards),
+      ...clearLine(l.right, y - 16, 0, 19, cards),
+      ...(l.x - half > l.left
+        ? [
+            ...clearLine(
+              l.left,
+              y,
+              l.x - half - l.left,
+              0,
+              cards,
+            ),
+            ...clearLine(
+              l.x + half,
+              y,
+              l.right - l.x - half,
+              0,
+              cards,
+            ),
+          ]
+        : []),
+    ];
+    addLines(segments);
     result.push({
       kind: "label",
       layer: "front",
       anchor: unproject(camera, l, l.z),
       offset: { x: l.dx, y: l.dy },
       text: l.value,
-      size: 13,
+      size: l.outer ? 10 : 13,
       weight: 600,
-      tone: ink,
+      tone: l.outer
+        ? "var(--graphite,gray)"
+        : ink,
     });
+  }
   const node = flow.nodes.find(
     (n) =>
       n.id ===
@@ -864,9 +954,7 @@ export const spaceScenery = (
         layer: "front",
         anchor: unproject(camera, l, l.z),
         offset: { x: l.dx, y: l.dy },
-        text: l.clear
-          ? l.letter + " " + l.attribute
-          : l.value,
+        text: l.value,
         size: l.size,
         weight: l.clear || pinned ? 600 : 400,
         tone: pinned

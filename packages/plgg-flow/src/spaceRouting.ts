@@ -60,7 +60,7 @@ export const routeAssignment = (
       p: n.position,
       x: sizes(n).width / 2,
       y: sizes(n).height / 2,
-      z: bodyDepth(n),
+      z: bodyDepth(n) + 24,
     }));
   const byId = new Map(
     boxes.map((b) => [b.id, b]),
@@ -133,61 +133,102 @@ export const routeAssignment = (
           occupied.splice(j, 1);
         }
     }
-    const scorePath = (path: Point3[]) => {
-      const runs = aisleRuns(path);
-      let score = (runs.length - 1) * 10000;
-      if (score >= cost && cost < 1000000) return;
-      for (const r of runs) {
-        const k = r.axis,
-          u = k === "x" ? "y" : "x",
-          v = k === "z" ? "y" : "z";
+    // All candidate runs on one lattice line see the same obstacles.
+    // Project them onto the line once, then score only its 1-D intervals.
+    type Track = {
+      blocked: { lo: number; hi: number }[];
+      crossings: number[];
+    };
+    const tracks: Record<
+      keyof Point3,
+      Map<number, Map<number, Track>>
+    > = {
+      x: new Map(),
+      y: new Map(),
+      z: new Map(),
+    };
+    const track = (
+      k: keyof Point3,
+      start: Point3,
+    ) => {
+      const u = k === "x" ? "y" : "x",
+        v = k === "z" ? "y" : "z",
+        x = start[u],
+        y = start[v];
+      let row = tracks[k].get(x);
+      if (!row) {
+        row = new Map();
+        tracks[k].set(x, row);
+      }
+      const existing = row.get(y);
+      if (existing) return existing;
+      const line: Track = {
+        blocked: [],
+        crossings: [],
+      };
+      row.set(y, line);
+      for (const q of boxes)
         if (
-          boxes.some(
-            (q) =>
-              q !== a &&
-              q !== b &&
-              Math.abs(r.start[u] - q.p[u]) <
-                q[u] + 6 &&
-              Math.abs(r.start[v] - q.p[v]) <
-                q[v] + 6 &&
-              r.lo < q.p[k] + q[k] + 6 &&
-              r.hi > q.p[k] - q[k] - 6,
+          q !== a &&
+          q !== b &&
+          Math.abs(x - q.p[u]) < q[u] + 6 &&
+          Math.abs(y - q.p[v]) < q[v] + 6
+        )
+          line.blocked.push({
+            lo: q.p[k] - q[k] - 6,
+            hi: q.p[k] + q[k] + 6,
+          });
+      for (let j = 0; j < occupied.length; j++) {
+        const t = occupied[j]!,
+          l = t.axis;
+        if (k === l) {
+          if (
+            (x - t.start[u]) ** 2 +
+              (y - t.start[v]) ** 2 <
+            64
+          )
+            line.blocked.push(t);
+        } else if (
+          start[l] > t.lo &&
+          start[l] < t.hi
+        ) {
+          const peer = owners[j]!;
+          if (
+            peer.source !== a.id &&
+            peer.target !== a.id &&
+            peer.source !== b.id &&
+            peer.target !== b.id
+          )
+            line.crossings.push(t.start[k]);
+        }
+      }
+      return line;
+    };
+    const scorePath = (path: Point3[]) => {
+      let score = (path.length - 2) * 10000;
+      if (score >= cost) return;
+      for (let j = 1; j < path.length; j++) {
+        const start = path[j - 1]!,
+          end = path[j]!;
+        const k =
+          start.x !== end.x
+            ? "x"
+            : start.y !== end.y
+              ? "y"
+              : "z";
+        const lo = Math.min(start[k], end[k]),
+          hi = Math.max(start[k], end[k]);
+        const line = track(k, start);
+        if (
+          line.blocked.some(
+            (t) => lo < t.hi && t.lo < hi,
           )
         )
           return;
-        score += r.hi - r.lo;
-        for (
-          let j = 0;
-          j < occupied.length;
-          j++
-        ) {
-          const t = occupied[j]!,
-            l = t.axis;
-          if (k === l) {
-            if (
-              r.lo < t.hi &&
-              t.lo < r.hi &&
-              (r.start[u] - t.start[u]) ** 2 +
-                (r.start[v] - t.start[v]) ** 2 <
-                64
-            )
-              return;
-          } else if (
-            t.start[k] > r.lo &&
-            t.start[k] < r.hi &&
-            r.start[l] > t.lo &&
-            r.start[l] < t.hi
-          ) {
-            const peer = owners[j]!;
-            if (
-              peer.source !== a.id &&
-              peer.target !== a.id &&
-              peer.source !== b.id &&
-              peer.target !== b.id
-            )
-              score += 1000000;
-          }
-        }
+        score += hi - lo;
+        for (const cross of line.crossings)
+          if (lo < cross && cross < hi)
+            score += 1000000;
         if (score >= cost) return;
       }
       cost = score;
@@ -250,8 +291,10 @@ export const routeAssignment = (
           next[k] - end[k],
         );
         if (
-          (next[k] - box.p[k]) * direction <=
-          box[k]
+          k === "z" ||
+          end.z !== box.p.z ||
+          (next[k] - box.p[k]) * direction <
+            box[k] + 16
         )
           return;
         path[index] = shift(
@@ -269,7 +312,8 @@ export const routeAssignment = (
     ) => {
       for (const k of axes)
         for (const l of axes) {
-          if (l === k) continue;
+          if (l === k || (k === "z" && detour))
+            continue;
 
           const via = shift(s, k, t[k]);
           if (!detour)
@@ -408,7 +452,10 @@ export const routeAssignment = (
     }
     if (!best) {
       // Fan sockets along the flank when centre sockets are occupied.
-      for (const k of axes) {
+      for (const k of ["x", "y"] satisfies (
+        | "x"
+        | "y"
+      )[]) {
         for (const offset of [
           8, -8, 16, -16, 24, -24,
         ]) {
@@ -427,9 +474,69 @@ export const routeAssignment = (
         if (best) break;
       }
     }
+    // Leave each endpoint on a flank before changing depth. Independent
+    // end choices also let a crowded socket use the next lane on its flank.
+    if (!best || (initial && cost >= 1000000)) {
+      const exits = (
+        box: typeof a,
+        offset: number,
+      ) =>
+        (
+          ["x", "y"] satisfies ("x" | "y")[]
+        ).flatMap((k) => {
+          const other = k === "x" ? "y" : "x";
+          if (Math.abs(offset) >= box[other])
+            return [];
+          const port = shift(
+            box.p,
+            other,
+            box.p[other] + offset,
+          );
+          return [-1, 1].map((sign) => ({
+            port,
+            tip: shift(
+              port,
+              k,
+              port[k] + sign * (box[k] + 16),
+            ),
+          }));
+        });
+      for (const offset of [
+        0, 8, -8, 16, -16, 24, -24,
+      ]) {
+        if (offset && best) break;
+        const targets = exits(b, offset);
+        for (const source of exits(a, offset))
+          for (const target of targets) {
+            for (const z of [
+              a.p.z,
+              b.p.z,
+              (a.p.z + b.p.z) / 2,
+              a.p.z + a.z + 16,
+              b.p.z - b.z - 16,
+            ]) {
+              const u = { ...source.tip, z },
+                v = { ...target.tip, z };
+              for (const k of [
+                "x",
+                "y",
+              ] satisfies ("x" | "y")[])
+                consider([
+                  source.port,
+                  source.tip,
+                  u,
+                  shift(u, k, v[k]),
+                  v,
+                  target.tip,
+                  target.port,
+                ]);
+            }
+          }
+      }
+    }
     total +=
       (best ? cost : 1e12) -
-      (previous ? oldCost : 0);
+      (previous ? oldCost : initial ? 1e12 : 0);
     if (best) {
       routes.set(edge.id ?? i, best);
       reserve(best, edge);
