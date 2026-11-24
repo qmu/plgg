@@ -582,6 +582,16 @@ const hoverLabels = new WeakMap<
   SVGSVGElement,
   { id: string; leave: Change | undefined }
 >();
+export const placedLabels = (flow: Flow) => {
+  const { scene, wires } = viewportLayout(flow);
+  return engineView(
+    flow,
+    scene.nodes,
+    scene.edges,
+    wires,
+    defaultLabel,
+  ).placed;
+};
 export const drawFlow = (
   flow: Flow,
   renderLabel: (

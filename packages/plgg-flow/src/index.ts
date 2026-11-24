@@ -1,6 +1,7 @@
 export * from "plgg-flow/model";
 export { flowView } from "plgg-flow/sheetView";
 export {
+  placedLabels,
   groundSide,
   type ViewRegistry,
 } from "plgg-flow/viewport";

@@ -24,7 +24,7 @@ import {
   faceAxes,
 } from "plgg-flow/roomCamera";
 
-const stageBounds = (
+export const stageBounds = (
   cells: RoomLayout["rooms"],
 ) => ({
   min: {

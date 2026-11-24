@@ -8,7 +8,7 @@ import {
   type Action,
   type Session,
 } from "plgg-ir-diagram/sheetSession";
-import { some, none } from "plgg";
+import { some, none, isSome } from "plgg";
 import {
   el,
   attr,
@@ -261,7 +261,14 @@ export const mountSheet = (
       (m) => {
         const next = change((f) => {
           const state = fn(f);
-          return state.focus !== f.focus
+          const settled =
+            f.rooms &&
+            !state.manualZoom &&
+            isSome(f.drag) &&
+            f.drag.content.mode === "orbit" &&
+            !isSome(state.drag);
+          return settled ||
+            state.focus !== f.focus
             ? fitDemo(state)
             : state;
         })(m);

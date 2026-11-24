@@ -3,6 +3,7 @@ import { sheetTools } from "plgg-ir-diagram/flowSheet";
 import { project } from "plgg-board";
 import {
   frameOf,
+  placedLabels,
   roomFaceView,
   roomLabels,
   spaceScenery,
@@ -410,6 +411,62 @@ test("each room face fills the open frame up to its 40 pixel margin", () => {
     toBe(true),
   );
 });
+
+for (const id of ["rooms", "layers"]) {
+  const yaw =
+    id === "rooms" ? 0.22 : -Math.PI / 4;
+  for (const pitch of [
+    id === "rooms" ? -1.05 : -1.2,
+    -1.3,
+  ]) {
+    test(
+      id +
+        " keeps drawn labels inside the open frame at pitch " +
+        pitch,
+      () => {
+        const initial = examples
+          .find((e) => e.id === id)!
+          .initial();
+        const flow = roomFaceView(
+          fitDemo(
+            viewAt(
+              yaw,
+              pitch,
+            )({
+              ...initial,
+              cover: 320,
+              sheetInsets: {
+                left: 8,
+                top: 36,
+                bottom: 12,
+              },
+            }),
+          ),
+        );
+        const labels = placedLabels({
+          ...flow,
+          scenery: [
+            ...spaceScenery(flow.rooms!, flow),
+            ...(flow.scenery ?? []),
+          ],
+        });
+        return check(
+          labels.some(
+            (l) => l.covered && l.style === "tag",
+          ) &&
+            labels.every(
+              ({ box }) =>
+                box.left >= 8 &&
+                box.right <= 580 &&
+                box.top >= 36 &&
+                box.bottom <= 568,
+            ),
+          toBe(true),
+        );
+      },
+    );
+  }
+}
 
 test("the demo uses the shared sheet tool registry", () =>
   check(

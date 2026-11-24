@@ -46,6 +46,11 @@ import {
 } from "plgg-flow/wiring";
 import { type Port } from "plgg-flow/connections";
 
+import {
+  roomBlocks,
+  stageBounds,
+} from "plgg-flow/roomView";
+
 const off = (p: Point3) => p.z !== 0;
 export const spatialDrawing = (
   flow: Flow,
@@ -702,6 +707,20 @@ export const engineView = (
     }
     boxes.set(f.id, bounds);
   }
+  const centres = new Map<string, number>();
+  if (flow.rooms)
+    for (const block of roomBlocks(flow.rooms)) {
+      const { min, max } = stageBounds(
+        block.cells,
+      );
+      const centre = at({
+        x: (min.x + max.x) / 2,
+        y: (min.y + max.y) / 2,
+        z: (min.z + max.z) / 2,
+      });
+      for (const id of block.ids)
+        centres.set(id, centre.x);
+    }
   const placed: typeof drawing.labels = [];
   drawing.labels.sort(
     (a, b) =>
@@ -723,7 +742,19 @@ export const engineView = (
       (offset?.y ?? 0) +
       l.point.y -
       (b.top + b.bottom) / 2;
-    const own = boxes.get(l.id);
+    const centre = node && centres.get(node.id);
+    const inward =
+      l.covered && centre !== undefined;
+    const own =
+      boxes.get(l.id) ??
+      (inward
+        ? {
+            left: l.point.x,
+            right: l.point.x,
+            top: l.point.y,
+            bottom: l.point.y,
+          }
+        : undefined);
     if (l.style === "tag" && own) {
       const others = [...boxes.values()].filter(
         (o) => o !== own,
@@ -738,6 +769,25 @@ export const engineView = (
         placed.some((p) => overlap(p.box));
       y = own.top - 10 - b.bottom;
       const start = y;
+      if (inward) {
+        x =
+          (own.left + own.right) / 2 < centre
+            ? own.right + 6 - b.left
+            : own.left - 6 - b.right;
+        y =
+          (own.top +
+            own.bottom -
+            b.top -
+            b.bottom) /
+          2;
+        const middle = y;
+        for (let step = 1; blocked(); step++)
+          y =
+            middle +
+            (step % 2 ? -1 : 1) *
+              Math.ceil(step / 2) *
+              6;
+      }
       while (blocked()) {
         y -= 6;
         if (
@@ -913,6 +963,7 @@ export const engineView = (
       [attr("class", "engine-drawing")],
       children,
     ),
+    placed,
     hit,
     drawing,
   };

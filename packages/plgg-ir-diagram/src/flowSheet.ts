@@ -30,6 +30,7 @@ import {
   turnRooms,
   spaceScenery,
   cardBounds,
+  placedLabels,
   nodeSize,
   bodyDepth,
   bridgePoints,
@@ -156,7 +157,10 @@ export const fitDemo = (
       : flow.rooms
         ? roomMargin
         : 96;
-  const measure = (scale: number) => {
+  const measure = (
+    scale: number,
+    placed = false,
+  ) => {
     let left = bounds.left * scale,
       right = bounds.right * scale,
       top = bounds.top * scale,
@@ -172,10 +176,11 @@ export const fitDemo = (
         visible.nodes,
       );
       const at = project(fitted);
-      for (const label of [
+      const scenery = [
         ...spaceScenery(flow.rooms, visible),
         ...(visible.scenery ?? []),
-      ]) {
+      ];
+      for (const label of scenery) {
         if (label.kind !== "label") continue;
         const anchor = at(label.anchor);
         const x = anchor.x + label.offset.x,
@@ -197,6 +202,21 @@ export const fitDemo = (
         right = Math.max(right, box.right);
         top = Math.min(top, box.top);
         bottom = Math.max(bottom, box.bottom);
+      }
+      if (placed) {
+        left -= margin / 2;
+        right += margin / 2;
+        top -= margin / 2;
+        bottom += margin / 2;
+        for (const { box } of placedLabels({
+          ...visible,
+          scenery,
+        })) {
+          left = Math.min(left, box.left);
+          right = Math.max(right, box.right);
+          top = Math.min(top, box.top);
+          bottom = Math.max(bottom, box.bottom);
+        }
       }
     }
     return {
@@ -228,7 +248,18 @@ export const fitDemo = (
     scale = (lower + upper) / 2;
   }
   scale = lower || scale;
-  const { origin } = measure(scale);
+  let box = measure(scale, true);
+  // Screen-sized tags can move when their neighbours change scale.
+  for (let i = 0; flow.rooms && i < 18; i++) {
+    const factor = Math.min(
+      open / box.width,
+      height / box.height,
+    );
+    if (factor >= 1) break;
+    scale *= factor * 0.98;
+    box = measure(scale, true);
+  }
+  const { origin } = box;
   return {
     ...state,
     camera: {
