@@ -1283,37 +1283,50 @@ const controls = (
       ];
   }
 };
+// One mapping function for the life of the page: the
+// renderer skips an unchanged lazy subtree only when the
+// functions mapped over it are the very same objects.
+const boardActions = mapHtml((fn: Change) =>
+  edit(apply(fn)),
+);
+const labelText = (label: string) =>
+  el(
+    "text",
+    [
+      attr("text-anchor", "middle"),
+      attr("y", "5"),
+    ],
+    [text(label)],
+  );
+// Likewise one node renderer for every board that only
+// shows labels; the computing board needs the live flow.
+const plainNode = (n: FlowNode) =>
+  labelText(n.label);
 const diagram = (id: DemoId, f: Flow) =>
-  flowView(f, (n) => {
-    const sum =
-      id !== "compute"
-        ? 0
-        : f.edges
-            .filter((e) => e.target === n.id)
-            .reduce(
-              (v, e) =>
-                v +
-                (f.nodes.find(
-                  (input) =>
-                    input.id === e.source,
-                )?.value ?? 0),
-              0,
-            );
-    return el(
-      "text",
-      [
-        attr("text-anchor", "middle"),
-        attr("y", "5"),
-      ],
-      [
-        text(
-          id === "compute"
-            ? n.label + " = " + (n.value ?? sum)
-            : n.label,
-        ),
-      ],
-    );
-  });
+  flowView(
+    f,
+    id !== "compute"
+      ? plainNode
+      : (n) =>
+          labelText(
+            n.label +
+              " = " +
+              (n.value ??
+                f.edges
+                  .filter(
+                    (e) => e.target === n.id,
+                  )
+                  .reduce(
+                    (v, e) =>
+                      v +
+                      (f.nodes.find(
+                        (input) =>
+                          input.id === e.source,
+                      )?.value ?? 0),
+                    0,
+                  )),
+          ),
+  );
 const dslPanel = (s: Session) => {
   const typed =
     s.dsl && s.dsl.flow === s.flow
@@ -1528,9 +1541,9 @@ const view = (m: Model): Html<Action> => {
                 "div",
                 [attr("class", "canvas-wrap")],
                 [
-                  mapHtml((fn: Change) =>
-                    edit(apply(fn)),
-                  )(diagram(e.id, s.flow)),
+                  boardActions(
+                    diagram(e.id, s.flow),
+                  ),
                   el(
                     "div",
                     [

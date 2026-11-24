@@ -58,14 +58,18 @@ export const materialize = (
   dense = true,
 ): Wire => {
   const points: Point3[] = [s];
-  const total = path.reduce(
-    (sum, p, i) =>
-      sum +
-      (i
-        ? distance(p, required(path[i - 1]))
-        : 0),
-    0,
-  );
+  // Flat paths need no arc-length interpolation for depth.
+  const flat = s.z === t.z;
+  const total = flat
+    ? 0
+    : path.reduce(
+        (sum, p, i) =>
+          sum +
+          (i
+            ? distance(p, required(path[i - 1]))
+            : 0),
+        0,
+      );
   let length = 0;
   if (edge.waypoints?.length)
     points.push(
@@ -87,20 +91,21 @@ export const materialize = (
         points.push({
           x: a.x + (b.x - a.x) * f,
           y: a.y + (b.y - a.y) * f,
-          z:
-            s.z +
-            (t.z - s.z) *
-              (total > 28
-                ? Math.min(
-                    1,
-                    Math.max(
-                      0,
-                      (length + d * f - 14) /
-                        (total - 28),
-                    ),
-                  )
-                : (length + d * f) /
-                  (total || 1)),
+          z: flat
+            ? s.z
+            : s.z +
+              (t.z - s.z) *
+                (total > 28
+                  ? Math.min(
+                      1,
+                      Math.max(
+                        0,
+                        (length + d * f - 14) /
+                          (total - 28),
+                      ),
+                    )
+                  : (length + d * f) /
+                    (total || 1)),
         });
       }
       length += d;

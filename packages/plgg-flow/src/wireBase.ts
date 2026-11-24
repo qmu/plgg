@@ -1,3 +1,4 @@
+import { shortcuts } from "plgg-flow/wireShortcuts";
 import {
   type Point,
   type Point3,
@@ -329,7 +330,7 @@ export const archCurve = (
     ...shoulder(t, s).reverse(),
   ];
 };
-export const basePath = (
+const routeBase = (
   edge: Edge,
   s: Socket,
   t: Socket,
@@ -826,4 +827,76 @@ export const basePath = (
   throw new Error(
     "No free path between socket stems",
   );
+};
+
+const pathLength = (path: readonly Point[]) =>
+  path.reduce(
+    (sum, p, i) =>
+      sum +
+      (i
+        ? distance(required(path[i - 1]), p)
+        : 0),
+    0,
+  );
+export const basePath = (
+  edge: Edge,
+  s: Socket,
+  t: Socket,
+  boxes: Box[],
+  clearance: number,
+  radius: number,
+): Base => {
+  const base = routeBase(
+    edge,
+    s,
+    t,
+    boxes,
+    clearance,
+    radius,
+  );
+  if (
+    edge.waypoints?.length ||
+    edge.source === edge.target ||
+    base.corners < 4
+  )
+    return base;
+  const length = pathLength(base.points);
+  if (length < distance(s, t) * 1.25) return base;
+  // Choose a shorter corridor before sibling lanes acquire their offsets.
+  const walls = boxes.map((q) =>
+    q.id === edge.source || q.id === edge.target
+      ? q
+      : inflate(q, Math.min(clearance, 7)),
+  );
+  let best = base,
+    limit = length * 0.84;
+  for (const spine of shortcuts(
+    s,
+    t,
+    boxes,
+    edge.source,
+    edge.target,
+    base.spine,
+  )) {
+    const cost = pathLength(spine);
+    if (cost >= limit) continue;
+    const path = rounded(
+      spine,
+      edge.route === "step" ? radius : 32,
+    );
+    if (!free(path, walls) || crossesItself(path))
+      continue;
+    best = {
+      ...materialize(
+        edge,
+        s,
+        t,
+        path,
+        spine.length - 2,
+      ),
+      spine,
+    };
+    limit = cost;
+  }
+  return best;
 };

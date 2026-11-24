@@ -259,3 +259,65 @@ test("a connection preview leaves rendered wire paths fixed", () => {
     toBe(true),
   );
 });
+
+test("an unrelated wire keeps its lazy argument when a card moves", () => {
+  const state = createFlow({
+    nodes: [
+      node("a"),
+      {
+        ...node("b"),
+        position: { x: 250, y: 0, z: 10 },
+      },
+      {
+        ...node("c"),
+        position: { x: 0, y: 400, z: 10 },
+      },
+      {
+        ...node("d"),
+        position: { x: 300, y: 400, z: 10 },
+      },
+    ],
+    edges: [
+      { id: "still", source: "a", target: "b" },
+      { id: "moving", source: "c", target: "d" },
+    ],
+  });
+  const wireArg = (
+    view: ReturnType<typeof flowView>,
+    id: string,
+  ): unknown => {
+    if (view.__tag === "Lazy")
+      return renderToString(
+        view.content.render(),
+      ).includes('data-edge-id="' + id + '"')
+        ? view.content.arg
+        : undefined;
+    if (view.__tag === "Element")
+      for (const child of view.content.children) {
+        const arg = wireArg(child, id);
+        if (arg !== undefined) return arg;
+      }
+    return undefined;
+  };
+  const before = flowView(state);
+  const after = flowView({
+    ...state,
+    nodes: state.nodes.map((n) =>
+      n.id === "c"
+        ? {
+            ...n,
+            position: { ...n.position, x: 20 },
+          }
+        : n,
+    ),
+  });
+  const still = wireArg(before, "still"),
+    moving = wireArg(before, "moving");
+  return check(
+    still !== undefined &&
+      moving !== undefined &&
+      still === wireArg(after, "still") &&
+      moving !== wireArg(after, "moving"),
+    toBe(true),
+  );
+});

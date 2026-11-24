@@ -1,3 +1,4 @@
+import { shortcuts } from "plgg-flow/wireShortcuts";
 import {
   corridor,
   boundsIndex,
@@ -5,7 +6,6 @@ import {
 } from "plgg-flow/wireCorridors";
 import { cache, boxId } from "plgg-flow/wireMemo";
 import { nestedFans } from "plgg-flow/wireNestedFans";
-import { shortcuts } from "plgg-flow/wireShortcuts";
 import { mendFans } from "plgg-flow/wireFanRepair";
 import { fitCurves } from "plgg-flow/wireSpline";
 import {
@@ -38,11 +38,21 @@ import {
 import type { planPorts } from "./wirePorts";
 import { curvedChannels } from "plgg-flow/wireChannels";
 import { materialize } from "plgg-flow/wirePath";
+type LaneCandidate = {
+  arc: Point[];
+  contour: ReturnType<typeof profile>;
+};
+const laneCandidates =
+  cache<Map<string, LaneCandidate>>(96);
+const guideCosts = new WeakMap<
+  Point[],
+  WeakMap<ReturnType<typeof profile>, number>
+>();
+const rememberGuides =
+  cache<ReturnType<typeof profile>[]>(192);
 const compactPaths = new WeakSet<Base>();
 const rememberRenders =
   cache<Map<string, Base>>(384);
-const rememberGuides =
-  cache<ReturnType<typeof profile>[]>(96);
 // Two tangent arcs enter a parallel lane without two full right-angle turns.
 const socketJog = (
   s: Socket,
@@ -2117,7 +2127,6 @@ export const separate = (
           });
         }
     }
-    // A stable tie break keeps the chosen tracks independent of component traversal.
     const tracks = [...wires.entries()].sort(
       ([, a], [, b]) =>
         a.edge.source.localeCompare(
@@ -2128,70 +2137,82 @@ export const separate = (
         ),
     );
     for (const [i, w] of tracks) {
-      const old = required(profiles[i]);
-
+      const old = required(profiles[i]),
+        baseSpine = bases[i]?.spine;
       if (
         w.edge.route !== "step" ||
         settled[i] ||
         old.turn < 0.01 ||
         (old.turn < 4 && score(old, i) < 2) ||
-        !bases[i]?.spine
+        !baseSpine
       )
         continue;
+      const baseLength = profile(
+        required(bases[i]),
+      ).length;
       const paths: Point[][] = [];
       render(required(bases[i]), i, paths);
-      const raw = paths[0] ?? bases[i]?.spine;
-      if (!raw) continue;
-      const trial = trialScore(i);
-      const baseSpine = required(
-        required(bases[i]).spine,
-      );
-      const { facing, compact, span } = required(
-        bendLimits[i],
-      );
-      const arch =
-        w.sourceSide === w.targetSide &&
-        baseSpine.length === 4;
-      const deviation = (
-        points: readonly Point[],
-      ) => {
-        let worst = 0;
-        for (let j = 1; j < points.length; j++) {
-          const p = required(points[j]),
-            a = required(points[j - 1]);
-          for (const sample of [
-            p,
-            pt((a.x + p.x) / 2, (a.y + p.y) / 2),
-          ]) {
-            let gap = Infinity;
-            for (
-              let k = 1;
-              k < baseSpine.length;
-              k++
-            )
-              gap = Math.min(
-                gap,
-                chordGap(
-                  sample,
-                  required(baseSpine[k - 1]),
-                  required(baseSpine[k]),
-                ),
-              );
-            worst = Math.max(worst, gap);
-          }
-        }
-        return worst;
+      const raw = paths[0] ?? baseSpine;
+      const trial = trialScore(i),
+        { facing, compact, span } = required(
+          bendLimits[i],
+        ),
+        arch =
+          w.sourceSide === w.targetSide &&
+          baseSpine.length === 4;
+      const gapToBase = (p: Point) => {
+        let d = Infinity;
+        for (let j = 1; j < baseSpine.length; j++)
+          d = Math.min(
+            d,
+            chordGap(
+              p,
+              required(baseSpine[j - 1]),
+              required(baseSpine[j]),
+            ),
+          );
+        return d;
       };
+      const deviation = (
+        path: readonly Point[],
+      ) => {
+        let d = 0;
+        for (let j = 1; j < path.length; j++) {
+          const p = required(path[j]),
+            a = required(path[j - 1]);
+          d = Math.max(
+            d,
+            gapToBase(p),
+            gapToBase(
+              pt(
+                (p.x + a.x) / 2,
+                (p.y + a.y) / 2,
+              ),
+            ),
+          );
+        }
+        return d;
+      };
+      const costs =
+        guideCosts.get(baseSpine) ??
+        new WeakMap<
+          ReturnType<typeof profile>,
+          number
+        >();
+      guideCosts.set(baseSpine, costs);
       const shapeCost = (
         p: ReturnType<typeof profile>,
       ) => {
-        const departure = deviation(p.path);
-        const shape =
-          Math.max(0, departure - 10) * 0.4 +
+        const known = costs.get(p);
+        if (known !== undefined) return known;
+        const value =
+          Math.max(0, deviation(p.path) - 10) *
+            0.4 +
           p.turn * 2 +
           Math.max(0, p.turn - 6.4) * 16 +
           p.length * 0.008;
-        return shape;
+        costs.set(p, value);
+        return value;
       };
       const cost = (
         p: ReturnType<typeof profile>,
@@ -2216,152 +2237,194 @@ export const separate = (
           q.b >= old.t - 64,
       );
       const clear = localBoxes.map((q) =>
-        q.id === w.edge.source ||
-        q.id === w.edge.target
-          ? q
-          : inflate(q, 6),
-      );
-
-      const socketWalls = boxes
-        .filter(
-          (q) =>
-            q.id === w.edge.source ||
-            q.id === w.edge.target,
-        )
-        .map((q) => inflate(q, 5));
+          q.id === w.edge.source ||
+          q.id === w.edge.target
+            ? q
+            : inflate(q, 6),
+        ),
+        socketWalls = boxes
+          .filter(
+            (q) =>
+              q.id === w.edge.source ||
+              q.id === w.edge.target,
+          )
+          .map((q) => inflate(q, 5));
       const along = vertical(s.side) ? "y" : "x",
-        across = along === "x" ? "y" : "x";
-      // On shallow runs a distant elbow swap can move the whole middle lane.
-      const shallow =
-        vertical(s.side) === vertical(t.side) &&
-        s.side !== t.side &&
-        Math.abs(s[along] - t[along]) >
-          4 * Math.abs(s[across] - t[across]) &&
-        Math.min(
-          required(ports.plans[i]).a.count,
-          required(ports.plans[i]).b.count,
-        ) > 1;
-      const crowdedEnds =
-        Math.min(
-          required(ports.plans[i]).a.count,
-          required(ports.plans[i]).b.count,
-        ) > 1;
-      const outsideChannel = (guide: Point[]) =>
-        (arch ||
+        across = along === "x" ? "y" : "x",
+        plan = required(ports.plans[i]),
+        crowded =
+          Math.min(plan.a.count, plan.b.count) >
+          1,
+        shallow =
+          vertical(s.side) === vertical(t.side) &&
+          s.side !== t.side &&
+          Math.abs(s[along] - t[along]) >
+            4 * Math.abs(s[across] - t[across]) &&
+          crowded;
+      // A facing fan already owns a middle leg. Keep repairs on its track.
+      const mid = (s[across] + t[across]) / 2;
+      const middleLeg = (
+        path: readonly Point[],
+      ) => {
+        for (let j = 1; j < path.length; j++) {
+          const p = required(path[j - 1]),
+            q = required(path[j]);
+          if (
+            (p[across] - mid) *
+              (q[across] - mid) >
+              0 ||
+            q[across] === p[across]
+          )
+            continue;
+          return (
+            p[along] +
+            ((q[along] - p[along]) *
+              (mid - p[across])) /
+              (q[across] - p[across])
+          );
+        }
+        return undefined;
+      };
+      const assigned = facing
+        ? middleLeg(raw)
+        : undefined;
+      const center = facing
+        ? middleLeg(baseSpine)
+        : undefined;
+      const reversesTrack = (guide: Point[]) => {
+        if (
+          center === undefined ||
+          assigned === undefined
+        )
+          return false;
+        const lane = middleLeg(guide) ?? assigned;
+        // Two socket jogs already place the shoulders. Keep their shared middle leg.
+        if (Math.abs(assigned - center) < 1)
+          return (
+            raw.length >= 8 &&
+            Math.abs(lane - center) >
+              Math.max(14, span)
+          );
+        return (
+          (lane - center) * (assigned - center) <
+            0 &&
+          Math.abs(lane - assigned) >
+            Math.max(18, 2 * span)
+        );
+      };
+      const outside = (guide: Point[]) =>
+        reversesTrack(guide) ||
+        ((arch ||
           (facing &&
-            crowdedEnds &&
+            crowded &&
             guide.length > baseSpine.length)) &&
-        deviation(guide) > 2 * span + 14;
-      const trialKey = JSON.stringify([
-        s,
-        t,
-        w.edge.source,
-        w.edge.target,
-        raw,
-        baseSpine,
+          deviation(guide) > 2 * span + 14);
+      const close =
+        compact ||
+        shallow ||
+        (baseSpine.length === 3 &&
+          Math.max(plan.a.count, plan.b.count) <=
+            2);
+      const key = JSON.stringify([
+        tokens[i],
+        raw.map((p) => [p.x, p.y]),
         radius,
         localBoxes.map(boxId),
-        compact,
-        shallow,
-        crowdedEnds,
+        close,
+        crowded,
         facing,
         span,
       ]);
-      const choices = rememberGuides(
-        trialKey,
-        () => {
-          const choices: ReturnType<
-            typeof profile
-          >[] = [];
-          for (const guide of shortcuts(
-            s,
-            t,
-            localBoxes,
-            w.edge.source,
-            w.edge.target,
-            raw,
-          )) {
-            // A two-bend base already has a channel. Keep its middle leg within the fan.
-            if (outsideChannel(guide)) continue;
-            if (facing) {
-              const across = vertical(s.side)
-                ? "x"
-                : "y";
-              if (
-                guide.some(
-                  (p) =>
-                    p[across] <
-                      Math.min(
-                        s[across],
-                        t[across],
-                      ) -
-                        span ||
-                    p[across] >
-                      Math.max(
-                        s[across],
-                        t[across],
-                      ) +
-                        span,
-                )
-              )
-                continue;
-            }
-            if (
-              (compact ||
-                shallow ||
-                (baseSpine.length === 3 &&
-                  Math.max(
-                    required(ports.plans[i]).a
-                      .count,
-                    required(ports.plans[i]).b
-                      .count,
-                  ) <= 2)) &&
+      const choices = rememberGuides(key, () => {
+        const result: ReturnType<
+          typeof profile
+        >[] = [];
+        const candidates = laneCandidates(
+          String(required(tokens[i])),
+          () => new Map<string, LaneCandidate>(),
+        );
+        for (const guide of shortcuts(
+          s,
+          t,
+          localBoxes,
+          w.edge.source,
+          w.edge.target,
+          raw,
+        )) {
+          if (
+            outside(guide) ||
+            (facing &&
               guide.some(
                 (p) =>
-                  !baseSpine.some(
-                    (q, j) =>
-                      j > 0 &&
-                      chordGap(
-                        p,
-                        required(
-                          baseSpine[j - 1],
-                        ),
-                        q,
-                      ) <= span,
-                  ),
-              )
-            )
-              continue;
-
+                  p[across] <
+                    Math.min(
+                      s[across],
+                      t[across],
+                    ) -
+                      span ||
+                  p[across] >
+                    Math.max(
+                      s[across],
+                      t[across],
+                    ) +
+                      span,
+              )) ||
+            (close &&
+              guide.some(
+                (p) => gapToBase(p) > span,
+              ))
+          )
+            continue;
+          // Moving a wall only invalidates clearance, not the rounded lane itself.
+          const key = [
+            radius,
+            s.z,
+            t.z,
+            ...guide.flatMap((p) => [p.x, p.y]),
+          ].join(",");
+          let candidate = candidates.get(key);
+          if (!candidate) {
             const arc = rounded(
               guide,
               radius,
               0.8,
             );
-            if (
-              !free(arc, clear) ||
-              !free(
-                arc.slice(1, -1),
-                socketWalls,
-              ) ||
-              crossesItself(arc)
-            )
-              continue;
-            const next = profile(
-              materialize(
-                w.edge,
-                s,
-                t,
-                arc,
-                guide.length - 2,
-                false,
+            if (crossesItself(arc)) continue;
+            candidate = {
+              arc,
+              contour: profile(
+                materialize(
+                  w.edge,
+                  s,
+                  t,
+                  arc,
+                  guide.length - 2,
+                  false,
+                ),
               ),
-            );
-            choices.push(next);
+            };
+            if (candidates.size >= 160)
+              candidates.delete(
+                required(
+                  candidates.keys().next().value,
+                ),
+              );
+            candidates.set(key, candidate);
           }
-          return choices;
-        },
-      );
+          if (
+            free(candidate.arc, clear) &&
+            free(
+              candidate.arc.slice(1, -1),
+              socketWalls,
+            )
+          )
+            result.push(candidate.contour);
+        }
+        return result;
+      });
+      let chosenLane:
+        | ReturnType<typeof profile>
+        | undefined;
       for (const next of choices) {
         if (
           next.length > old.length * 0.84 &&
@@ -2375,27 +2438,27 @@ export const separate = (
           )
         )
           continue;
-        const shape = shapeCost(next);
-        const value =
-          shape >= best
-            ? shape
-            : shape + trial(next, best - shape);
+        // Lanes may trim fillets but must keep the solo route length.
+        if (next.length + 20 < baseLength)
+          continue;
+        const value = cost(next, best);
         if (value + 1 < best) {
           best = value;
-          wires[i] = materialize(
-            w.edge,
-            s,
-            t,
-            [...next.wire.points],
-            next.wire.corners,
-          );
-          accept(i, {
-            ...next,
-            wire: required(wires[i]),
-          });
+          chosenLane = next;
         }
       }
-      for (let j = 0; j + 3 < raw.length; j++) {
+      if (chosenLane) {
+        const wire = materialize(
+          w.edge,
+          s,
+          t,
+          [...chosenLane.wire.points],
+          chosenLane.wire.corners,
+        );
+        wires[i] = wire;
+        accept(i, { ...chosenLane, wire });
+      }
+      for (let j = 0; j + 3 < raw.length; j++)
         for (let k = j + 3; k < raw.length; k++) {
           const a = required(raw[j]),
             d = required(raw[k]);
@@ -2420,29 +2483,29 @@ export const separate = (
               elbow,
               ...raw.slice(k),
             ]);
-            if (outsideChannel(knots)) continue;
-            const head = required(knots[1]),
-              tail = required(
-                knots[knots.length - 2],
-              );
+            if (
+              outside(knots) ||
+              knots.length < 2
+            )
+              continue;
             const valid = (
               p: Point,
               s: Socket,
             ) => {
-              const n = normal[s.side];
+              const n = normal[s.side],
+                x = p.x - s.x,
+                y = p.y - s.y;
               return (
-                (p.x - s.x) * n.x +
-                  (p.y - s.y) * n.y >=
-                  14 &&
-                Math.abs(
-                  (p.x - s.x) * n.y -
-                    (p.y - s.y) * n.x,
-                ) < 0.01
+                x * n.x + y * n.y >= 14 &&
+                Math.abs(x * n.y - y * n.x) < 0.01
               );
             };
             if (
-              !valid(head, s) ||
-              !valid(tail, t)
+              !valid(required(knots[1]), s) ||
+              !valid(
+                required(knots[knots.length - 2]),
+                t,
+              )
             )
               continue;
             const arc = rounded(
@@ -2469,14 +2532,16 @@ export const separate = (
                 ),
               ),
               value = cost(next);
-            if (value + 0.5 < best) {
+            if (
+              next.length + 20 >= baseLength &&
+              value + 0.5 < best
+            ) {
               best = value;
               wires[i] = next.wire;
               accept(i, next);
             }
           }
         }
-      }
     }
   }
   if (wires.some((w) => w.edge.route === "step"))

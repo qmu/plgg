@@ -30,6 +30,7 @@ import {
 } from "plgg-board";
 import {
   el,
+  lazy,
   attr,
   key,
   text,
@@ -332,16 +333,55 @@ const viewportLayout = (state: Flow) => {
   });
   return layout;
 };
+type Layer = {
+  depth: number;
+  chosen?: boolean;
+  arrow?: boolean;
+  html: Html<Change>;
+};
+// Key the direct children so painter-order changes move their lazy subtrees.
+const keyedLayer = (
+  id: string,
+  layer: Layer,
+): Layer => ({
+  ...layer,
+  html: el("g", [key(id)], [layer.html]),
+});
+const deferred = (build: () => Html<Change>) =>
+  build();
+const layerMemo = <T>() =>
+  new WeakMap<
+    object,
+    { inputs: unknown[]; value: T }
+  >();
+const bodies = new WeakMap<
+  FlowNode,
+  {
+    camera: Camera;
+    solid: ReturnType<typeof projectNodeBody>;
+  }
+>();
+const nodeLayers = layerMemo<Layer>();
+const wireLayers = layerMemo<Layer[]>();
+const matches = (
+  old: unknown[],
+  next: unknown[],
+) =>
+  old.length === next.length &&
+  old.every((v, i) => v === next[i]);
+const defaultLabel = (
+  node: FlowNode,
+): Html<Change> =>
+  el(
+    "text",
+    [a("text-anchor", "middle"), a("y", 5)],
+    [text(node.label)],
+  );
 export const flowView = (
   state: Flow,
   renderLabel: (
     node: FlowNode,
-  ) => Html<Change> = (node) =>
-    el(
-      "text",
-      [a("text-anchor", "middle"), a("y", 5)],
-      [text(node.label)],
-    ),
+  ) => Html<Change> = defaultLabel,
   registry: ViewRegistry = {},
 ): Html<Change> => {
   const { scene, wires } = viewportLayout(state);
@@ -354,7 +394,10 @@ export const flowView = (
 
     direction: Port["direction"];
   };
-  const attachments = new Map<string, Socket>();
+  const attachments = new Map<
+    string,
+    Partial<Record<Side, Socket>>
+  >();
   for (const w of wires)
     for (const direction of [
       "source",
@@ -364,18 +407,18 @@ export const flowView = (
         direction === "source"
           ? w.sourceSide
           : w.targetSide;
-      const key = JSON.stringify([
-        w.edge[direction],
-        side,
-      ]);
-      if (!attachments.has(key))
-        attachments.set(key, {
+      const id = w.edge[direction];
+      const sockets = attachments.get(id) ?? {};
+      if (!sockets[side]) {
+        sockets[side] = {
           direction,
           handle:
             direction === "source"
               ? w.edge.sourceHandle
               : w.edge.targetHandle,
-        });
+        };
+        attachments.set(id, sockets);
+      }
     }
   const chosen = new Set(selectedNodes(state));
   const projected = projectLayer(
@@ -383,6 +426,7 @@ export const flowView = (
     (n: FlowNode) => n.position,
   )(scene.nodes).map(({ item, point }) => ({
     ...item,
+    item,
     p: point,
     scale: projectedScale(state.camera, point.z),
   }));
@@ -435,18 +479,19 @@ export const flowView = (
     string,
     Record<Side, boolean>
   >();
-  const layers: {
-    depth: number;
-    chosen?: boolean;
-    arrow?: boolean;
-    html: Html<Change>;
-  }[] = drawNodes.map((n) => {
+  const layers: Layer[] = drawNodes.map((n) => {
     // One solid for every camera: the flat view is this
     // same box seen face-on, never a second drawing.
-    const solid = projectNodeBody(
-      n,
-      state.camera,
-    );
+    const cached = bodies.get(n.item);
+    const solid =
+      cached?.camera === state.camera
+        ? cached.solid
+        : projectNodeBody(n, state.camera);
+    if (cached?.solid !== solid)
+      bodies.set(n.item, {
+        camera: state.camera,
+        solid,
+      });
     const hue = state.spatial?.depthColor
       ? 210 -
         Math.max(
@@ -482,6 +527,43 @@ export const flowView = (
         ),
       );
 
+    const inputs = [
+      state.camera,
+      chosen.has(n.id),
+      state.spatial?.depthColor,
+      isSome(state.source),
+      isSome(state.source) &&
+        state.source.content === n.id,
+      counts.get(n.id),
+      render,
+      registry.nodes?.has(n.type ?? "")
+        ? state
+        : undefined,
+      ports
+        .get(n.id)
+        ?.find((p) => p.direction === "source")
+        ?.id,
+      ports
+        .get(n.id)
+        ?.find((p) => p.direction === "target")
+        ?.id,
+      ...(
+        [
+          "right",
+          "left",
+          "top",
+          "bottom",
+        ] satisfies Side[]
+      ).flatMap((side) => {
+        const used = attachments.get(n.id)?.[
+          side
+        ];
+        return [used?.direction, used?.handle];
+      }),
+    ];
+    const old = nodeLayers.get(n.item);
+    if (old && matches(old.inputs, inputs))
+      return old.value;
     // A socket earns its dot by carrying a wire; a bare
     // one shows only while it can take a new connection.
     const sockets = (behind: boolean) =>
@@ -494,9 +576,9 @@ export const flowView = (
         ] satisfies Side[]
       ).flatMap((side) => {
         if (behind !== away[side]) return [];
-        const used = attachments.get(
-          JSON.stringify([n.id, side]),
-        );
+        const used = attachments.get(n.id)?.[
+          side
+        ];
         const connecting = isSome(state.source),
           canConnect =
             n.connectable !== false &&
@@ -572,142 +654,153 @@ export const flowView = (
         );
         return [control];
       });
-    return {
+    const value = {
       depth: solid.depth,
-      html: el<Change>(
-        "g",
-        [
-          key(n.id),
-          a("data-node", n.id),
-          a("tabindex", 0),
-          a("role", "button"),
-          a(
-            "aria-label",
-            n.collapsed
-              ? n.label +
-                  "（" +
-                  (counts.get(n.id) ?? 0) +
-                  " 枚）"
-              : n.label,
-          ),
-          a(
-            "aria-pressed",
-            String(chosen.has(n.id)),
-          ),
-          a(
-            "transform",
-            `translate(${n.p.x} ${n.p.y}) scale(${n.scale})`,
-          ),
-        ],
-        [
-          ...sockets(true),
-          ...solid.visible.map((face) =>
-            el<Change>(
-              "polygon",
-              [
-                a("data-node-face", face.side),
-                a(
-                  "points",
-                  face.points
-                    .map((p) => p.x + "," + p.y)
-                    .join(" "),
-                ),
-                a(
-                  "fill",
-                  "hsl(" +
-                    hue +
-                    " " +
-                    (state.spatial?.depthColor
-                      ? 50
-                      : 16) +
-                    "% " +
-                    face.light +
-                    "%)",
-                ),
-                ...(n.group &&
-                !n.collapsed &&
-                n.width &&
-                n.height
-                  ? [a("fill-opacity", 0.15)]
-                  : []),
-                a(
-                  "stroke",
-                  chosen.has(n.id)
-                    ? "#ed623a"
-                    : "#718e89",
-                ),
-                a("stroke-linejoin", "round"),
-              ],
-              [],
+      html: lazy(deferred, () =>
+        el<Change>(
+          "g",
+          [
+            a("data-node", n.id),
+            a("tabindex", 0),
+            a("role", "button"),
+            a(
+              "aria-label",
+              n.collapsed
+                ? n.label +
+                    "（" +
+                    (counts.get(n.id) ?? 0) +
+                    " 枚）"
+                : n.label,
             ),
-          ),
-          solid.caption
-            ? el(
-                "g",
+            a(
+              "aria-pressed",
+              String(chosen.has(n.id)),
+            ),
+            a(
+              "transform",
+              `translate(${n.p.x} ${n.p.y}) scale(${n.scale})`,
+            ),
+          ],
+          [
+            ...sockets(true),
+            ...solid.visible.map((face) =>
+              el<Change>(
+                "polygon",
                 [
-                  a("data-node-caption", ""),
+                  a("data-node-face", face.side),
                   a(
-                    "transform",
-                    `matrix(${solid.caption.join(" ")})`,
+                    "points",
+                    face.points
+                      .map((p) => p.x + "," + p.y)
+                      .join(" "),
                   ),
+                  a(
+                    "fill",
+                    "hsl(" +
+                      hue +
+                      " " +
+                      (state.spatial?.depthColor
+                        ? 50
+                        : 16) +
+                      "% " +
+                      face.light +
+                      "%)",
+                  ),
+                  ...(n.group &&
+                  !n.collapsed &&
+                  n.width &&
+                  n.height
+                    ? [a("fill-opacity", 0.15)]
+                    : []),
+                  a(
+                    "stroke",
+                    chosen.has(n.id)
+                      ? "#ed623a"
+                      : "#718e89",
+                  ),
+                  a("stroke-linejoin", "round"),
                 ],
-                [
+                [],
+              ),
+            ),
+            solid.caption
+              ? el(
+                  "g",
+                  [
+                    a("data-node-caption", ""),
+                    a(
+                      "transform",
+                      `matrix(${solid.caption.join(" ")})`,
+                    ),
+                  ],
+                  [
+                    el(
+                      "svg",
+                      [
+                        a(
+                          "x",
+                          -nodeSize(n).width / 2,
+                        ),
+                        a(
+                          "y",
+                          -nodeSize(n).height / 2,
+                        ),
+                        a(
+                          "width",
+                          nodeSize(n).width,
+                        ),
+                        a(
+                          "height",
+                          nodeSize(n).height,
+                        ),
+                        a(
+                          "viewBox",
+                          `${-nodeSize(n).width / 2} ${-nodeSize(n).height / 2} ${nodeSize(n).width} ${nodeSize(n).height}`,
+                        ),
+                        a("overflow", "hidden"),
+                      ],
+                      [render(n, state)],
+                    ),
+                  ],
+                )
+              : el("g", [], []),
+            ...(n.collapsed
+              ? [
                   el(
-                    "svg",
+                    "text",
                     [
-                      a(
-                        "x",
-                        -nodeSize(n).width / 2,
-                      ),
+                      a("text-anchor", "middle"),
                       a(
                         "y",
-                        -nodeSize(n).height / 2,
+                        nodeSize(n).height / 2 +
+                          13,
                       ),
-                      a(
-                        "width",
-                        nodeSize(n).width,
-                      ),
-                      a(
-                        "height",
-                        nodeSize(n).height,
-                      ),
-                      a(
-                        "viewBox",
-                        `${-nodeSize(n).width / 2} ${-nodeSize(n).height / 2} ${nodeSize(n).width} ${nodeSize(n).height}`,
-                      ),
-                      a("overflow", "hidden"),
+                      a("font-size", 11),
+                      a("pointer-events", "none"),
                     ],
-                    [render(n, state)],
+                    [
+                      text(
+                        (counts.get(n.id) ?? 0) +
+                          " 枚",
+                      ),
+                    ],
                   ),
-                ],
-              )
-            : el("g", [], []),
-          ...(n.collapsed
-            ? [
-                el(
-                  "text",
-                  [
-                    a("text-anchor", "middle"),
-                    a(
-                      "y",
-                      nodeSize(n).height / 2 + 13,
-                    ),
-                    a("font-size", 11),
-                    a("pointer-events", "none"),
-                  ],
-                  [
-                    text(
-                      (counts.get(n.id) ?? 0) +
-                        " 枚",
-                    ),
-                  ],
-                ),
-              ]
-            : []),
-          ...sockets(false),
-        ],
+                ]
+              : []),
+            ...sockets(false),
+          ],
+        ),
       ),
     };
+    const layer = keyedLayer(
+      "node-" + n.id,
+      value,
+    );
+    nodeLayers.set(n.item, {
+      inputs,
+      value: layer,
+    });
+    return layer;
   });
   // Sort projected segments with the billboards so a crossing changes
   // order when the camera moves around the diagram.
@@ -730,13 +823,39 @@ export const flowView = (
       ? Math.min(depth, solid - 0.02)
       : Math.max(depth, solid + 0.02);
   };
-  for (const { edge, original } of scene.edges) {
+  for (const [
+    index,
+    { edge, original },
+  ] of scene.edges.entries()) {
     const from = lookup.get(edge.source),
       to = lookup.get(edge.target);
     if (!from || !to) continue;
     const wire = routes.get(edge);
     if (!wire) continue;
     const chosenWire = picked.has(original);
+    const inputs = [
+      index,
+      original,
+      state.camera,
+      chosenWire,
+      state.ink,
+      cull,
+      from.item,
+      to.item,
+      turned.has(from.id),
+      turned.has(to.id),
+      registry.edgeLabels?.get(edge.type ?? ""),
+      registry.edgeLabels?.has(edge.type ?? "")
+        ? state
+        : undefined,
+    ];
+    const old = wireLayers.get(wire);
+    if (old && matches(old.inputs, inputs)) {
+      for (const layer of old.value)
+        layers.push(layer);
+      continue;
+    }
+    const items: Layer[] = [];
     const paintDepth = (
       id: string,
       side: Side,
@@ -823,177 +942,6 @@ export const flowView = (
         line ||
         `M${a0.x} ${a0.y}L${b.x} ${b.y}` +
           overlap;
-      const visible = [
-        a(
-          "class",
-          edge.animated
-            ? "edge animated"
-            : "edge",
-        ),
-        a("d", path),
-        a(
-          "data-edge",
-          JSON.stringify([
-            edge.source,
-            edge.target,
-          ]),
-        ),
-        ...(original.id === undefined
-          ? []
-          : [a("data-edge-id", original.id)]),
-        a("style", `--arc:${-offset}px`),
-        a("fill", "none"),
-        a("stroke", color),
-        ...(chosenWire
-          ? [a("data-chosen", "true")]
-          : []),
-        a(
-          "stroke-width",
-          b.scale * (chosenWire ? 2.4 : 1),
-        ),
-        a("stroke-linecap", "round"),
-      ];
-      const events = [
-        onEvent<Change>("pointerdown", (e) => {
-          if (
-            !(e instanceof PointerEvent) ||
-            !e.isPrimary ||
-            e.button !== 0
-          )
-            return none();
-          if (
-            state.ink === "pen" ||
-            (e.pointerType === "touch" &&
-              !e.isPrimary)
-          )
-            return none();
-          e.stopPropagation();
-          if (
-            e.altKey &&
-            e.currentTarget instanceof
-              SVGElement &&
-            e.currentTarget.ownerSVGElement
-          ) {
-            const pointer = local(
-              e.currentTarget.ownerSVGElement,
-              e,
-            );
-            if (isSome(pointer)) {
-              const q = pointer.content;
-              let nearest = 1,
-                best = Infinity,
-                fraction = 0;
-              for (
-                let k = 1;
-                k < points.length;
-                k++
-              ) {
-                const a = points[k - 1],
-                  b = points[k];
-                if (!a || !b) continue;
-                const dx = b.x - a.x,
-                  dy = b.y - a.y,
-                  t = Math.max(
-                    0,
-                    Math.min(
-                      1,
-                      ((q.x - a.x) * dx +
-                        (q.y - a.y) * dy) /
-                        (dx * dx + dy * dy || 1),
-                    ),
-                  );
-                const dist = Math.hypot(
-                  q.x - a.x - t * dx,
-                  q.y - a.y - t * dy,
-                );
-                if (dist < best) {
-                  nearest = k;
-                  fraction = t;
-                  best = dist;
-                }
-              }
-              const a = points[nearest - 1],
-                b = points[nearest],
-                z =
-                  a && b
-                    ? a.z + fraction * (b.z - a.z)
-                    : depth,
-                p = unproject(state.camera, q, z),
-                prev = original.waypoints ?? [],
-                at = Math.min(
-                  prev.length,
-                  Math.max(0, nearest - 2),
-                );
-              const next = {
-                ...original,
-                waypoints: [
-                  ...prev.slice(0, at),
-                  p,
-                  ...prev.slice(at),
-                ],
-              };
-              return some((s) => ({
-                ...s,
-                chosenEdges: [
-                  ...selectedEdges(s).filter(
-                    (e) => e !== original,
-                  ),
-                  next,
-                ],
-                activeEdge: next,
-                edges: s.edges.map((v) =>
-                  v === original ? next : v,
-                ),
-              }));
-            }
-          }
-          if (
-            e.pointerType === "touch" &&
-            e.currentTarget instanceof SVGElement
-          ) {
-            const svg =
-              e.currentTarget.ownerSVGElement;
-            if (svg) {
-              const point = local(svg, e);
-              if (isSome(point)) {
-                e.preventDefault();
-                svg.setPointerCapture(
-                  e.pointerId,
-                );
-                return some((s) => ({
-                  ...selectNodes([])(s),
-                  chosenEdges: [original],
-                  activeEdge: original,
-                  source: none(),
-                  drag: some<Drag>({
-                    pointer: e.pointerId,
-                    mode: "pan",
-                    node: "",
-                    last: point.content,
-                  }),
-                }));
-              }
-            }
-          }
-          return some((s) => {
-            const prev = selectedEdges(s);
-            const next = e.shiftKey
-              ? prev.includes(original)
-                ? prev.filter(
-                    (v) => v !== original,
-                  )
-                : [...prev, original]
-              : [original];
-            return chooseEdges(next)(
-              e.shiftKey ? s : selectNodes([])(s),
-            );
-          });
-        }),
-        onEvent<Change>("dblclick", () =>
-          some(disconnect(original)),
-        ),
-      ];
-      const hitWidth = edge.interactionWidth ?? 0;
       const behindFace = (
         id: string,
         side: Side,
@@ -1007,7 +955,7 @@ export const flowView = (
               insideLasso(a0, face) ||
               insideLasso(b, face),
           );
-      layers.push({
+      items.push({
         chosen: chosenWire,
         depth:
           i <= 2 ||
@@ -1030,8 +978,197 @@ export const flowView = (
               : chosenWire
                 ? Infinity
                 : depth - 0.01,
-        html:
-          hitWidth > 0
+        html: lazy(deferred, () => {
+          const visible = [
+            a(
+              "class",
+              edge.animated
+                ? "edge animated"
+                : "edge",
+            ),
+            a("d", path),
+            a(
+              "data-edge",
+              JSON.stringify([
+                edge.source,
+                edge.target,
+              ]),
+            ),
+            ...(original.id === undefined
+              ? []
+              : [a("data-edge-id", original.id)]),
+            a("style", `--arc:${-offset}px`),
+            a("fill", "none"),
+            a("stroke", color),
+            ...(chosenWire
+              ? [a("data-chosen", "true")]
+              : []),
+            a(
+              "stroke-width",
+              b.scale * (chosenWire ? 2.4 : 1),
+            ),
+            a("stroke-linecap", "round"),
+          ];
+          const events = [
+            onEvent<Change>(
+              "pointerdown",
+              (e) => {
+                if (
+                  !(e instanceof PointerEvent) ||
+                  !e.isPrimary ||
+                  e.button !== 0
+                )
+                  return none();
+                if (
+                  state.ink === "pen" ||
+                  (e.pointerType === "touch" &&
+                    !e.isPrimary)
+                )
+                  return none();
+                e.stopPropagation();
+                if (
+                  e.altKey &&
+                  e.currentTarget instanceof
+                    SVGElement &&
+                  e.currentTarget.ownerSVGElement
+                ) {
+                  const pointer = local(
+                    e.currentTarget
+                      .ownerSVGElement,
+                    e,
+                  );
+                  if (isSome(pointer)) {
+                    const q = pointer.content;
+                    let nearest = 1,
+                      best = Infinity,
+                      fraction = 0;
+                    for (
+                      let k = 1;
+                      k < points.length;
+                      k++
+                    ) {
+                      const a = points[k - 1],
+                        b = points[k];
+                      if (!a || !b) continue;
+                      const dx = b.x - a.x,
+                        dy = b.y - a.y,
+                        t = Math.max(
+                          0,
+                          Math.min(
+                            1,
+                            ((q.x - a.x) * dx +
+                              (q.y - a.y) * dy) /
+                              (dx * dx +
+                                dy * dy || 1),
+                          ),
+                        );
+                      const dist = Math.hypot(
+                        q.x - a.x - t * dx,
+                        q.y - a.y - t * dy,
+                      );
+                      if (dist < best) {
+                        nearest = k;
+                        fraction = t;
+                        best = dist;
+                      }
+                    }
+                    const a = points[nearest - 1],
+                      b = points[nearest],
+                      z =
+                        a && b
+                          ? a.z +
+                            fraction * (b.z - a.z)
+                          : depth,
+                      p = unproject(
+                        state.camera,
+                        q,
+                        z,
+                      ),
+                      prev =
+                        original.waypoints ?? [],
+                      at = Math.min(
+                        prev.length,
+                        Math.max(0, nearest - 2),
+                      );
+                    const next = {
+                      ...original,
+                      waypoints: [
+                        ...prev.slice(0, at),
+                        p,
+                        ...prev.slice(at),
+                      ],
+                    };
+                    return some((s) => ({
+                      ...s,
+                      chosenEdges: [
+                        ...selectedEdges(
+                          s,
+                        ).filter(
+                          (e) => e !== original,
+                        ),
+                        next,
+                      ],
+                      activeEdge: next,
+                      edges: s.edges.map((v) =>
+                        v === original ? next : v,
+                      ),
+                    }));
+                  }
+                }
+                if (
+                  e.pointerType === "touch" &&
+                  e.currentTarget instanceof
+                    SVGElement
+                ) {
+                  const svg =
+                    e.currentTarget
+                      .ownerSVGElement;
+                  if (svg) {
+                    const point = local(svg, e);
+                    if (isSome(point)) {
+                      e.preventDefault();
+                      svg.setPointerCapture(
+                        e.pointerId,
+                      );
+                      return some((s) => ({
+                        ...selectNodes([])(s),
+                        chosenEdges: [original],
+                        activeEdge: original,
+                        source: none(),
+                        drag: some<Drag>({
+                          pointer: e.pointerId,
+                          mode: "pan",
+                          node: "",
+                          last: point.content,
+                        }),
+                      }));
+                    }
+                  }
+                }
+                return some((s) => {
+                  const prev = selectedEdges(s);
+                  const next = e.shiftKey
+                    ? prev.includes(original)
+                      ? prev.filter(
+                          (v) => v !== original,
+                        )
+                      : [...prev, original]
+                    : [original];
+                  return chooseEdges(next)(
+                    e.shiftKey
+                      ? s
+                      : selectNodes([])(s),
+                  );
+                });
+              },
+            ),
+            onEvent<Change>("dblclick", () =>
+              some(disconnect(original)),
+            ),
+          ];
+          const hitWidth =
+            edge.interactionWidth ?? 0;
+          return hitWidth > 0
             ? el("g", events, [
                 el(
                   "path",
@@ -1052,7 +1189,8 @@ export const flowView = (
                 "path",
                 [...visible, ...events],
                 [],
-              ),
+              );
+        }),
       });
     }
     const middle = sample(0.5),
@@ -1098,7 +1236,7 @@ export const flowView = (
         (edge.source === edge.target
           ? 1
           : Math.min(1, gap / 60));
-      layers.push({
+      items.push({
         chosen: chosenWire,
         arrow: true,
         depth: paintDepth(
@@ -1108,19 +1246,21 @@ export const flowView = (
             : wire.targetSide,
           tip.z - 0.01,
         ),
-        html: el(
-          "polygon",
-          [
-            a("data-arrow", side),
-            a(
-              "transform",
-              `translate(${tip.x} ${tip.y}) rotate(${angle}) scale(${arrowScale})`,
-            ),
-            a("points", "0,0 -9,-4 -9,4"),
-            a("fill", "#426f71"),
-            a("pointer-events", "none"),
-          ],
-          [],
+        html: lazy(deferred, () =>
+          el(
+            "polygon",
+            [
+              a("data-arrow", side),
+              a(
+                "transform",
+                `translate(${tip.x} ${tip.y}) rotate(${angle}) scale(${arrowScale})`,
+              ),
+              a("points", "0,0 -9,-4 -9,4"),
+              a("fill", "#426f71"),
+              a("pointer-events", "none"),
+            ],
+            [],
+          ),
         ),
       });
     }
@@ -1145,40 +1285,56 @@ export const flowView = (
           : tangent < -90
             ? tangent + 180
             : tangent;
-      layers.push({
+      items.push({
         depth: middle.z,
-        html: el(
-          "g",
-          [
-            a(
-              "transform",
-              `translate(${middle.x} ${middle.y})` +
-                (spatial
-                  ? ` rotate(${angle}) scale(${middle.scale})`
-                  : ""),
-            ),
-          ],
-          customEdgeLabel
-            ? [customEdgeLabel(edge, state)]
-            : [
-                el(
-                  "text",
-                  [
-                    a("class", "edge-label"),
-                    a("text-anchor", "middle"),
-                    a("y", -8),
-                    a("paint-order", "stroke"),
-                    a("stroke", "#f7faf7"),
-                    a("stroke-width", 3),
-                    a("stroke-linejoin", "round"),
-                    a("pointer-events", "none"),
-                  ],
-                  [text(edge.label ?? "")],
-                ),
-              ],
+        html: lazy(deferred, () =>
+          el(
+            "g",
+            [
+              a(
+                "transform",
+                `translate(${middle.x} ${middle.y})` +
+                  (spatial
+                    ? ` rotate(${angle}) scale(${middle.scale})`
+                    : ""),
+              ),
+            ],
+            customEdgeLabel
+              ? [customEdgeLabel(edge, state)]
+              : [
+                  el(
+                    "text",
+                    [
+                      a("class", "edge-label"),
+                      a("text-anchor", "middle"),
+                      a("y", -8),
+                      a("paint-order", "stroke"),
+                      a("stroke", "#f7faf7"),
+                      a("stroke-width", 3),
+                      a(
+                        "stroke-linejoin",
+                        "round",
+                      ),
+                      a("pointer-events", "none"),
+                    ],
+                    [text(edge.label ?? "")],
+                  ),
+                ],
+          ),
         ),
       });
     }
+    const group = items.map((layer, i) =>
+      keyedLayer(
+        "wire-" + index + "-" + i,
+        layer,
+      ),
+    );
+    wireLayers.set(wire, {
+      inputs,
+      value: group,
+    });
+    for (const layer of group) layers.push(layer);
   }
   const selectRegion = (
     inside: (p: Point) => boolean,
@@ -2001,15 +2157,20 @@ export const flowView = (
         state.camera,
         chosen,
       ),
-      ...layers
-        .sort(
-          (a, b) =>
-            a.depth - b.depth ||
-            Number(!!a.chosen) -
-              Number(!!b.chosen) ||
-            Number(!!a.arrow) - Number(!!b.arrow),
-        )
-        .map((layer) => layer.html),
+      el(
+        "g",
+        [key("depth-layers")],
+        layers
+          .sort(
+            (a, b) =>
+              a.depth - b.depth ||
+              Number(!!a.chosen) -
+                Number(!!b.chosen) ||
+              Number(!!a.arrow) -
+                Number(!!b.arrow),
+          )
+          .map((layer) => layer.html),
+      ),
       ...(active &&
       scene.edges.some(
         (e) => e.original === active,

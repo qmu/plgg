@@ -62,6 +62,10 @@ export const components = <
 export const boundsIndex = <T extends Bounds>(
   entries: readonly T[],
 ) => {
+  // Small local groups cost less to scan in their original order.
+  if (entries.length <= 64)
+    return (area: Bounds) =>
+      entries.filter((b) => intersects(area, b));
   const sorted = entries
     .map((box, i) => ({ box, i }))
     .sort((a, b) => a.box.l - b.box.l);

@@ -39,16 +39,24 @@ export const outline = (
   const span = (lo: number, hi: number) => {
     const a = required(points[lo]),
       b = required(points[hi]);
-    let worst = tolerance,
+    const dx = b.x - a.x,
+      dy = b.y - a.y,
+      length = dx * dx + dy * dy || 1;
+    let worst = tolerance * tolerance,
       split = lo;
     for (let k = lo + 1; k < hi; k++) {
-      const gap = chordGap(
-        required(points[k]),
-        a,
-        b,
+      const p = required(points[k]),
+        x = p.x - a.x,
+        y = p.y - a.y;
+      const t = Math.max(
+        0,
+        Math.min(1, (x * dx + y * dy) / length),
       );
-      if (gap > worst) {
-        worst = gap;
+      const rx = x - t * dx,
+        ry = y - t * dy,
+        d = rx * rx + ry * ry;
+      if (d > worst) {
+        worst = d;
         split = k;
       }
     }
@@ -65,54 +73,58 @@ const geometryOf = (
   tolerance: number,
 ) => {
   const path = outline(points, tolerance);
-  return {
-    l: Math.min(...path.map((p) => p.x)),
-    r: Math.max(...path.map((p) => p.x)),
-    t: Math.min(...path.map((p) => p.y)),
-    b: Math.max(...path.map((p) => p.y)),
-    length: path.reduce(
-      (sum, p, i) =>
-        sum +
-        (i
-          ? distance(p, required(path[i - 1]))
-          : 0),
-      0,
-    ),
-    turn: path.reduce((sum, p, i) => {
-      const a = path[i - 1],
-        b = path[i + 1];
-      if (!a || !b) return sum;
-      const dx = p.x - a.x,
-        dy = p.y - a.y,
-        x = b.x - p.x,
-        y = b.y - p.y;
-      return (
-        sum +
-        Math.abs(
-          Math.atan2(
-            dx * y - dy * x,
-            dx * x + dy * y,
-          ),
-        )
+  const first = required(path[0]);
+  let l = first.x,
+    r = l,
+    t = first.y,
+    b = t,
+    length = 0,
+    turn = 0;
+  const segments = [];
+  for (let i = 1; i < path.length; i++) {
+    const a = required(path[i - 1]),
+      end = required(path[i]),
+      dx = end.x - a.x,
+      dy = end.y - a.y,
+      d = Math.sqrt(dx * dx + dy * dy);
+    l = Math.min(l, end.x);
+    r = Math.max(r, end.x);
+    t = Math.min(t, end.y);
+    b = Math.max(b, end.y);
+    length += d;
+    const next = path[i + 1];
+    if (next) {
+      const x = next.x - end.x,
+        y = next.y - end.y;
+      turn += Math.abs(
+        Math.atan2(
+          dx * y - dy * x,
+          dx * x + dy * y,
+        ),
       );
-    }, 0),
+    }
+    segments.push({
+      a,
+      b: end,
+      i,
+      x: dx / (d || 1),
+      y: dy / (d || 1),
+      d: d || 1,
+      l: Math.min(a.x, end.x),
+      r: Math.max(a.x, end.x),
+      t: Math.min(a.y, end.y),
+      bottom: Math.max(a.y, end.y),
+    });
+  }
+  return {
+    l,
+    r,
+    t,
+    b,
+    length,
+    turn,
     path,
-    segments: path.slice(1).map((b, i) => {
-      const a = required(path[i]),
-        d = distance(a, b) || 1;
-      return {
-        a,
-        b,
-        i: i + 1,
-        x: (b.x - a.x) / d,
-        y: (b.y - a.y) / d,
-        d,
-        l: Math.min(a.x, b.x),
-        r: Math.max(a.x, b.x),
-        t: Math.min(a.y, b.y),
-        bottom: Math.max(a.y, b.y),
-      };
-    }),
+    segments,
   };
 };
 type Geometry = ReturnType<typeof geometryOf>;

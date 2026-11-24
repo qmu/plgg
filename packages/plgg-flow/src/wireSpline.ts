@@ -8,7 +8,6 @@ import {
   corridor,
   intersects,
 } from "plgg-flow/wireCorridors";
-import { shortcuts } from "plgg-flow/wireShortcuts";
 import type { Point } from "plgg-board";
 import type { Wire } from "./wiring";
 import type { Base, Socket } from "./wireBase";
@@ -25,8 +24,6 @@ import {
 } from "plgg-flow/wirePath";
 import {
   distance,
-  move,
-  rounded,
   required,
   free,
   crossesItself,
@@ -84,12 +81,20 @@ const peakTurn = (points: Point[]) => {
   }
   return Math.atan2(sine, cosine);
 };
-const aligned = (path: Point[], s: Socket) => {
+const aligned = (
+  path: Point[],
+  s: Socket,
+  reverse = false,
+) => {
   let remain = 14;
   const n = normal[s.side];
   for (let j = 1; j < path.length; j++) {
-    const a = required(path[j - 1]),
-      b = required(path[j]),
+    const a = required(
+        path[reverse ? path.length - j : j - 1],
+      ),
+      b = required(
+        path[reverse ? path.length - j - 1 : j],
+      ),
       d = distance(a, b);
     if (!d) continue;
     const f = Math.min(1, remain / d),
@@ -121,6 +126,7 @@ const rememberFairing = cache<
 type FitRecord = {
   regions: Bounds[];
   walls: string;
+  localWalls: string;
   fit: Fit | null;
 };
 // A changed wall matters only where the fit read guides or tested its curve.
@@ -249,61 +255,8 @@ export const fitCurves = (
       key,
       () => new Map<string, FitRecord>(),
     );
+    const localWalls = boxes.map(boxId).join(",");
     const choices = [];
-    if (
-      current.length > distance(s, t) * 1.65 &&
-      w.edge.source !== w.edge.target
-    ) {
-      for (const raw of shortcuts(
-        s,
-        t,
-        boxes,
-        w.edge.source,
-        w.edge.target,
-      )) {
-        const l = raw.reduce(
-          (sum, p, j) =>
-            sum +
-            (j
-              ? distance(p, required(raw[j - 1]))
-              : 0),
-          0,
-        );
-        if (l > current.length * 0.84) continue;
-        const first = move(s, s.side, 14),
-          last = move(t, t.side, 14);
-        const middle = rounded(
-          [first, ...raw.slice(1, -1), last],
-          24,
-        );
-        const knots = outline(middle, 2);
-        const path = [
-          s,
-          ...throughKnots(knots, s.side, t.side),
-          t,
-        ];
-        if (
-          !free(path, band) ||
-          crossesItself(path)
-        )
-          continue;
-        const wire = materialize(
-            w.edge,
-            s,
-            t,
-            path,
-            raw.length - 2,
-          ),
-          contour = profile(wire);
-        choices.push({
-          wire,
-          contour,
-          shape:
-            contour.turn * 1.5 +
-            contour.length * 0.002,
-        });
-      }
-    }
     // Shorter spans follow tight walls. Wider spans fair the open parts of a lane.
     for (const [
       spacing,
@@ -476,6 +429,8 @@ export const fitCurves = (
         if (!shortcut)
           recordSpans(regions, path, 9);
         if (
+          !aligned(path, s) ||
+          !aligned(path, t, true) ||
           !free(path, boxes) ||
           crossesItself(path)
         )
@@ -500,11 +455,6 @@ export const fitCurves = (
         )
           return null;
         const samples = sampleCurve(path);
-        if (
-          !aligned(path, s) ||
-          !aligned([...path].reverse(), t)
-        )
-          return null;
         const peak = peakTurn(samples);
         const clearance = Math.min(
           8,
@@ -571,16 +521,20 @@ export const fitCurves = (
       let record = fits.get(variant);
       if (
         !record ||
-        record.walls !== wallsKey(record.regions)
+        (record.localWalls !== localWalls &&
+          record.walls !==
+            wallsKey(record.regions))
       ) {
         const fit = build();
         record = {
           fit,
           regions,
+          localWalls,
           walls: wallsKey(regions),
         };
         fits.set(variant, record);
       }
+      record.localWalls = localWalls;
       const fit = record.fit;
       if (!fit) continue;
       choices.push(fit);
@@ -776,7 +730,7 @@ export const fitCurves = (
         );
         if (
           !aligned(fitted, s) ||
-          !aligned([...fitted].reverse(), t) ||
+          !aligned(fitted, t, true) ||
           crossesItself(fitted)
         )
           continue;

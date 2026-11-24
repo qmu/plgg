@@ -34,10 +34,16 @@ export const boxId = (box: Box) => {
   return id;
 };
 
+const pathKeys = new WeakMap<
+  readonly Point3[],
+  string
+>();
 // Preserve exact coordinates without decimal formatting in cache keys.
 export const pathValues = (
   points: readonly Point3[],
 ) => {
+  const hit = pathKeys.get(points);
+  if (hit !== undefined) return hit;
   const values = new Float64Array(
     points.length * 3,
   );
@@ -54,5 +60,6 @@ export const pathValues = (
       undefined,
       words.subarray(i, i + 4096),
     );
+  pathKeys.set(points, key);
   return key;
 };

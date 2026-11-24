@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   outline,
   chordGap,
@@ -125,14 +126,24 @@ const rememberChannel = cache<{
   wires: Wire[];
   bounds: Bounds;
 }>();
-let memo:
-  | {
-      key: string;
-      wires: Wire[];
-      edges: Edge[];
-      knots: Point3[];
-    }
-  | undefined;
+type Snapshot = {
+  inputs: unknown[];
+  wires: Wire[];
+};
+// Public entry bundles have separate module scopes but route the same sheets.
+const sheetCache = Symbol.for(
+  "plgg-flow/wiring/snapshot/v1",
+);
+type Shared = {
+  [sheetCache]?: WeakMap<object, Snapshot>;
+};
+const shared: typeof globalThis & Shared =
+  globalThis;
+const snapshots = (shared[sheetCache] ??=
+  new WeakMap<object, Snapshot>());
+const previousWire = new WeakMap<Edge, Wire>();
+const samePoint = (a: Point3, b: Point3) =>
+  a.x === b.x && a.y === b.y && a.z === b.z;
 export const wireGraph = (
   graph: Graph,
   options: WiringOptions = {},
@@ -142,23 +153,43 @@ export const wireGraph = (
       options.clearance ?? 18,
     ),
     radius = Math.max(0, options.radius ?? 10);
-  const key = JSON.stringify([
-    graph.nodes,
-    graph.edges,
+  const inputs: unknown[] = [
     clearance,
-    options.clearance === undefined,
     radius,
-  ]);
-  // Routes expose the caller's edge and waypoint objects.
-  const knots = graph.edges.flatMap(
-    (edge) => edge.waypoints ?? [],
-  );
+    graph.nodes.length,
+    graph.edges.length,
+  ];
+  for (const n of graph.nodes) {
+    const { width, height } = nodeSize(n);
+    inputs.push(
+      n.id,
+      n.position.x,
+      n.position.y,
+      n.position.z,
+      width,
+      height,
+      Boolean(n.hidden),
+      Boolean(n.group && !n.collapsed),
+    );
+  }
+  for (const e of graph.edges) {
+    inputs.push(
+      e,
+      e.source,
+      e.target,
+      e.route ?? "curve",
+      Boolean(e.hidden),
+      e.waypoints?.length,
+    );
+    for (const p of e.waypoints ?? [])
+      inputs.push(p, p.x, p.y, p.z);
+  }
+  const owner = graph.edges[0] ?? graph.edges;
+  const memo = snapshots.get(owner);
   if (
-    memo?.key === key &&
-    memo.knots.every((p, i) => p === knots[i]) &&
-    memo.edges.every(
-      (edge, i) => edge === graph.edges[i],
-    )
+    memo &&
+    memo.inputs.length === inputs.length &&
+    inputs.every((v, i) => v === memo.inputs[i])
   )
     return memo.wires;
   const byId = new Map(
@@ -523,21 +554,45 @@ export const wireGraph = (
       break;
     }
   }
-  const routed = wires.map((w, i) => ({
-    source: w.source,
-    target: w.target,
-    sourceSide: w.sourceSide,
-    targetSide: w.targetSide,
-    arrow: w.arrow,
-    points: w.points,
-    corners: w.corners,
-    edge: required(visible[i]),
-  }));
-  memo = {
-    key,
+  const routed = wires.map((w, i) => {
+    const edge = required(visible[i]),
+      old = previousWire.get(edge);
+    if (
+      !edge.waypoints?.length &&
+      old &&
+      old.sourceSide === w.sourceSide &&
+      old.targetSide === w.targetSide &&
+      old.corners === w.corners &&
+      samePoint(old.source, w.source) &&
+      samePoint(old.target, w.target) &&
+      samePoint(old.arrow.at, w.arrow.at) &&
+      samePoint(
+        old.arrow.toward,
+        w.arrow.toward,
+      ) &&
+      (old.points === w.points ||
+        (old.points.length === w.points.length &&
+          old.points.every((p, i) =>
+            samePoint(p, required(w.points[i])),
+          )))
+    )
+      return old;
+    const wire: Wire = {
+      edge,
+      points: w.points,
+      corners: w.corners,
+      source: w.source,
+      target: w.target,
+      sourceSide: w.sourceSide,
+      targetSide: w.targetSide,
+      arrow: w.arrow,
+    };
+    previousWire.set(edge, wire);
+    return wire;
+  });
+  snapshots.set(owner, {
+    inputs,
     wires: routed,
-    knots,
-    edges: [...graph.edges],
-  };
+  });
   return routed;
 };
