@@ -26,4 +26,5 @@ Orders -> Billing
 Orders -> Sales
 Billing -> Ledger
 Report -> Sales
+mark "Report -> Sales"
 ```

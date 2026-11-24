@@ -1879,3 +1879,34 @@ What still looks wrong:
    nodes' bounds plus 32 and the aisles in use, the same for all
    boards, the nodes centred on it. A smaller board is a larger
    drawing.
+
+## Shooting round 4 (the whole gallery) — reviewer's score: cakes 80, rooms 78, four axes 65
+
+Adopted: captions keep their boxes whole, drops take the shortest
+visible way, boards fit their nodes (space audit crossings 99,
+bends 632, 0 / 0).
+
+Read cold, twelve of the twenty subjects so far: 供給網, Web
+システムの構成, TCP/IP, データ基盤, ネットワークのゾーン, クリーン
+アーキテクチャ, データの流れ, サービス×層×環境, チームと工程,
+障害対応, 組織と案件 — the intended sentence can be said from the
+picture. モジュールの依存 and ネットワーク needed their point
+marked; with `mark` (added to eight subjects) the upward
+dependency store → view stands out as one ink line on a quiet
+sheet.
+
+Phone (390 × 844 in a frame): one screen, one-row tool strip,
+board filling the rest, DSL as a bottom sheet that opens to half;
+the flat sample fills its area. The 28 samples' tools (history,
+minimap, files, computed values…) are present on the unified
+site.
+
+Small things seen:
+- A marked edge leaves its own two nodes quiet; they belong to the
+  mark.
+- On the phone the open sheet shows "DSL" twice (handle and
+  header).
+- Four axes: two blocks fit at a scale where captions are about
+  7px; nothing to do in the drawing — the sheet should open on
+  one block with the other as an outline and step between them
+  (「見方」 already cycles views; a block focus is the next idea).

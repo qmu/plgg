@@ -28,4 +28,5 @@ orders -> store
 billing -> http
 rules -> log
 store -> view
+mark "store -> view"
 ```
