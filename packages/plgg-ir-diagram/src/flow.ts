@@ -71,11 +71,11 @@ export const tilted = (flow: Flow) =>
   fitFlow(viewAt(-0.48, 0.42)(flow));
 
 export const flowCss = `
-:root{--ink:#000;--paper:#fff;--graphite:#5c5c5c;--trace:#e4e4e4}
-*{box-sizing:border-box}html,body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 system-ui,sans-serif}
+[data-island="plgg-flow"]{--ink:var(--pm-text);--paper:var(--pm-surface);--graphite:var(--pm-muted);--trace:var(--pm-border);
+color:var(--ink);background:var(--paper);
 figure{margin:0;position:relative}
 .flow-board{display:block;width:100%;height:auto;aspect-ratio:900/580;background:var(--paper)!important;border:1px solid var(--ink);user-select:none;touch-action:none}
-.flow-board text{font:500 13px system-ui,sans-serif;fill:var(--ink)!important}
+.flow-board text{font-family:inherit;font-size:13px;font-weight:500;fill:var(--ink)!important}
 .flow-board [stroke]:not([stroke="none"]){stroke:var(--ink)}
 .flow-board [fill]:not([fill="none"]){fill:var(--paper)}
 .flow-board circle[fill]:not([fill="none"]):not([fill="#fff"]):not([fill="white"]){fill:var(--ink)}
@@ -96,17 +96,18 @@ figure{margin:0;position:relative}
 .flow-board path.edge,.flow-board .edge-hit{cursor:pointer}
 .flow-board circle{cursor:crosshair}
 .flow-board .edge-hit{stroke-opacity:0!important}
-.flow-board .marquee{fill:rgb(0 0 0/.06);stroke:var(--ink);stroke-width:1;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;animation:marquee 1.8s linear infinite}
+.flow-board .marquee{fill:color-mix(in srgb,var(--ink) 6%,transparent);stroke:var(--ink);stroke-width:1;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;animation:marquee 1.8s linear infinite}
 @keyframes marquee{to{stroke-dashoffset:-18}}
 @media (prefers-reduced-motion:reduce){.flow-board .marquee{animation:none}}
 .controls{position:absolute;top:8px;left:8px;display:flex}
 .controls button{font:inherit;font-size:12px;cursor:pointer;background:var(--paper);color:var(--ink);border:1px solid var(--ink);padding:3px 10px}
 .controls button+button{margin-left:-1px}
-.controls button:hover{background:#f4f4f4}
+.controls button:hover{background:var(--trace)}
 summary{cursor:pointer;padding:6px 0;font-size:12px;color:var(--graphite)}
 pre,textarea{width:100%;margin:0;font:12.5px/1.65 ui-monospace,Menlo,monospace;padding:10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink)}
 textarea{min-height:10rem;resize:vertical}
 .error{padding:4px 10px;background:var(--ink);color:var(--paper);font-size:12px}
 .plgg-flow-error p{margin:0 0 6px;padding:6px 10px;background:var(--ink);color:var(--paper)}
 :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+}
 `;
