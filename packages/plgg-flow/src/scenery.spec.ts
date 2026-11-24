@@ -96,3 +96,45 @@ test("a standard drag respects a flat confinement box", () => {
     toBe(true),
   );
 });
+test("captions switch between the front face and an upright tag with hysteresis", () => {
+  const flow = createFlow({
+    nodes: [
+      {
+        id: "caption",
+        label: "Caption",
+        position: p,
+      },
+    ],
+    edges: [],
+  });
+  const draw = (yaw: number, pitch: number) =>
+    renderToString(
+      drawFlow({
+        ...flow,
+        camera: { ...flow.camera, yaw, pitch },
+      }),
+    );
+  return check(
+    [0, 0.9, 1.4].every((yaw) =>
+      [0, 0.8, 1.3].every(
+        (pitch) =>
+          draw(yaw, pitch).includes(
+            'data-node-caption="tag"',
+          ) === (yaw === 1.4 || pitch === 1.3),
+      ),
+    ) &&
+      draw(1.4, 0).includes(
+        'data-node-caption="tag"',
+      ) &&
+      draw(Math.acos(0.48), 0).includes(
+        'data-node-caption="tag"',
+      ) &&
+      !draw(Math.acos(0.51), 0).includes(
+        'data-node-caption="tag"',
+      ) &&
+      !draw(Math.acos(0.48), 0).includes(
+        'data-node-caption="tag"',
+      ),
+    toBe(true),
+  );
+});

@@ -329,12 +329,31 @@ test("named views draw the standard solid and dimension labels", () => {
           )
           ?.join("");
       return (
+        spaceScenery(flow.rooms!, state).every(
+          (item) =>
+            item.layer === "front" ||
+            item.layer === "behind",
+        ) &&
+        html.indexOf('fill-opacity="0.14"') >=
+          0 &&
+        html.lastIndexOf('fill-opacity="0.14"') <
+          html.indexOf("data-node=") &&
         !!faces(html) &&
         faces(html) === faces(ordinary) &&
+        JSON.stringify(
+          html.match(
+            /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
+          ),
+        ) ===
+          JSON.stringify(
+            ordinary.match(
+              /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
+            ),
+          ) &&
         spaceScenery(flow.rooms!, state).some(
           (item) =>
             item.kind === "label" &&
-            item.size === 9,
+            item.size === 10,
         )
       );
     }),
@@ -356,6 +375,12 @@ test("two-block outline edges support their cuboids and axis labels clear cards 
   );
   const layout = original.rooms!;
   const poses = [
+    ...[10, 30, 55].flatMap((elevation) =>
+      Array.from({ length: 11 }, (_, i) => [
+        ((i * 30 - 150) * Math.PI) / 180,
+        (-elevation * Math.PI) / 180,
+      ]),
+    ),
     [-0.6, 0.5],
     ...Array.from({ length: 8 }, (_, i) =>
       [0.22, 0.91].map((p) => [

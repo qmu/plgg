@@ -1,5 +1,8 @@
 import { roomFor } from "plgg-flow/autoLayout";
-import { bodyDepth } from "plgg-flow/nodeBody";
+import {
+  bodyDepth,
+  projectNodeBody,
+} from "plgg-flow/nodeBody";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
   project,
@@ -145,17 +148,11 @@ type AxisLabel = {
   size: number;
   span?: { from: Point3; to: Point3 };
 };
-const axisGeometry = (
-  layout: RoomLayout,
+const cardBounds = (
   camera: Camera,
-  nodes: Flow["nodes"] = [],
+  nodes: Flow["nodes"],
 ) => {
   const at = project(camera);
-  const face = faceAxes(camera);
-  const occupied: Box[] = blockLabels(
-    layout,
-    camera,
-  ).map(labelBox);
   const cards: Box[] = [];
   for (const node of nodes.filter(
     (n) => !n.hidden,
@@ -175,15 +172,46 @@ const axisGeometry = (
         z: p.z + d,
       },
     ).map(at);
-    cards.push({
+    const box = {
       left: Math.min(...pts.map((v) => v.x)) - 4,
       right: Math.max(...pts.map((v) => v.x)) + 4,
       top: Math.min(...pts.map((v) => v.y)) - 4,
       bottom:
         Math.max(...pts.map((v) => v.y)) + 4,
-    });
+    };
+    cards.push(box);
+    // Reserve the full tag throughout its switching band.
+    if (
+      projectNodeBody(node, camera, true).tagged
+    ) {
+      const center = (box.left + box.right) / 2;
+      const half =
+        (size.width * camera.scale) / 2 + 2;
+      cards.push({
+        left: center - half,
+        right: center + half,
+        top:
+          box.top -
+          (10 + size.height / 2) * camera.scale -
+          2,
+        bottom: box.top + 4,
+      });
+    }
   }
-  occupied.push(...cards);
+  return cards;
+};
+const axisGeometry = (
+  layout: RoomLayout,
+  camera: Camera,
+  cards: Box[],
+  blocks: ReturnType<typeof blockLabels>,
+) => {
+  const at = project(camera);
+  const face = faceAxes(camera);
+  const occupied = [
+    ...cards,
+    ...blocks.map(labelBox),
+  ];
   const mark = (
     x: number,
     y: number,
@@ -365,7 +393,7 @@ const axisGeometry = (
             value,
             attribute: definition.attribute,
             clear,
-            size: clear ? 10 : 9,
+            size: 10,
             ...(span && { span }),
           };
           let box = labelBox(l);
@@ -524,9 +552,10 @@ const axisGeometry = (
 const blockLabels = (
   layout: RoomLayout,
   camera: Camera,
+  cards: Box[],
 ) => {
   const at = project(camera);
-  const occupied: Box[] = [];
+  const occupied = [...cards];
   return layout.rooms
     .filter(
       (c) =>
@@ -579,11 +608,20 @@ export const roomLabels = (
     ...camera,
     origin: { x: 0, y: 0 },
   };
+  const cards = cardBounds(local, nodes);
+  const blocks = blockLabels(
+    layout,
+    local,
+    cards,
+  );
   return [
-    ...axisGeometry(layout, local, nodes).flatMap(
-      (a) => a.labels,
-    ),
-    ...blockLabels(layout, local),
+    ...axisGeometry(
+      layout,
+      local,
+      cards,
+      blocks,
+    ).flatMap((a) => a.labels),
+    ...blocks,
   ].map((l) => ({
     ...l,
     x: l.x + camera.origin.x,
@@ -645,39 +683,71 @@ export const spaceScenery = (
         );
       }),
     );
-    for (const c of selected)
+    const rulings: Point3[][] = [];
+    const grid = (
+      axis: Direction,
+      level: number,
+      tiles: typeof cells,
+    ) => {
+      const box = stageBounds(tiles);
+      for (const across of directions) {
+        if (across === axis) continue;
+        const along = directions.find(
+          (d) => d !== axis && d !== across,
+        )!;
+        for (const cut of new Set(
+          tiles.map((c) => c.max[across]),
+        )) {
+          if (cut === box.max[across]) continue;
+          const start = {
+            ...box.min,
+            [axis]: level,
+            [across]: cut,
+          };
+          rulings.push([
+            start,
+            { ...start, [along]: box.max[along] },
+          ]);
+        }
+      }
+    };
+    const at = project(camera);
+    for (const axis of directions) {
+      const far =
+        at(bounds.min).z <=
+        at({
+          ...bounds.min,
+          [axis]: bounds.max[axis],
+        }).z
+          ? bounds.min[axis]
+          : bounds.max[axis];
+      // The floor grid already rules this face when it is farthest away.
+      if (
+        axis !== "y" ||
+        !selected.some((c) => c.max.y === far)
+      )
+        grid(axis, far, cells);
+    }
+    for (const level of new Set(
+      selected.map((c) => c.max.y),
+    )) {
+      const tiles = selected.filter(
+        (c) => c.max.y === level,
+      );
       result.push({
         kind: "plane",
-        layer: "sorted",
-        points: rect("y", c.max.y, c),
+        layer: "behind",
+        points: rect(
+          "y",
+          level,
+          stageBounds(tiles),
+        ),
         fill: "var(--wash,white)",
-        opacity: 0.45,
+        opacity: 0.14,
         tone: pencil,
       });
-    const rulings: Point3[][] = [];
-    for (const c of cells)
-      for (const axis of [
-        "x",
-        "z",
-      ] satisfies Direction[]) {
-        const side = axis === "x" ? "z" : "x";
-        if (c.max[axis] === bounds.max[axis])
-          continue;
-        for (const level of [
-          bounds.min[side],
-          bounds.max[side],
-        ])
-          if (
-            c.min[side] === level ||
-            c.max[side] === level
-          ) {
-            const p = { ...c.max, [side]: level };
-            rulings.push([
-              p,
-              { ...p, y: c.min.y },
-            ]);
-          }
-      }
+      grid("y", level, tiles);
+    }
     if (rulings.length)
       result.push({
         kind: "line",
@@ -692,10 +762,17 @@ export const spaceScenery = (
     )
       frame(stageBounds(selected), ink);
   }
+  const cards = cardBounds(camera, flow.nodes);
+  const blocks = blockLabels(
+    layout,
+    camera,
+    cards,
+  );
   const axes = axisGeometry(
     layout,
     camera,
-    flow.nodes,
+    cards,
+    blocks,
   );
   const addLines = (
     segments: ReturnType<typeof clearLine>,
@@ -713,7 +790,7 @@ export const spaceScenery = (
         strokes: strokes.slice(1),
       });
   };
-  for (const l of blockLabels(layout, camera))
+  for (const l of blocks)
     result.push({
       kind: "label",
       layer: "front",

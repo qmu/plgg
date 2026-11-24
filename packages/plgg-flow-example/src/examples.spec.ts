@@ -22,10 +22,10 @@ import {
   fitDemo,
   applyDemoSpec,
 } from "plgg-flow-example/examples";
-test("all twenty-six diagrams have unique identities and valid directed edges", () =>
+test("all twenty-seven diagrams have unique identities and valid directed edges", () =>
   check(
     new Set(examples.map((e) => e.name)).size ===
-      26 &&
+      27 &&
       examples.every(({ initial }) => {
         const graph = initial();
         const ids = new Set(
@@ -168,7 +168,8 @@ test("every gallery box sits on grid lines and Rooms opens on its three storeys"
     flow = examples[index]!.initial();
   return check(
     examples[index - 1]?.id === "layered" &&
-      flow.rooms?.rooms.length === 36 &&
+      examples[index + 1]?.id === "dimensions" &&
+      flow.rooms?.rooms.length === 18 &&
       flow.nodes.length === 14 &&
       flow.camera.yaw === 0.6 &&
       flow.camera.pitch === -0.5 &&
@@ -198,7 +199,7 @@ test("the gallery building has three horizontal floors and upright cards", () =>
     new Set(rooms.map((c) => c.max.y)).size ===
       3 &&
       new Set(rooms.map((c) => c.caption))
-        .size === 2 &&
+        .size === 1 &&
       flow.nodes.every((n) =>
         rooms.some(
           (c) =>
@@ -211,9 +212,9 @@ test("the gallery building has three horizontal floors and upright cards", () =>
     toBe(true),
   );
 });
-test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
+test("room labels fit with a 40 pixel margin beside the DSL overlay", () => {
   const flow = examples
-    .find((d) => d.id === "rooms")!
+    .find((d) => d.id === "dimensions")!
     .initial();
   const f = resizeDemo(flow, 580, true, 320),
     open = frameOf(f).x - 320;
@@ -235,10 +236,10 @@ test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
               ? width / 2
               : 0);
         return (
-          left >= 47.99 &&
-          left + width <= open - 47.99 &&
-          l.y + l.dy - 7 >= 47.99 &&
-          l.y + l.dy + 7 <= 580 - 47.99
+          left >= 39.99 &&
+          left + width <= open - 39.99 &&
+          l.y + l.dy - 7 >= 39.99 &&
+          l.y + l.dy + 7 <= 580 - 39.99
         );
       }),
     toBe(true),
@@ -259,7 +260,7 @@ test("structured rows join to the canonical text for every gallery sheet", () =>
     toBe(true),
   ));
 
-test("each room face fills the open frame up to its 48 pixel margin", () => {
+test("each room face fills the open frame up to its 40 pixel margin", () => {
   const original = examples
     .find((d) => d.id === "rooms")!
     .initial();
@@ -330,9 +331,9 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
           ),
       ];
       return (
-        table.camera.scale <= 1.25 &&
-        Math.min(...margins) >= 47.99 &&
-        (table.camera.scale === 1.25 ||
+        table.camera.scale <= 1.6 &&
+        Math.min(...margins) >= 39.99 &&
+        (table.camera.scale === 1.6 ||
           Math.min(...margins) <= 60)
       );
     }),

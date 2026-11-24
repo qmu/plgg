@@ -30,6 +30,11 @@ export default {
           items: [],
         },
         {
+          text: "次元を足す",
+          link: "/samples/dimensions",
+          items: [],
+        },
+        {
           text: "エッジの経路",
           link: "/samples/routes",
           items: [],

@@ -101,6 +101,7 @@ export const projectSocket = (
 export const projectNodeBody = (
   node: FlowNode,
   camera: Camera,
+  wasTagged = false,
 ) => {
   const at = project(camera),
     center = at(node.position),
@@ -177,37 +178,45 @@ export const projectNodeBody = (
       ? [{ ...face, points }]
       : [];
   });
-  const wide = visible.find(
-    (f) =>
-      f.side === "front" || f.side === "back",
+  const origin = corners[4]!,
+    right = corners[5]!,
+    bottom = corners[7]!;
+  const ratio = Math.min(
+    (right.x - origin.x) / (2 * w),
+    (bottom.y - origin.y) / (2 * h),
   );
-  // The reverse face reads from its own left to right. Sample the local
-  // tangent axes at the face centre so perspective affects the lettering.
-  const caption =
-    wide &&
-    (() => {
-      const sign = wide.side === "front" ? 1 : -1;
-      const face = {
-        ...node.position,
-        z: node.position.z + sign * d,
-      };
-      const origin = local(at(face));
-      const x = local(
-          at({ ...face, x: face.x + sign }),
-        ),
-        y = local(at({ ...face, y: face.y + 1 }));
-      return [
-        x.x - origin.x,
-        x.y - origin.y,
-        y.x - origin.x,
-        y.y - origin.y,
-        origin.x,
-        origin.y,
+  const tagged =
+    !visible.some((f) => f.side === "front") ||
+    ratio < (wasTagged ? 0.5 : 0.45);
+  const face = {
+    ...node.position,
+    z: node.position.z + d,
+  };
+  const centerFace = local(at(face));
+  const x = local(at({ ...face, x: face.x + 1 }));
+  const y = local(at({ ...face, y: face.y + 1 }));
+  const xs = corners.map((p) => p.x);
+  const caption = tagged
+    ? [
+        1,
+        0,
+        0,
+        1,
+        (Math.min(...xs) + Math.max(...xs)) / 2,
+        Math.min(...corners.map((p) => p.y)) - 10,
+      ]
+    : [
+        x.x - centerFace.x,
+        x.y - centerFace.y,
+        y.x - centerFace.x,
+        y.y - centerFace.y,
+        centerFace.x,
+        centerFace.y,
       ];
-    })();
   return {
     visible,
     caption,
+    tagged,
     depth: Math.max(...corners.map((p) => p.z)),
   };
 };

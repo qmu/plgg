@@ -1235,6 +1235,7 @@ const controls = (
     case "routes":
     case "snap":
     case "split":
+    case "dimensions":
     case "rooms":
     case "layered":
     case "space":
@@ -1427,7 +1428,7 @@ const toolbar = (
           fittedCamera: next.flow.camera,
         };
       }),
-    e.id === "rooms",
+    !!flow.rooms,
     tool ? [boardActions(tool.view(flow))] : [],
   );
 };
@@ -1440,6 +1441,7 @@ const featureInput = (
 ): unknown => {
   const f = s.flow;
   switch (id) {
+    case "dimensions":
     case "rooms":
     case "layered":
       return id;

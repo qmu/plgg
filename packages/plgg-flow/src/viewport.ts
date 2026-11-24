@@ -714,7 +714,11 @@ export const drawFlow = (
       const solid =
         cached?.camera === state.camera
           ? cached.solid
-          : projectNodeBody(n, state.camera);
+          : projectNodeBody(
+              n,
+              state.camera,
+              cached?.solid.tagged,
+            );
       if (cached?.solid !== solid)
         bodies.set(n.item, {
           camera: state.camera,
@@ -1114,7 +1118,30 @@ export const drawFlow = (
                 ? el(
                     "g",
                     [
-                      a("data-node-caption", ""),
+                      a(
+                        "data-node-caption",
+                        solid.tagged ? "tag" : "",
+                      ),
+                      ...(solid.tagged
+                        ? [
+                            a(
+                              "style",
+                              "stroke:var(--paper,white)",
+                            ),
+                            a(
+                              "stroke-width",
+                              2 / n.scale,
+                            ),
+                            a(
+                              "paint-order",
+                              "stroke fill",
+                            ),
+                            a(
+                              "stroke-linejoin",
+                              "round",
+                            ),
+                          ]
+                        : []),
                       a(
                         "transform",
                         `matrix(${solid.caption.join(" ")})`,
@@ -2607,6 +2634,7 @@ export const drawFlow = (
       ...(state.scenery
         ? scenery
             .filter((s) => s.layer === "behind")
+            .sort((a, b) => a.depth - b.depth)
             .map((s) => s.html)
         : [
             surfaceLayer(

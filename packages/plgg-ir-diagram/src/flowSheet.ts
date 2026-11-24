@@ -131,7 +131,7 @@ export const fitDemo = (flow: Flow): Flow => {
   );
   const frame = frameOf(flow),
     open = frame.x - (flow.cover ?? 0),
-    margin = 96;
+    margin = flow.rooms ? 80 : 96;
   const measure = (scale: number) => {
     let left = bounds.left * scale,
       right = bounds.right * scale,
@@ -172,7 +172,7 @@ export const fitDemo = (flow: Flow): Flow => {
       },
     };
   };
-  let upper = flow.rooms ? 1.25 : 1,
+  let upper = flow.rooms ? 1.6 : 1,
     lower = 0;
   let scale = upper;
   for (let i = 0; i < 18; i++) {
