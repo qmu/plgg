@@ -1,3 +1,5 @@
+import type { Wire } from "./wiring";
+import { selectCurvePairs } from "plgg-flow/wireCurvePairs";
 import { type Bounds } from "plgg-flow/wireCorridors";
 import {
   type Box,
@@ -5,7 +7,7 @@ import {
 } from "plgg-flow/wireGeometry";
 import type { Point } from "plgg-board";
 import type { FlowNode, Edge } from "./model";
-type End = {
+export type End = {
   node: FlowNode;
   peer: FlowNode;
   side: Side;
@@ -39,7 +41,12 @@ export const sides = [
   "left",
 ] satisfies Side[];
 
-type Plan = { edge: Edge; a: End; b: End };
+export type Plan = {
+  edge: Edge;
+  a: End;
+  b: End;
+  curve?: Wire;
+};
 const assignPages = (plans: Plan[]) => {
   // Interleaving intervals cross exactly once on a common page.
   const arcs = plans
@@ -270,7 +277,7 @@ export const planPorts = (
       count: 1,
     };
   };
-  const plans = edges.map((edge) => ({
+  const plans: Plan[] = edges.map((edge) => ({
     edge,
     a: end(edge, true),
     b: end(edge, false),
@@ -831,6 +838,90 @@ export const planPorts = (
       seen.set(e.peer, previous + 1);
       e.rank = rank;
     });
+  }
+  if (
+    plans.some(
+      ({ edge }) =>
+        !edge.route || edge.route === "curve",
+    )
+  ) {
+    selectCurvePairs(
+      plans,
+      query,
+      (end, start) => {
+        const entries = required(
+          incident.get(end.node.id),
+        );
+        const m = required(
+          means.get(key(end.node.id, start)),
+        );
+        const degree =
+          degrees.get(key(end.node.id, start)) ??
+          0;
+        const dx =
+            end.peer.position.x -
+            end.node.position.x,
+          dy =
+            end.peer.position.y -
+            end.node.position.y;
+        const main = facing(m.x, m.y);
+        const common =
+          degree > 1 &&
+          Math.hypot(m.x, m.y) >= degree * 0.5 &&
+          dx * normal[main].x +
+            dy * normal[main].y >
+            0.26 * Math.hypot(dx, dy);
+        const allowed = sides.filter((side) => {
+          if (
+            side === end.side ||
+            dx * normal[side].x +
+              dy * normal[side].y <
+              0
+          )
+            return false;
+          if (
+            entries.some(
+              (e) =>
+                e.start !== start &&
+                e.end.side === side,
+            )
+          )
+            return false;
+          if (
+            entries.some(
+              (e) => e.end.side === side,
+            )
+          )
+            return true;
+          let best = -Infinity,
+            owner = start,
+            tie = "";
+          for (const other of entries) {
+            const p = other.end.peer.position,
+              q = end.node.position;
+            if (other.end.node === other.end.peer)
+              continue;
+            const score =
+              ((p.x - q.x) * normal[side].x +
+                (p.y - q.y) * normal[side].y) /
+              (distance(p, q) || 1);
+            const id =
+              other.end.peer.id +
+              Number(other.start);
+            if (
+              score > best ||
+              (score === best && id < tie)
+            ) {
+              best = score;
+              tie = id;
+              owner = other.start;
+            }
+          }
+          return owner === start;
+        });
+        return { common, allowed };
+      },
+    );
   }
   return { plans, parallels };
 };

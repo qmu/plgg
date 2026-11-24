@@ -188,10 +188,11 @@ const blocksFor = (p: Contour) => {
   chordBlocks.set(p.segments, blocks);
   return blocks;
 };
-const measureConflict = (
+export const measureConflict = (
   u: ReturnType<typeof profile>,
   v: ReturnType<typeof profile>,
   limit = Infinity,
+  curvePair = false,
 ) => {
   if (
     u.l > v.r + 6 ||
@@ -292,7 +293,9 @@ const measureConflict = (
             return 0;
           if (h <= l) return 0;
           let extent = h - l;
-          for (const q of shared) {
+          for (const q of curvePair
+            ? []
+            : shared) {
             const x = q.x - a.a.x,
               y = q.y - a.a.y,
               center = x * a.x + y * a.y,
@@ -309,14 +312,21 @@ const measureConflict = (
           }
           return Math.max(0, extent);
         };
-        contact += band(3.2);
-        near += band(6.2);
+        contact += band(curvePair ? 2.5 : 3.2);
+        if (!curvePair) near += band(6.2);
       }
     }
     if (limit !== Infinity && value() >= limit)
       return limit;
   }
-  return value();
+  return curvePair
+    ? intersections +
+        Number(
+          contact >=
+            0.4 * Math.min(u.length, v.length),
+        ) *
+          100
+    : value();
 };
 
 // Repaired lanes often compare the same unchanged pair on consecutive frames.

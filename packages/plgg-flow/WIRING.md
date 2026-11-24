@@ -1143,3 +1143,24 @@ What the reset broke (sev3 16, moderate 182), for round 25:
   canonical check does not apply to these — see below).
 - **Siblings crossing** (43) and `double-cross` (21): the lever is the
   side of the far socket, not the curve.
+
+## Round 25 review — adopted
+
+Seen on the sheet: arches nest by span (`pipelineSkips` back to 2
+crossings), the pretzels are gone (diamonds a→f, c→d are plain cubics
+via another side), `not-canonical`, `excursion`, `grazes-node` 0.
+microservices, pipelineSkips, diamonds, orgTree read cleanly.
+
+Open:
+- the side retry picks odd sides to stay canonical: S→T leaves S's
+  top, Idle→Loading leaves Idle's top and curls in from below, hub
+  out4 enters from the top (`awkward-side` 15). Retry should prefer a
+  soft polyline on the facing sides over a canonical cubic on a side
+  that faces away by more than 45°.
+- soft polylines are counted as `stiff-curve` (32) by the audit — the
+  check predates them and needs recalibrating by the reviewer; but in
+  `hub` a fan mixes cubics and polylines, which does look uneven.
+- drag: `drag-jump-neighbour` 18, `drag-jump` 6 (side retry depends on
+  blocking boxes, so a passing node flips sides).
+- dense sheets (grid5x4, scatter) remain busy: that is placement, the
+  subject of the layout work that follows.

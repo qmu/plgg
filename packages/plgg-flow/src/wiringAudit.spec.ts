@@ -1,3 +1,6 @@
+import { curvePath } from "plgg-flow/wireCurve";
+import { box } from "plgg-flow/wireGeometry";
+import { portPosition } from "plgg-flow/nodeBody";
 import {
   test,
   check,
@@ -310,7 +313,10 @@ for (const route of [
               Math.abs(p.y) <=
               (route === "curve"
                 ? 18 +
-                  0.75 * 160 +
+                  0.75 *
+                    (24 +
+                      0.13 *
+                        gap(w.source, w.target)) +
                   (w.controls ? 0 : 14)
                 : 18 + 24 + 3 * 10),
           ),
@@ -320,7 +326,7 @@ for (const route of [
   );
 }
 
-test("a card pushes a wire continuously on each side of the over-under tie", () => {
+test("a card pushes a wire continuously while the selected sockets and over-under side hold", () => {
   const left = n("left", -220, 0);
   const right = n("right", 220, 0);
   const distant = [
@@ -348,6 +354,8 @@ test("a card pushes a wire continuously on each side of the over-under tie", () 
       // The preferred rim changes when the centre crosses the chord.
       if (
         old &&
+        old.sourceSide === w.sourceSide &&
+        old.targetSide === w.targetSide &&
         !(i === 0 && (y === 0 || y === 2))
       ) {
         // Measure both directions to catch a disappearing detour.
@@ -895,4 +903,125 @@ test("a narrowing cluster passage clears the moving card with at most two vias",
       );
   }
   return check(clear, toBe(true));
+});
+
+test("canonical arches nest by their socket span", () => {
+  const arches = wireGraph(pipeline).filter(
+    (w) =>
+      w.controls && w.sourceSide === w.targetSide,
+  );
+  const heights = arches
+    .map((w) => {
+      const span = gap(w.source, w.target);
+      const height = Math.max(
+        ...w.points.map((p) =>
+          Math.abs(p.y - w.source.y),
+        ),
+      );
+      return { span, height };
+    })
+    .sort((a, b) => a.span - b.span);
+  return all([
+    check(heights.length >= 2, toBe(true)),
+    check(
+      heights.every(
+        ({ span, height }, i) =>
+          Math.abs(
+            height - 0.75 * (24 + 0.13 * span),
+          ) < 0.02 &&
+          (!i ||
+            height >=
+              heights[i - 1]!.height - 0.02),
+      ),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("a blocked facing cubic retries the far socket before adding a via", () => {
+  const nodes = [n("a", 0, 0), n("b", 400, 150)],
+    edges = [e("a", "b")];
+  const direct = wireGraph({ nodes, edges })[0]!;
+  const retry = wireGraph({
+    nodes: [...nodes, n("block", 180, 60)],
+    edges,
+  })[0]!;
+  return all([
+    check(direct.targetSide, toBe("left")),
+    check(retry.sourceSide, toBe("right")),
+    check(retry.targetSide, toBe("top")),
+    check(retry.controls?.length, toBe(2)),
+    check(
+      retry.points.every(
+        (p) =>
+          Math.hypot(
+            Math.max(0, Math.abs(p.x - 180) - 52),
+            Math.max(0, Math.abs(p.y - 60) - 18),
+          ) >= 10,
+      ),
+      toBe(true),
+    ),
+  ]);
+});
+
+test("diamonds diagonals use monotone filleted runs when their facing sockets are occupied by siblings", () => {
+  const nodes = [
+    n("S", -400, 0),
+    n("a", -200, -120),
+    n("b", -200, 0),
+    n("c", -200, 120),
+    n("M", 0, 0),
+    n("d", 200, -120),
+    n("f", 200, 120),
+    n("T", 400, 0),
+  ];
+  return all(
+    [
+      [1, 6],
+      [3, 5],
+    ].map(([i, j]) => {
+      const a = nodes[i!]!,
+        b = nodes[j!]!;
+      const w = curvePath(
+        e(a.id, b.id),
+        {
+          ...portPosition(a, "right", 0),
+          side: "right",
+        },
+        {
+          ...portPosition(b, "left", 0),
+          side: "left",
+        },
+        nodes.map(box),
+        0,
+        1,
+        false,
+      );
+      const dx = w.target.x - w.source.x,
+        dy = w.target.y - w.source.y;
+      return all([
+        check(w.controls, toBe(undefined)),
+        check(
+          w.corners >= 1 && w.corners <= 2,
+          toBe(true),
+        ),
+        check(
+          w.points.every((p, k) => {
+            const prev = w.points[k - 1];
+            return (
+              (!prev ||
+                dx * (p.x - prev.x) +
+                  dy * (p.y - prev.y) >=
+                  -1e-7) &&
+              Math.hypot(
+                Math.max(0, Math.abs(p.x) - 52),
+                Math.max(0, Math.abs(p.y) - 18),
+              ) >= 9.99
+            );
+          }),
+          toBe(true),
+        ),
+      ]);
+    }),
+  );
 });

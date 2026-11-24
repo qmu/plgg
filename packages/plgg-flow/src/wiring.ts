@@ -238,7 +238,7 @@ export const wireGraph = (
   }
   // Base paths depend only on the chosen sockets and nearby node boxes.
   const bases = ports.plans.map(
-    ({ edge, a, b }) => {
+    ({ edge, a, b, curve: chosen }) => {
       const s = {
           ...portPosition(a.node, a.side, 0),
           side: a.side,
@@ -290,7 +290,6 @@ export const wireGraph = (
               s,
               t,
               walls,
-              clearance,
               rank,
               pair.length,
               reciprocal,
@@ -375,14 +374,6 @@ export const wireGraph = (
           : rememberBase(key, build);
       };
       // A clear natural path depends only on its sockets and its swept clearance.
-      const own = nearby.filter(
-        (q) =>
-          q.id === edge.source ||
-          q.id === edge.target,
-      );
-      const plain = edge.waypoints?.length
-        ? undefined
-        : route(own);
       const member = (base: BaseRoute) => ({
         wire: { ...base.wire, edge },
         token: base.token,
@@ -394,6 +385,20 @@ export const wireGraph = (
           ),
         ),
       });
+      if (chosen)
+        return member({
+          wire: chosen,
+          bounds: corridor(chosen.points, 0),
+          token: 0,
+        });
+      const own = nearby.filter(
+        (q) =>
+          q.id === edge.source ||
+          q.id === edge.target,
+      );
+      const plain = edge.waypoints?.length
+        ? undefined
+        : route(own);
       if (plain && edge.source === edge.target)
         return member(plain);
       // A curve depends on the walls swept by its successive clearance

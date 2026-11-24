@@ -6,6 +6,7 @@ import {
   cuts,
   simplify,
   type Box,
+  inflate,
 } from "plgg-flow/wireGeometry";
 // Discover blocking rectangles lazily so clear corridors need no graph.
 export const search = (
@@ -13,12 +14,20 @@ export const search = (
   t: Point,
   boxes: Box[],
   step: boolean,
-  monotone = false,
+  monotone: boolean | Point = false,
   cornerAllowed?: (
     corner: Point,
     obstacle: Box,
   ) => boolean,
+  cornerPadding = 0,
 ) => {
+  if (
+    typeof monotone === "object" &&
+    (t.x - s.x) * monotone.x +
+      (t.y - s.y) * monotone.y <
+      -1e-8
+  )
+    return;
   const estimate = (p: Point) =>
     step
       ? Math.abs(t.x - p.x) + Math.abs(t.y - p.y)
@@ -91,9 +100,13 @@ export const search = (
       if (i === at || done.has(i)) continue;
       const b = required(vertices[i]);
       if (
-        monotone &&
-        ((b.x - a.x) * (t.x - s.x) < 0 ||
-          (b.y - a.y) * (t.y - s.y) < 0)
+        typeof monotone === "object"
+          ? (b.x - a.x) * monotone.x +
+              (b.y - a.y) * monotone.y <
+            -1e-8
+          : monotone &&
+            ((b.x - a.x) * (t.x - s.x) < 0 ||
+              (b.y - a.y) * (t.y - s.y) < 0)
       )
         continue;
       for (const turn of step &&
@@ -123,11 +136,14 @@ export const search = (
         if (block) {
           if (!seen.has(block)) {
             seen.add(block);
+            const rim = cornerPadding
+              ? inflate(block, cornerPadding)
+              : block;
             const corners = [
-              pt(block.l, block.t),
-              pt(block.r, block.t),
-              pt(block.l, block.b),
-              pt(block.r, block.b),
+              pt(rim.l, rim.t),
+              pt(rim.r, rim.t),
+              pt(rim.l, rim.b),
+              pt(rim.r, rim.b),
             ];
             vertices.push(
               ...(cornerAllowed
