@@ -1080,3 +1080,38 @@ Open, as seen on the sheet:
   of 910 jumps > 30u over all sweeps, 528 start at socket
   reassignment — the side choice, not the router, is the main source.
 - `slow-drag` 16 (budget 8 ms; frames fit 16 ms).
+
+## Curve shape — reset after the user's review ("too many slight curves, it looks wavy; an approximation is fine")
+
+The reviewer's design was wrong for curves: a searched polyline,
+smoothed, then pushed sideways for clearance from other wires gives
+every wire its own irregular shape. The audit did not measure shape,
+so it reported progress while the sheet looked wavy. Round 23 was
+stopped (its partial work is in `git stash`, "round23-partial").
+
+The rule from now on, in this order of priority:
+
+1. **The canonical wire.** A curve is ONE cubic Bézier from socket A
+   to socket B with control points on the socket normals:
+   `P1 = A + nA·c`, `P2 = B + nB·c`, `c = clamp(0.45·|AB|, 24, 160)`.
+   If that cubic clears every node (10u from foreign nodes; own nodes
+   away from the stems), the wire IS that cubic. No lanes, no pushes,
+   no repair may alter it. Wires from one socket then fan out by
+   themselves, all with the same family of shape.
+2. **Level facing sockets** with a free corridor: a straight line
+   (the cubic degenerates to it).
+3. **Blocked canonical.** Add the fewest via points (one, rarely two)
+   beside the blocking node at clearance, and draw one cubic per span
+   with tangent continuity. The result bends in one direction (C) or
+   changes direction once (S). Never more. Approximate clearance is
+   fine; uniform shape beats uniform distance.
+4. **Bundles** (several wires between the same two nodes, incl. both
+   directions): symmetric arcs about the chord, as built in round 22.
+   This is the only case where other wires change a curve.
+5. Crossings between curves are accepted as they fall. Side choice
+   (which socket) is the lever for crossings, not the curve's shape.
+
+Audit kinds added (curve style, moderate): `not-canonical` (the plain
+cubic is free but the wire is > 14u off it) and `snake` (the bend
+direction changes more than once). Baseline on round 22 code:
+`snake` 84, `not-canonical` 55.
