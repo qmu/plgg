@@ -1097,3 +1097,56 @@ Reviewer's shooting list for acceptance (browser): yaw −150° to
 views — in every shot each node's name is readable, its storey and
 cell can be told without touching the sheet, and no label lies on
 a node.
+
+## Layers — one axis on an auto-laid graph (owner: "rooms is the hard case; a frequent one is an auto-laid graph with just one axis added as layers, showing which layer each node is on — support that pattern too")
+
+The same foundation, the simplest view of it: the graph is laid
+out by its edges as always, and one axis lifts each node onto its
+layer.
+
+```
+layout layered down
+axis 層 画面 業務 データ
+node Web 層=画面
+node Orders 層=業務
+Web -> Orders
+```
+
+- Under `layout layered`, an axis has the role **`layer`** (the
+  default for the first axis there; `view layer=層` says it
+  explicitly). Only one layer axis; a second axis under `layered`
+  is an error naming the line. Classification is `classify`, as
+  for rooms — nothing new.
+- **Placing.** `planLayers` places every node in the sheet plane
+  from the edges exactly as without the axis: seen from the front
+  the sheet is the ordinary auto layout. Then z = the layer's
+  level × 112, the first-written value nearest the viewer. The
+  `depth` option (z by rank) cannot be combined with a layer axis.
+  API: `planLayers(graph, { direction, layerAxis })` returning the
+  layers' planes beside what it returns today.
+- **Scenery** (general primitives only): one plate per layer — the
+  rectangle around *all* nodes plus 32, the same for every layer,
+  in the sheet plane just behind that layer's nodes; wash 14 %,
+  pencil outline; the layer's name at the plate's top-left corner
+  (10px 600 graphite, a label that pins the layer on click — other
+  layers' nodes and wires go quiet). Plates are painted far to
+  near, each before the nodes standing on it.
+- Wires between layers are the standard 3D wires.
+- **Views.** Opens turned so the layers stand apart (yaw −0.5,
+  elevation 0.35); 正面 is the flat graph (here exactly face-on is
+  right: it *is* the ordinary sheet, the plates coincide and only
+  the outline shows); 立体 returns to the opening view. No 上 / 横
+  buttons on a layers sheet.
+- Dragging a node moves it on its own layer (`within` flat in z).
+  The properties area's axis row offers the role `layer` on a
+  layered sheet, and a node's row offers its layer as a choice.
+- Sample 「レイヤーに分ける」 right after 「自動配置」: about ten
+  nodes, 層 = 画面 / 業務 / データ, a dozen edges crossing layers;
+  description 「軸を1つ足すと、ノードが層ごとの面に乗ります。」
+
+Specs: front projection equals the layout without the axis; each
+node's z is its layer's level; plates share one rectangle and
+contain every node; a second axis is a parse error; `depth` plus
+an axis is a parse error; print/parse round trip; pinning a layer
+quiets the others; `viewport.ts` still mentions neither rooms nor
+layers-as-axis.
