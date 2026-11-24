@@ -1290,3 +1290,34 @@ The check now allows it.
 Also in this commit (reviewer's own changes to the view): a side
 that only receives wires shows no dot — the arrowheads mark it;
 Shift+drag selects a range, ⌘/Ctrl+drag turns the sheet.
+
+## A side that sends does not receive (owner, 2026-11-24)
+
+With dots only where wires leave, a dot is a start and an arrowhead
+an arrival. A side that does both breaks that reading: the arrow
+lands on a start. The owner's rule: **an arrow arrives on one of the
+other three sides — the one that suits the drawing best.**
+
+- For each node, the sides that send are decided first (facing
+  sector + sibling rule, as today). An incoming wire then takes, among
+  the node's sides that do not send, the one that faces its source
+  best; ties by fewer bends, then a fixed order (top, bottom, left,
+  right as seen from the flow's main direction).
+- Excused (the mix stays, as a note in the audit): every other side
+  sends too; every other side faces away from the source
+  (cos < −0.2); or the other candidates are walled in by a node
+  within 24u of that side.
+- A to-and-fro pair A → B, B → A therefore becomes a loop: out of
+  A's facing side into B's facing side, and back from B's top or
+  bottom into A's top or bottom — both the same (both top or both
+  bottom), chosen by where there is room.
+- Still a function of a wire's own two nodes and their own wires
+  (round 29). No retry, no crossing counts.
+- A row of nodes with wires both ways (stateMachine, pipelineSkips'
+  return edges) reads as lanes: forward along the row, back over or
+  under it.
+
+The audit now reports an avoidable mix as moderate `mixed-socket`:
+104 on round 30's code. Target for round 31: 0 avoidable, with no
+more `long-detour`, `excursion`, `drag-jump` or `drag-jump-neighbour`
+than today (0, 0, 4, 12) and the other counts no worse.
