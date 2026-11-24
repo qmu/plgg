@@ -1,4 +1,3 @@
-import { bodyDepth } from "plgg-flow/nodeBody";
 import { nodeSize } from "plgg-flow/nodeSize";
 import { roomFor } from "plgg-flow/autoLayout";
 import { some, none } from "plgg";
@@ -22,7 +21,6 @@ import type {
 import {
   directions,
   faceAxes,
-  roomStack,
 } from "plgg-flow/roomCamera";
 const stageBounds = (
   cells: RoomLayout["rooms"],
@@ -44,26 +42,50 @@ const depthSign = (
 ) =>
   project(camera)({ x: 0, y: 0, z: 0, [d]: 1 }).z;
 
-// Each short subpath restarts the two-pixel dash. The tick and arrow
-// strokes stay continuous while sharing the dotted shaft's SVG path.
-const axisMark = (
+// Remove the part of a screen-space stroke inside each card.
+const clearLine = (
   x: number,
   y: number,
   dx: number,
   dy: number,
+  cards: Box[],
 ) => {
-  const parts = Math.max(
-    1,
-    Math.ceil(Math.hypot(dx, dy) / 2),
-  );
-  const step = `l${dx / parts} ${dy / parts}`;
-  return (
-    `M${x} ${y}` +
-    Array.from(
-      { length: parts },
-      () => step,
-    ).join("m0 0")
-  );
+  let spans = [[0, 1]];
+  for (const box of cards) {
+    let low = 0,
+      high = 1;
+    for (const [start, delta, min, max] of [
+      [x, dx, box.left, box.right],
+      [y, dy, box.top, box.bottom],
+    ] satisfies [
+      number,
+      number,
+      number,
+      number,
+    ][]) {
+      if (delta === 0) {
+        if (start < min || start > max) high = -1;
+      } else {
+        const a = (min - start) / delta,
+          b = (max - start) / delta;
+        low = Math.max(low, Math.min(a, b));
+        high = Math.min(high, Math.max(a, b));
+      }
+    }
+    if (low < high)
+      spans = spans.flatMap(([a = 0, b = 1]) =>
+        [
+          [a, Math.min(b, low)],
+          [Math.max(a, high), b],
+        ].filter(([u = 0, v = 1]) => u < v),
+      );
+  }
+  return spans
+    .map(
+      ([a = 0, b = 1]) =>
+        `M${x + a * dx} ${y + a * dy}L${x + b * dx} ${y + b * dy}`,
+    )
+    .join("");
 };
 const groupsOf = (layout: RoomLayout) => {
   const groups = new Map<
@@ -142,44 +164,32 @@ const axisGeometry = (
     layout,
     camera,
   ).map(labelBox);
+  const cards: Box[] = [];
   for (const node of nodes.filter(
     (n) => !n.hidden,
   )) {
-    const { width, height } = nodeSize(node);
-    const p = node.position,
-      d = bodyDepth(node);
-    const points = corners(
-      {
-        x: p.x - width / 2,
-        y: p.y - height / 2,
-        z: p.z - d,
-      },
-      {
-        x: p.x + width / 2,
-        y: p.y + height / 2,
-        z: p.z + d,
-      },
-    ).map(at);
-    const center = at(p);
-    occupied.push({
-      left: Math.min(
-        center.x - (width * camera.scale) / 2,
-        ...points.map((q) => q.x),
-      ),
-      right: Math.max(
-        center.x + (width * camera.scale) / 2,
-        ...points.map((q) => q.x),
-      ),
-      top: Math.min(
-        center.y - (height * camera.scale) / 2,
-        ...points.map((q) => q.y),
-      ),
-      bottom: Math.max(
-        center.y + (height * camera.scale) / 2,
-        ...points.map((q) => q.y),
-      ),
+    const cell = roomFor(layout, node);
+    if (!cell) continue;
+    const foot = at({
+      ...node.position,
+      y: cell.max.y,
+    });
+    const half =
+      (nodeSize(node).width * camera.scale) / 2;
+    cards.push({
+      left: foot.x - half - 4,
+      right: foot.x + half + 4,
+      top: foot.y - 32 * camera.scale - 4,
+      bottom: foot.y + 4,
     });
   }
+  occupied.push(...cards);
+  const mark = (
+    x: number,
+    y: number,
+    dx: number,
+    dy: number,
+  ) => clearLine(x, y, dx, dy, cards);
   const groups = groupsOf(layout).map(
     (cells) => ({ cells, ...stageBounds(cells) }),
   );
@@ -345,7 +355,7 @@ const axisGeometry = (
             value,
             attribute: definition.attribute,
             clear,
-            size: clear ? 12 : 13,
+            size: 11,
           };
           let box = labelBox(l);
           while (
@@ -411,14 +421,19 @@ const axisGeometry = (
       ];
       const path = hidden
         ? `M${start.x} ${start.y}h0`
-        : `M${start.x} ${start.y}L${tip.x} ${tip.y}` +
-          axisMark(
+        : mark(
+            start.x,
+            start.y,
+            tip.x - start.x,
+            tip.y - start.y,
+          ) +
+          mark(
             tip.x,
             tip.y,
             -6 * tx + 3 * dx,
             -6 * ty + 3 * dy,
           ) +
-          axisMark(
+          mark(
             tip.x,
             tip.y,
             -6 * tx - 3 * dx,
@@ -427,7 +442,7 @@ const axisGeometry = (
           ticks
             .map((v) => {
               const p = position(v);
-              return axisMark(
+              return mark(
                 p.x,
                 p.y,
                 6 * dx,
@@ -440,6 +455,7 @@ const axisGeometry = (
         letter: axis,
         block: cells[0]!.block,
         position,
+        mark,
         path,
         labels,
       };
@@ -496,23 +512,43 @@ export const roomLabels = (
   layout: RoomLayout,
   camera: Camera,
   nodes: Flow["nodes"] = [],
-) => [
-  ...axisGeometry(layout, camera, nodes).flatMap(
-    (a) => a.labels,
-  ),
-  ...blockLabels(layout, camera),
-];
+) => {
+  const local = {
+    ...camera,
+    origin: { x: 0, y: 0 },
+  };
+  return [
+    ...axisGeometry(layout, local, nodes).flatMap(
+      (a) => a.labels,
+    ),
+    ...blockLabels(layout, local),
+  ].map((l) => ({
+    ...l,
+    x: l.x + camera.origin.x,
+    y: l.y + camera.origin.y,
+  }));
+};
 export const roomStage = (
   layout: RoomLayout,
   camera: Camera,
   pins?: Flow["roomPins"],
 ) => {
   const at = project(camera);
-  const stack = roomStack(layout, camera, pins);
+
   const path = (kind: string, d: string) =>
     el<Change>(
       "path",
-      [attr("class", kind), attr("d", d)],
+      [
+        attr("class", kind),
+        attr("d", d),
+        attr("fill", "none"),
+        attr(
+          "stroke",
+          kind === "room-pinned"
+            ? "var(--ink,black)"
+            : "var(--pencil,gray)",
+        ),
+      ],
       [],
     );
   const blocks = groupsOf(layout).map((cells) => {
@@ -543,10 +579,6 @@ export const roomStage = (
         "Z"
       );
     };
-    const levels = (axis: Direction) =>
-      [
-        ...new Set(cells.map((c) => c.max[axis])),
-      ].sort((a, b) => b - a);
     const line = (p: Point3, q: Point3) =>
       "M" + points(p) + "L" + points(q);
     const faces = directions.map((d) =>
@@ -560,27 +592,6 @@ export const roomStage = (
         ),
       ),
     );
-    const plates = levels("y").map((y) => {
-      let grid = "";
-      for (const x of levels("x").filter(
-        (x) => x < max.x,
-      ))
-        grid += line(
-          { x, y, z: min.z },
-          { x, y, z: max.z },
-        );
-      for (const z of levels("z").filter(
-        (z) => z < max.z,
-      ))
-        grid += line(
-          { x: min.x, y, z },
-          { x: max.x, y, z },
-        );
-      return [
-        path("room-storeys", rect("y", y)),
-        path("room-ruling", grid),
-      ];
-    });
     let hull = "";
     for (const cell of cells) {
       for (const axis of [
@@ -631,7 +642,7 @@ export const roomStage = (
       depth: (at(min).z + at(max).z) / 2,
       items: [
         ...faces,
-        ...plates.flat(),
+
         path(
           "room-hull",
           directions
@@ -662,53 +673,6 @@ export const roomStage = (
               ),
             )
           : []),
-        ...(stack
-          ? cells
-              .filter(
-                (c) =>
-                  directions.every(
-                    (d, i) =>
-                      d === stack.hidden ||
-                      c.index[i] === 0,
-                  ) &&
-                  (stack.pin === undefined ||
-                    stack.pin ===
-                      c.values[stack.index]),
-              )
-              .map((cell) => {
-                const shift = stack.offset(
-                  cell.index[stack.index]!,
-                );
-                return {
-                  shift,
-                  outline: el<Change>(
-                    "path",
-                    [
-                      attr(
-                        "class",
-                        shift
-                          ? "room-stack"
-                          : "room-stack-near",
-                      ),
-                      attr(
-                        "transform",
-                        `translate(${shift} ${-shift})`,
-                      ),
-                      attr(
-                        "d",
-                        rect(
-                          stack.hidden,
-                          cell.min[stack.hidden],
-                        ),
-                      ),
-                    ],
-                    [],
-                  ),
-                };
-              })
-              .sort((a, b) => b.shift - a.shift)
-              .map((l) => l.outline)
-          : []),
       ],
     };
   });
@@ -723,40 +687,41 @@ export const roomStage = (
       .flatMap((b) => b.items),
   );
 };
-export const roomShadow = (
-  node: Flow["nodes"][number],
-  floor: number,
+export const roomPlate = (
+  cell: RoomLayout["rooms"][number],
   camera: Camera,
 ) => {
-  const w = nodeSize(node).width / 2;
-  const coords = [
-    [-w, -8],
-    [w, -8],
-    [w, 8],
-    [-w, 8],
-  ].map(([dx, dz]) => {
-    const p = project(camera)({
-      x: node.position.x + dx!,
-      y: floor,
-      z: node.position.z + dz!,
-    });
+  const { min, max } = cell;
+  const at = project(camera);
+  const points = [
+    [min.x, min.z],
+    [max.x, min.z],
+    [max.x, max.z],
+    [min.x, max.z],
+  ].map(([x, z]) => {
+    const p = at({ x: x!, y: max.y, z: z! });
     return p.x + " " + p.y;
   });
   return el<Change>(
     "path",
     [
-      attr("class", "room-shadow"),
-      attr("d", "M" + coords.join("L") + "Z"),
-      attr("pointer-events", "none"),
+      attr("class", "room-storeys"),
+      attr("fill", "var(--paper, white)"),
+      attr("stroke", "var(--pencil, gray)"),
+      attr("d", "M" + points.join("L") + "Z"),
     ],
     [],
   );
 };
 export const roomView = (
   layout: RoomLayout,
-  camera: Camera,
+  view: Camera,
   flow?: Flow,
 ): Html<Change> => {
+  const camera = {
+    ...view,
+    origin: { x: 0, y: 0 },
+  };
   const at = project(camera);
   const labelEvents = (label: AxisLabel) => [
     attr("class", "room-label"),
@@ -823,14 +788,22 @@ export const roomView = (
               a.axis !== "x" ||
               a.block === room.block,
           )
-          .map(({ axis, position }) => {
-            const p = at(node.position),
+          .map(({ axis, position, mark }) => {
+            const p = at({
+                ...node.position,
+                y: room.max.y,
+              }),
               q = position(
                 (room.min[axis] +
                   room.max[axis]) /
                   2,
               );
-            return `M${p.x} ${p.y}L${q.x} ${q.y}`;
+            return mark(
+              p.x,
+              p.y,
+              q.x - p.x,
+              q.y - p.y,
+            );
           })
           .join("")
       : "";
@@ -838,6 +811,10 @@ export const roomView = (
     "g",
     [
       attr("class", "room-scene"),
+      attr(
+        "transform",
+        `translate(${view.origin.x} ${view.origin.y})`,
+      ),
       attr("pointer-events", "none"),
     ],
     [
@@ -860,10 +837,9 @@ export const roomView = (
             attr("data-room-axis", a.letter),
             attr("d", a.path),
             attr("fill", "none"),
-            attr("stroke", "var(--ink)"),
-            attr("stroke-width", "1.25"),
+            attr("stroke", "var(--pencil)"),
+            attr("stroke-width", "1"),
             attr("stroke-linecap", "round"),
-            attr("stroke-dasharray", "2 4"),
           ],
           [],
         ),
@@ -896,7 +872,7 @@ export const roomView = (
               ...labelEvents(l),
               attr(
                 "style",
-                `font-size:${l.size}px;font-weight:${l.clear ? 600 : 500};fill:var(--${l.clear || flow?.roomPins?.[l.attribute] === l.value || node?.data?.[l.attribute] === l.value ? "ink" : "graphite"}) !important;text-decoration:${!l.clear && flow?.roomPins?.[l.attribute] === l.value ? "underline" : "none"}`,
+                `font-size:${l.size}px;font-weight:${l.clear || flow?.roomPins?.[l.attribute] === l.value ? 600 : 400};fill:var(--${!l.clear && flow?.roomPins?.[l.attribute] === l.value ? "ink" : "graphite"}) !important;text-decoration:${!l.clear && flow?.roomPins?.[l.attribute] === l.value ? "underline" : "none"}`,
               ),
             ],
             l.clear

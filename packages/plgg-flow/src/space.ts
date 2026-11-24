@@ -24,9 +24,9 @@ export const planSpace = (
   const values = (role: Role) =>
     data.axes[axis(role)]?.values ?? ["—"];
   const spans = {
-    x: values("x").map(() => 160),
-    y: values("y").map(() => 96),
-    z: values("z").map(() => 96),
+    x: values("x").map(() => 112),
+    y: values("y").map(() => 80),
+    z: values("z").map(() => 80),
   };
   const index = (address: number[], role: Role) =>
     address[axis(role)] ?? 0;

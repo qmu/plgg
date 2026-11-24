@@ -71,7 +71,6 @@ export type FlowNode = Readonly<{
   grow?: Readonly<{ x: number; y: number }>;
   collapsed?: boolean;
   locked?: boolean;
-  roomReceded?: boolean;
   hidden?: boolean;
   value?: number;
   position: Point3;
@@ -916,6 +915,63 @@ export const movePointer =
     const moving = state.nodes.find(
       (n) => n.id === d.node,
     );
+    if (
+      d.mode === "node" &&
+      moving &&
+      state.rooms
+    ) {
+      const room = roomFor(state.rooms, moving);
+      if (!room) return state;
+      const hit = (p: Point) =>
+        pickPlane(
+          state.camera,
+          p,
+          "y",
+          room.max.y,
+        );
+      const previous = d.first ?? d.last;
+      const before = hit(previous),
+        after = hit(point);
+      if (!isSome(before) || !isSome(after))
+        return state;
+      const snap = state.snap;
+      const travel = (v: number) =>
+        snap ? Math.round(v / snap) * snap : v;
+      const x = travel(
+          after.content.x - before.content.x,
+        ),
+        z = travel(
+          after.content.z - before.content.z,
+        );
+      const first = project(state.camera)({
+        ...before.content,
+        x: before.content.x + x,
+        z: before.content.z + z,
+      });
+      const drag = some({
+        ...d,
+        last: point,
+        first: snap ? first : point,
+      });
+      if (!x && !z) return { ...state, drag };
+      const ids = new Set(selectedNodes(state));
+      return settleRooms({
+        ...state,
+        drag,
+        nodes: state.nodes.map((n) =>
+          ids.has(n.id) && !n.locked
+            ? {
+                ...n,
+                position: {
+                  ...n.position,
+                  x: n.position.x + x,
+                  z: n.position.z + z,
+                },
+              }
+            : n,
+        ),
+      });
+    }
     const depth = moving
       ? project(state.camera)(moving.position).z
       : 0;

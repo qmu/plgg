@@ -267,9 +267,10 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
   return check(
     (
       [
-        [0, 0],
-        [0, -Math.PI / 2],
-        [Math.PI / 2, 0],
+        [-0.22, 0.2],
+        [-0.22, 1.05],
+        [-1.3, 0.2],
+        [-0.6, 0.5],
       ] satisfies [number, number][]
     ).every(([yaw, pitch]) => {
       const table = roomFaceView(
@@ -277,7 +278,14 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
       );
       const at = project(table.camera);
       const corners = table.rooms!.rooms.flatMap(
-        (r) => [at(r.min), at(r.max)],
+        (r) =>
+          [r.min.x, r.max.x].flatMap((x) =>
+            [r.min.y, r.max.y].flatMap((y) =>
+              [r.min.z, r.max.z].map((z) =>
+                at({ x, y, z }),
+              ),
+            ),
+          ),
       );
       const boxes = roomLabels(
         table.rooms!,

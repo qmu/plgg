@@ -19,7 +19,8 @@ import { project } from "plgg-board";
 import {
   addNode,
   viewAt,
-  roomStack,
+  roomFoot,
+  roomViews,
   roomFaceView,
   turnRooms,
   roomLabels,
@@ -41,6 +42,7 @@ import {
 } from "plgg-flow/dsl";
 import { arrangeHierarchy } from "plgg-flow/layout";
 import {
+  roomFor,
   planLayers,
   planRooms,
 } from "plgg-flow/autoLayout";
@@ -129,20 +131,13 @@ export const fitDemo = (flow: Flow): Flow => {
       bottom: -Infinity,
     },
   );
-  const stack = flow.rooms
-    ? (roomStack(
-        flow.rooms,
-        camera,
-        flow.roomPins,
-      )?.margin ?? 0)
-    : 0;
   const frame = frameOf(flow),
     open = frame.x - (flow.cover ?? 0),
     margin = 96;
   const measure = (scale: number) => {
     let left = bounds.left * scale,
-      right = bounds.right * scale + stack,
-      top = bounds.top * scale - stack,
+      right = bounds.right * scale,
+      top = bounds.top * scale,
       bottom = bounds.bottom * scale;
     if (flow.rooms) {
       const fitted = { ...camera, scale };
@@ -150,6 +145,18 @@ export const fitDemo = (flow: Flow): Flow => {
         ...flow,
         camera: fitted,
       });
+      for (const n of visible.nodes) {
+        const cell = roomFor(flow.rooms, n);
+        if (!cell || n.hidden) continue;
+        const foot = project(fitted)(
+            roomFoot(n, cell.max.y),
+          ),
+          half = (nodeSize(n).width * scale) / 2;
+        left = Math.min(left, foot.x - half);
+        right = Math.max(right, foot.x + half);
+        top = Math.min(top, foot.y - 32 * scale);
+        bottom = Math.max(bottom, foot.y);
+      }
       for (const l of roomLabels(
         flow.rooms,
         fitted,
@@ -410,7 +417,9 @@ export const optimize: Change = (f) =>
   fitDemo(arrangeSheet(f));
 export const resetSheet: Change = (f) => {
   const laid = arrangeSheet(
-    viewAt(0, 0)({ ...f, roomMotion: undefined }),
+    (f.rooms ? viewAt(-0.22, 0.2) : viewAt(0, 0))(
+      { ...f, roomMotion: undefined },
+    ),
   );
   const heights = new Map(
     f.nodes.map((n) => [n.id, n.position.z]),
@@ -940,30 +949,20 @@ export const sheetToolbar = <Action>(
 
       ...(rooms
         ? [
-            ...(
-              [
-                ["正面", 0, 0],
-                ["上", 0, Math.PI / 2],
-                ["横", Math.PI / 2, 0],
-                ["立体", -0.6, 0.5],
-              ] satisfies [
-                string,
-                number,
-                number,
-              ][]
-            ).map(([label, yaw, pitch]) =>
-              button(
-                label,
-                change((f) =>
-                  turnRooms(
-                    f,
-                    fitDemo(
-                      viewAt(yaw, pitch)(f),
+            ...roomViews.map(
+              ([label, yaw, pitch]) =>
+                button(
+                  label,
+                  change((f) =>
+                    turnRooms(
+                      f,
+                      fitDemo(
+                        viewAt(yaw, pitch)(f),
+                      ),
+                      300,
                     ),
-                    350,
                   ),
                 ),
-              ),
             ),
           ]
         : []),

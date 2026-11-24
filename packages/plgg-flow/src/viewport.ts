@@ -1,6 +1,7 @@
 import { roomFor } from "plgg-flow/autoLayout";
 import {
-  faceAxes,
+  roomSocket,
+  roomViews,
   movingRooms,
   roomFilter,
   turnRooms,
@@ -11,7 +12,7 @@ import {
 } from "plgg-flow/wireDepth";
 import {
   roomStage,
-  roomShadow,
+  roomPlate,
   roomView,
 } from "plgg-flow/roomView";
 import { move } from "plgg-flow/wireGeometry";
@@ -452,10 +453,7 @@ const sceneCache = new WeakMap<
 // Visibility can synthesize edges; keep their identities across preview frames.
 const viewportLayout = (state: Flow) => {
   const known = sceneCache.get(state.nodes);
-  const rooms =
-    state.rooms && !faceAxes(state.camera)
-      ? state.rooms
-      : undefined;
+  const rooms = state.rooms;
   const section = state.spatial?.section,
     branch = state.isolatedBranch;
   const overview = Boolean(
@@ -490,6 +488,7 @@ const viewportLayout = (state: Flow) => {
   return layout;
 };
 type Layer = {
+  withinCell?: number;
   depth: number;
   chosen?: boolean;
   arrow?: boolean;
@@ -515,8 +514,33 @@ const bodies = new WeakMap<
   {
     camera: Camera;
     solid: ReturnType<typeof projectNodeBody>;
+    rooms: boolean;
   }
 >();
+const billboardBody = (
+  node: FlowNode,
+  depth: number,
+): ReturnType<typeof projectNodeBody> => {
+  const half = nodeSize(node).width / 2;
+  const points = [
+    { x: -half, y: -16, z: depth },
+    { x: half, y: -16, z: depth },
+    { x: half, y: 16, z: depth },
+    { x: -half, y: 16, z: depth },
+  ];
+  return {
+    visible: [
+      {
+        side: "front",
+        indices: [0, 1, 2, 3],
+        light: 95,
+        points,
+      },
+    ],
+    caption: [1, 0, 0, 1, 0, 0],
+    depth,
+  };
+};
 const polygonPoints = (
   points: readonly Point[],
 ) => points.map((p) => p.x + "," + p.y).join(" ");
@@ -550,13 +574,12 @@ const defaultLabel = (
     [a("text-anchor", "middle"), a("y", 5)],
     [text(node.label)],
   );
-const roomCaption = (
-  node: FlowNode,
-  scale: number,
-) => {
+const roomCaption = (node: FlowNode) => {
   const { width, height } = nodeSize(node);
+  // One size for every card: a card is a sign, not a caption
+  // that grows where there happens to be room.
   const size = Math.min(
-    Math.max(13, 12 / scale),
+    13,
     height - 2,
     (13 * (width - 4)) /
       Math.max(1, labelWidth(node.label)),
@@ -648,11 +671,10 @@ export const flowView = (
   const filter = roomFilter(flow);
   const muted = (n: FlowNode) =>
     !!flow.rooms &&
-    (!!n.roomReceded ||
-      Object.entries(filter).some(
-        ([key, value]) =>
-          (n.data?.[key] ?? "—") !== value,
-      ));
+    Object.entries(filter).some(
+      ([key, value]) =>
+        (n.data?.[key] ?? "—") !== value,
+    );
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
   const ports = portsFor(state);
@@ -706,15 +728,36 @@ export const flowView = (
       }
     }
   const chosen = new Set(selectedNodes(state));
+  const floor = (n: FlowNode) =>
+    state.rooms && roomFor(state.rooms, n)?.max.y;
+  const socketWorld = (n: FlowNode, side: Side) =>
+    roomSocket(
+      n,
+      floor(n) ?? n.position.y,
+      state.camera,
+      side,
+    );
   const projected = projectLayer(
     state.camera,
-    (n: FlowNode) => n.position,
-  )(scene.nodes).map(({ item, point }) => ({
-    ...item,
-    item,
-    p: point,
-    scale: projectedScale(state.camera, point.z),
-  }));
+    (n: FlowNode) => ({
+      ...n.position,
+      y: floor(n) ?? n.position.y,
+    }),
+  )(scene.nodes).map(({ item, point }) => {
+    const scale = projectedScale(
+      state.camera,
+      point.z,
+    );
+    return {
+      ...item,
+      ...(state.rooms && { height: 32 }),
+      item,
+      p: state.rooms
+        ? { ...point, y: point.y - 16 * scale }
+        : point,
+      scale,
+    };
+  });
   const lookup = new Map(
     projected.map((n) => [n.id, n]),
   );
@@ -776,31 +819,24 @@ export const flowView = (
       const room =
         state.rooms && roomFor(state.rooms, n);
       return room
-        ? (at(room.min).z + at(room.max).z) / 2 +
-            depth * 1e-6
+        ? (at(room.min).z + at(room.max).z) / 2
         : depth;
     };
     const layers: Layer[] = drawNodes.map((n) => {
       // The projected geometry is shared by drawing and hit targets.
       const cached = bodies.get(n.item);
       const solid =
-        cached?.camera === state.camera
+        cached?.camera === state.camera &&
+        cached.rooms === !!state.rooms
           ? cached.solid
-          : projectNodeBody(
-              n,
-              state.rooms &&
-                faceAxes(state.camera)
-                ? {
-                    ...state.camera,
-                    yaw: 0,
-                    pitch: 0,
-                  }
-                : state.camera,
-            );
+          : state.rooms
+            ? billboardBody(n, n.p.z)
+            : projectNodeBody(n, state.camera);
       if (cached?.solid !== solid)
         bodies.set(n.item, {
           camera: state.camera,
           solid,
+          rooms: !!state.rooms,
         });
       const hue = state.spatial?.depthColor
         ? 210 -
@@ -956,8 +992,11 @@ export const flowView = (
                   ? " — " + description
                   : "");
               const offset = 0;
-              const socket =
-                used && n.group && !n.collapsed
+              const socket = state.rooms
+                ? project(state.camera)(
+                    socketWorld(n, side),
+                  )
+                : used && n.group && !n.collapsed
                   ? project(state.camera)(
                       used.point,
                     )
@@ -1019,6 +1058,7 @@ export const flowView = (
           );
         });
       const value = {
+        withinCell: n.p.z,
         depth: cellDepth(
           n,
           state.rooms ? n.p.z : solid.depth,
@@ -1169,15 +1209,18 @@ export const flowView = (
                     ),
                     a(
                       "fill",
-                      "hsl(" +
-                        hue +
-                        " " +
-                        (state.spatial?.depthColor
-                          ? 50
-                          : 16) +
-                        "% " +
-                        face.light +
-                        "%)",
+                      state.rooms
+                        ? "var(--paper, white)"
+                        : "hsl(" +
+                            hue +
+                            " " +
+                            (state.spatial
+                              ?.depthColor
+                              ? 50
+                              : 16) +
+                            "% " +
+                            face.light +
+                            "%)",
                     ),
                     a(
                       "stroke",
@@ -1233,10 +1276,7 @@ export const flowView = (
                         [
                           state.rooms &&
                           render === defaultLabel
-                            ? roomCaption(
-                                n,
-                                n.scale,
-                              )
+                            ? roomCaption(n)
                             : render(n, state),
                         ],
                       ),
@@ -1357,7 +1397,8 @@ export const flowView = (
       );
       const roomTone = !state.rooms
         ? ""
-        : [from, to].some(
+        : chosenWire ||
+            [from, to].some(
               (n) =>
                 n.id === state.roomNode ||
                 chosen.has(n.id),
@@ -1408,8 +1449,39 @@ export const flowView = (
         chosenWire && !turned.get(id)?.[side]
           ? Infinity
           : above(id, side, depth);
+      const roomRoute = () => {
+        const source = socketWorld(
+            from,
+            wire.sourceSide,
+          ),
+          target = socketWorld(
+            to,
+            wire.targetSide,
+          );
+        const run = wire.points.slice(1, -1);
+        // Keep the riser vertical when a billboard socket rotates around its foot.
+        if (source.y !== target.y && run.length) {
+          const floor = Math.max(
+            source.y,
+            target.y,
+          );
+          const upper =
+            source.y < target.y ? source : target;
+          const corner =
+            upper === source ? 0 : run.length - 1;
+          return [
+            source,
+            ...run.map((point, i) => ({
+              ...(i === corner ? upper : point),
+              y: floor,
+            })),
+            target,
+          ];
+        }
+        return [source, ...run, target];
+      };
       const knots = bridgePoints(
-        wire.points,
+        state.rooms ? roomRoute() : wire.points,
         wire.lift,
         flat,
       );
@@ -1449,6 +1521,7 @@ export const flowView = (
       const controls = wire.controls;
       const line =
         flat &&
+        !state.rooms &&
         controls &&
         (wire.source.z === wire.target.z ||
           !state.camera.perspective)
@@ -1665,7 +1738,9 @@ export const flowView = (
           : el("g", attributes, [visible]);
       };
       let length = 0;
-      const runs = wireDepthRuns(points, boxes);
+      const runs = state.rooms
+        ? [points]
+        : wireDepthRuns(points, boxes);
       for (const [
         indexInWire,
         run,
@@ -1691,9 +1766,11 @@ export const flowView = (
           1,
           Math.max(0, (depth + 300) / 600),
         );
-        const color = edge.highlighted
-          ? "#e36731"
-          : `hsl(174 28% ${60 - fade * 38}%)`;
+        const color = state.rooms
+          ? "var(--room-tone, var(--pencil))"
+          : edge.highlighted
+            ? "#e36731"
+            : `hsl(174 28% ${60 - fade * 38}%)`;
         const path =
           line ||
           run
@@ -1821,54 +1898,64 @@ export const flowView = (
             ? wire.target
             : wire.arrow.at,
         );
-        const tip = atStart
-          ? sample(0)
-          : {
-              ...at,
-              scale: projectedScale(
-                state.camera,
-                at.z,
-              ),
-            };
+        const tip = state.rooms
+          ? points[
+              atStart ? 0 : points.length - 1
+            ]!
+          : atStart
+            ? sample(0)
+            : {
+                ...at,
+                scale: projectedScale(
+                  state.camera,
+                  at.z,
+                ),
+              };
         const sourceRiser =
           wire.points[1]?.z !== wire.source.z &&
           wire.points[1]?.x === wire.source.x &&
           wire.points[1]?.y === wire.source.y;
-        const near = bridge
-          ? atStart
-            ? (points[1] ?? tip)
-            : project(state.camera)({
-                ...wire.target,
-                z: 2 * wire.target.z - deck,
-              })
-          : atStart
-            ? (!edge.route ||
-                edge.route === "curve") &&
-              edge.source !== edge.target &&
-              !sourceRiser
-              ? project(state.camera)({
-                  ...move(
-                    wire.source,
-                    wire.sourceSide,
-                    1,
-                  ),
-                  z: wire.source.z,
+        const near = state.rooms
+          ? points[
+              atStart ? 1 : points.length - 2
+            ]!
+          : bridge
+            ? atStart
+              ? (points[1] ?? tip)
+              : project(state.camera)({
+                  ...wire.target,
+                  z: 2 * wire.target.z - deck,
                 })
-              : (points[1] ?? tip)
-            : sharedArrival
-              ? (points
-                  .slice(0, -1)
-                  .reverse()
-                  .find(
-                    (p) =>
-                      p.x !== tip.x ||
-                      p.y !== tip.y,
-                  ) ?? tip)
-              : project(state.camera)(
-                  wire.arrow.toward,
-                );
+            : atStart
+              ? (!edge.route ||
+                  edge.route === "curve") &&
+                edge.source !== edge.target &&
+                !sourceRiser
+                ? project(state.camera)({
+                    ...move(
+                      wire.source,
+                      wire.sourceSide,
+                      1,
+                    ),
+                    z: wire.source.z,
+                  })
+                : (points[1] ?? tip)
+              : sharedArrival
+                ? (points
+                    .slice(0, -1)
+                    .reverse()
+                    .find(
+                      (p) =>
+                        p.x !== tip.x ||
+                        p.y !== tip.y,
+                    ) ?? tip)
+                : project(state.camera)(
+                    wire.arrow.toward,
+                  );
         const towardTip =
-          atStart || (sharedArrival && !bridge);
+          !!state.rooms ||
+          atStart ||
+          (sharedArrival && !bridge);
         const radians = Math.atan2(
           towardTip
             ? tip.y - near.y
@@ -2004,7 +2091,16 @@ export const flowView = (
       const group = items.map((layer, i) =>
         keyedLayer(
           "wire-" + index + "-" + i,
-          layer,
+          state.rooms
+            ? {
+                ...layer,
+                depth: Math.min(
+                  cellDepth(from, from.p.z),
+                  cellDepth(to, to.p.z),
+                ),
+                withinCell: Infinity,
+              }
+            : layer,
         ),
       );
       wireLayers.set(wire, {
@@ -2015,21 +2111,33 @@ export const flowView = (
         layers.push(layer);
     }
     if (state.rooms)
-      for (const n of drawNodes) {
-        const cell = roomFor(state.rooms, n);
-        if (cell)
-          layers.push({
-            depth: cellDepth(n, n.p.z) - 1e-8,
-            html: roomShadow(
-              n,
-              cell.max.y,
-              state.camera,
-            ),
-          });
+      for (const cell of state.rooms.rooms) {
+        if (
+          ["x", "y", "z"].some((axis, i) => {
+            const key =
+              state.rooms?.axes[axis]?.attribute;
+            return (
+              key &&
+              state.roomPins?.[key] !==
+                undefined &&
+              state.roomPins[key] !==
+                cell.values[i]
+            );
+          })
+        )
+          continue;
+        layers.push({
+          depth:
+            (at(cell.min).z + at(cell.max).z) / 2,
+          withinCell: -Infinity,
+          html: roomPlate(cell, state.camera),
+        });
       }
     const sorted = layers.sort(
       (a, b) =>
         a.depth - b.depth ||
+        (a.withinCell ?? 0) -
+          (b.withinCell ?? 0) ||
         Number(!!a.chosen) - Number(!!b.chosen) ||
         Number(!!a.arrow) - Number(!!b.arrow),
     );
@@ -2225,22 +2333,26 @@ export const flowView = (
               side === "right" ||
               side === "top" ||
               side === "bottom")
-              ? (attachments.get(port)?.[side]?.[
-                  Number(
-                    dot?.getAttribute(
-                      "data-socket-index",
-                    ) ?? -1,
-                  )
-                ]?.point ??
-                portPosition(
-                  node,
-                  side,
-                  Number(
-                    dot?.getAttribute(
-                      "data-offset",
+              ? state.rooms
+                ? socketWorld(node, side)
+                : (attachments.get(port)?.[
+                    side
+                  ]?.[
+                    Number(
+                      dot?.getAttribute(
+                        "data-socket-index",
+                      ) ?? -1,
+                    )
+                  ]?.point ??
+                  portPosition(
+                    node,
+                    side,
+                    Number(
+                      dot?.getAttribute(
+                        "data-offset",
+                      ),
                     ),
-                  ),
-                ))
+                  ))
               : undefined;
           svg.setPointerCapture(e.pointerId);
           return some((s) => {
@@ -2542,14 +2654,11 @@ export const flowView = (
               const d = s.drag.content;
               if (s.rooms && d.mode === "orbit") {
                 const { yaw, pitch } = s.camera;
-                for (const [y, p] of [
-                  [0, 0],
-                  [0, -Math.PI / 2],
-                  [0, Math.PI / 2],
-                  [-Math.PI / 2, 0],
-                  [Math.PI, 0],
-                  [Math.PI / 2, 0],
-                ] satisfies [number, number][]) {
+                for (const [
+                  ,
+                  y,
+                  p,
+                ] of roomViews) {
                   const delta = (a: number) =>
                     Math.atan2(
                       Math.sin(a),
@@ -2565,7 +2674,7 @@ export const flowView = (
                     return turnRooms(
                       released,
                       viewAt(y, p)(released),
-                      350,
+                      300,
                     );
                 }
               }

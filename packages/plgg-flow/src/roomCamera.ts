@@ -1,3 +1,4 @@
+import { nodeSize } from "plgg-flow/nodeSize";
 import {
   project,
   worldDelta,
@@ -6,10 +7,15 @@ import {
 } from "plgg-board";
 import {
   type Direction,
-  type RoomLayout,
   roomFor,
 } from "plgg-flow/autoLayout";
 import type { Flow } from "./model";
+export const roomViews = [
+  ["正面", -0.22, 0.2],
+  ["上", -0.22, 1.05],
+  ["横", -1.3, 0.2],
+  ["立体", -0.6, 0.5],
+] satisfies [string, number, number][];
 export const directions: readonly Direction[] = [
   "x",
   "y",
@@ -47,104 +53,68 @@ export const faceAxes = (
   if (hidden === "z") return ["x", "y"];
   return undefined;
 };
-export const roomStack = (
-  layout: RoomLayout,
-  camera: Camera,
-  pins: Flow["roomPins"] = {},
-) => {
-  const face = faceAxes(camera);
-  const hidden = directions.find(
-    (d) => face && !face.includes(d),
-  );
-  if (!hidden) return;
-  const index = directions.indexOf(hidden);
-  const nearHigh =
-    project(camera)({
-      x: 0,
-      y: 0,
-      z: 0,
-      [hidden]: 1,
-    }).z > 0;
-  const increasing =
-    hidden === "y" ? !nearHigh : nearHigh;
-  const last = layout.rooms.reduce(
-    (max, r) => Math.max(max, r.index[index]!),
-    0,
-  );
-  const axis = layout.axes[hidden];
-  const pin = axis && pins[axis.attribute];
-  return {
-    hidden,
-    index,
-    pin,
-    margin: pin === undefined ? 12 * last : 0,
-    offset: (level: number) =>
-      pin !== undefined
-        ? 0
-        : 12 *
-          (increasing ? last - level : level),
-  };
-};
 export const roomFaceView = (
   flow: Flow,
 ): Flow => {
-  if (!flow.rooms) return flow;
+  const layout = flow.rooms;
+  if (!layout) return flow;
   const camera = flow.camera.perspective
     ? { ...flow.camera, perspective: 0 }
     : flow.camera;
-  const layout = flow.rooms;
-  const stack = roomStack(
-    layout,
-    camera,
-    flow.roomPins,
+  const pins = Object.entries(
+    flow.roomPins ?? {},
   );
-  if (!stack) {
-    if (
-      Object.keys(layout.axes).some((key) =>
-        key.startsWith("pin:"),
-      )
+  if (
+    !pins.length &&
+    !Object.keys(layout.axes).some((k) =>
+      k.startsWith("pin:"),
     )
-      return {
-        ...flow,
-        camera,
-        nodes: flow.nodes.map((n) =>
-          roomFor(layout, n)
-            ? n
-            : { ...n, hidden: true },
-        ),
-      };
+  )
     return camera === flow.camera
       ? flow
       : { ...flow, camera };
-  }
-  const { index, pin } = stack;
   return {
     ...flow,
     camera,
-    nodes: flow.nodes.map((n) => {
-      const room = roomFor(layout, n);
-      if (!room) return { ...n, hidden: true };
-      const offset = stack.offset(
-        room.index[index]!,
-      );
-      const delta = worldDelta(camera, {
-        x: offset,
-        y: -offset,
-      });
-      return {
-        ...n,
-        roomReceded: offset !== 0,
-        hidden:
-          !!n.hidden ||
-          (pin !== undefined &&
-            pin !== room.values[index]),
-        position: {
-          x: n.position.x + delta.x,
-          y: n.position.y + delta.y,
-          z: n.position.z + delta.z,
-        },
-      };
-    }),
+    nodes: flow.nodes.map((n) =>
+      roomFor(layout, n) &&
+      pins.every(
+        ([k, v]) => (n.data?.[k] ?? "—") === v,
+      )
+        ? n
+        : { ...n, hidden: true },
+    ),
+  };
+};
+export const roomFoot = (
+  node: Flow["nodes"][number],
+  floor: number,
+) => ({
+  ...node.position,
+  y: floor,
+});
+export const roomSocket = (
+  node: Flow["nodes"][number],
+  floor: number,
+  camera: Camera,
+  side: string,
+) => {
+  const foot = roomFoot(node, floor);
+  const half =
+    (nodeSize(node).width * camera.scale) / 2;
+  const delta = worldDelta(camera, {
+    x:
+      side === "right"
+        ? half
+        : side === "left"
+          ? -half
+          : 0,
+    y: 0,
+  });
+  return {
+    x: foot.x + delta.x,
+    y: foot.y,
+    z: foot.z + delta.z,
   };
 };
 export const movingRooms = (flow: Flow): Flow => {
@@ -191,7 +161,10 @@ export const movingRooms = (flow: Flow): Flow => {
       ),
     },
   };
-  if (motion.duration === 350)
+  if (
+    from.rooms === to.rooms &&
+    from.nodes === to.nodes
+  )
     return roomFaceView({ ...flow, camera });
   const before = new Map(
     from.nodes.map((n) => [n.id, n.position]),

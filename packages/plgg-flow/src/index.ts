@@ -11,7 +11,8 @@ export { bridgePoints } from "plgg-flow/polyline";
 export { nodeSize } from "plgg-flow/nodeSize";
 export {
   roomFaceView,
-  roomStack,
+  roomFoot,
+  roomViews,
   turnRooms,
 } from "plgg-flow/roomCamera";
 export { roomLabels } from "plgg-flow/roomView";

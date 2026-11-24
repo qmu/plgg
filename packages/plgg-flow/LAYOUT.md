@@ -959,3 +959,20 @@ world axes projects to at least 12 % of its length); a card's
 projected box has the same size in all four views; paint order is
 far to near for the four views; no opacity or tone depends on
 depth; the stacked-level offset is gone.
+
+## Space, every view a 3D drawing — review, adopted with one correction
+
+Seen in all four named views: one solid scene, the buttons only
+turn the camera; cards are billboards standing on their storeys;
+axes pencil on the outline, clear of the cards.
+
+Correction to the design: **opaque storey plates were wrong.** Seen
+from above they hid every card on the storeys below (only socket
+dots showed). Plates are now the wash at 45 %, so lower storeys
+show through, quieter. Card captions are one size (13) rather than
+growing where a card has room. Cell minimums 160 × 96 × 96 →
+112 × 80 × 80.
+
+Open: the two blocks side by side are fitted by width and leave
+half a tall board empty; cards in adjacent depth rows can cover
+one another in 上; step C (animated change of roles) not started.
