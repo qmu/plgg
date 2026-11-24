@@ -741,3 +741,116 @@ counts the axes' full length and the far plate's corner; fit to the
 plates and let axis names sit inside the margin. With z toward the
 viewer the plates stand like panes rather than lie like floors; the
 owner has not said which they want.
+
+## Space, from the ground up (owner, 2026-11-24: "this is wrong; first build the 3D space properly — in principle it extends to 4D, 5D; that foundation is what we are designing now")
+
+What was built so far is a table that tilts: three axes are wired
+to x, y, z by letter, the front view is the real layout, depth is a
+lift added to it, and each pass patched the picture. It cannot grow
+a fourth axis, and it does not read as space. Rebuild in four
+layers, each usable and specified without the ones above it.
+
+### 1. Classification — N axes, no geometry
+
+- A sheet has any number of axes. `Axis = { attribute; values }`.
+  A node's **address** is one index per axis (a missing attribute is
+  the last, unnamed value "—", as today). A **cell** is an address;
+  the cells are the product of the axes' values.
+- `classify(graph, axes) → { axes; cells; addressOf(node) }`. Pure,
+  order-independent, any N ≥ 0. No coordinates anywhere in it.
+
+DSL: `axis 層 入口 処理 保存` — an axis is named by its attribute;
+order of the lines is the order of the axes. The old spelling
+`axis x 層 …` still parses (it means the same axis plus a `view`
+entry) and is printed in the new spelling.
+
+### 2. View — which axis goes where
+
+A view assigns each axis one **role**:
+
+| role | meaning |
+| --- | --- |
+| `x`, `y`, `z` | a direction of the space (at most one axis each) |
+| `row`, `column` | the whole space is repeated once per value, side by side (`column`) or stacked (`row`) — this is how a 4th and 5th axis are seen at once |
+| `pin=value` | only that value's slice is shown |
+
+DSL: `view x=層 y=担当 z=環境 column=地域`. Without a `view` line:
+the first three axes are x, y, z; a 4th is `column`, a 5th `row`,
+any further axis is pinned to its first value. Changing the view
+never changes the classification — it is the same data seen along
+other directions; the sheet animates between views.
+
+`View` is data (`{ x?; y?; z?; row?; column?; pins }` by attribute
+name); `planSpace(classification, view, sizes) → Space`.
+
+### 3. Space — real three-dimensional geometry
+
+World coordinates: **x to the right, y up, z toward the viewer**;
+the ground is the plane y = 0. (The flow's sheet coordinates stay
+as they are for other layouts; a rooms sheet converts at the edge.)
+
+- A **block** is one cuboid of cells for one (row, column) value
+  pair; with no row/column axis there is one block. Blocks stand on
+  the same ground in a grid, a gap of 96 between them, each with its
+  row/column value written at its foot.
+- Inside a block every x-slab shares a width, every y-slab a height
+  (a storey), every z-slab a depth; minimums 160 × 96 × 96, all
+  multiples of 16; a slab is as large as its fullest cell needs.
+  The same slab has the same size in every block, so blocks compare
+  cell for cell.
+- Nodes **stand on the floor of their cell**: upright cards facing
+  +z, bottom edge 16 above the storey's floor, laid out in a row
+  along x, wrapping into further rows along z; ordered by the
+  barycentre of their neighbours, ties by id.
+- `Space = { blocks: { address; min; max; cells }[]; slabs;
+  place(node) → Point3 }` — pure; specs: no two nodes overlap in
+  3D; every node inside its cell on all three directions; slabs
+  monotone; equal slabs across blocks; deterministic and
+  order-independent; adding a node moves no node out of its cell;
+  works for 0, 1, 2, 3, 4 and 5 axes.
+
+### 4. Camera and stage
+
+- **Turntable camera**: yaw about the world's up axis through the
+  centre of the space, elevation −0.2 … 1.45 rad, parallel
+  projection, zoom. Up stays up. ⌘/Ctrl-drag turns; two fingers on
+  touch.
+- **The stage is drawn first and does not depend on the nodes**:
+  per block, of the six faces of its cuboid the three facing away
+  from the viewer are drawn — the wash at 55 %, a pencil outline,
+  trace rulings at the slab boundaries of the face's two axes. As
+  the camera turns the far faces change; the ground face is the
+  floor whenever the camera is above. Storey floors inside the block
+  are drawn as outlines only (trace), so the block stays see-through.
+- Each node drops a soft shadow straight down on its storey's floor.
+- **Axes**: three dotted axes from the block's far-bottom corner
+  along its edges, ticks at slab boundaries, values at slab
+  midpoints on the outside, the attribute name beside each tip
+  (first block only when blocks repeat; the others carry just their
+  row/column value).
+- Paint order: stage far faces, then cells far to near along the
+  view direction (nodes and their shadows with their cell), then
+  the axes and labels.
+- **Face views are camera positions, not other layouts**: 正面
+  (yaw 0, elevation 0), 上 (elevation π/2), 横 (yaw π/2). Seen
+  face-on, the hidden direction's levels would cover each other;
+  there, each deeper level is drawn shifted by (12, −12) px per
+  level in pencil, the nearest in ink, and clicking a value of the
+  hidden axis shows that level alone. Cards turn to face the viewer
+  in 上 and 横 (a card always shows its face), keeping their place.
+- Clicking an axis value pins/unpins it as today (intersection of
+  the pinned slabs in ink, the rest pencil).
+
+### Order of work
+
+A. Layers 1–3 with their specs, old DSL still parsing, and the
+   current sample drawn through the new space (stage, floors, cards
+   standing, turntable). The sample must open reading as a
+   three-storey building seen from the front left above.
+B. `row`/`column` blocks and `pin`, with a four-axis sample
+   ("部屋に分ける" gains 地域 = 東京 / 大阪 as a fourth axis shown as
+   two blocks side by side) and a five-axis spec.
+C. Animated change of view (roles swapped from the properties area).
+
+Budget unchanged: one update of the sample under 8 ms in the
+browser, the element count near today's (245).
