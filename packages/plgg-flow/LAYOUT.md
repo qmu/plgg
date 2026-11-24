@@ -356,3 +356,44 @@ move more smoothly and still click.
   dense mesh. When zoomed out so that 16 would be under 6 screen
   pixels, only the 64 lines are drawn.
 - `snap 32`, `snap 8`, `snap off` keep working as written.
+
+## Round G1 review — adopted as a base; three things to redo
+
+Grid fit and rooms are in. Seen in the demo: default boxes sit on the
+squares; the rooms sample draws the lattice with its labels and puts
+14 services in their rooms. The layout audit's centring and
+layer-line checks now allow half a square (a box-aligned sheet cannot
+centre to the unit).
+
+For round G2:
+1. **G = 16** — the revision above ("the square is half a node").
+2. **Layout regressions from the grid** (layout audit, 10 moderate):
+   hub lost its wrap and its fan (`sprawl`, 25 wire crossings for 0
+   centre-line crossings), trees sprawl when laid out downwards,
+   stateMachine / ciPipeline / selfAndMulti gained wire crossings.
+   Whole-square gaps must not undo L2–L5: back to 0 moderate.
+3. **Rooms, as seen turned** (the sample's opening view):
+   - every lattice line is drawn in ink: only the outer cuboid is
+     ink, inner partitions are the trace tone, and partitions of
+     empty rooms lighter still;
+   - nodes hide each other (Orders behind Sandbox, Web behind
+     Preview): a room's nodes on different floors must not share the
+     same sheet position — spread the z-bands inside a cell along the
+     cell's free direction so that from the front AND at the opening
+     angle no box covers another by more than a quarter;
+   - labels collide (担当 values sit behind nodes, 環境 / 本番 / 検証
+     pile up at one corner): axis values go outside the cuboid on the
+     edge nearest the viewer for the current angle, 12px clear of the
+     lattice, the attribute name at the far end of its axis; z values
+     up the nearest vertical edge;
+   - wires between rooms run as the sheet's ordinary wires and cut
+     through room partitions at random: between rooms on the same
+     floor they are routed as today; a wire that changes floor leaves
+     and arrives vertically for 16 before it runs;
+   - the floor of each z level is a faint plane (wash at 40 %) so the
+     floors read as floors;
+   - the opening angle: yaw −0.6, pitch 0.5, fitted with 48 margin
+     clear of the DSL overlay; リセット returns to it, and the toolbar
+     of this sample has 「正面」 and 「立体」 buttons (front view / the
+     opening angle), because the front view is the table the brief
+     asks for.

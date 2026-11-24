@@ -58,7 +58,7 @@ const audit = (name, sc, dir) => {
   if (g.nodes.length !== g0.nodes.length || g0.nodes.some((m) => !by.has(m.id))) add(3, "nodes-lost", "");
   if (g.nodes.some((m) => !["x", "y", "z"].every((k) => Number.isFinite(m.position[k])))) { add(3, "NaN", ""); return { D, g, wires: [], ms, cross: 0, ref: 0 }; }
   if (g.nodes.some((m) => m.position.z !== 0)) add(2, "z-without-depth", "");
-  // boxes
+  // boxes sit on the grid (half a square of slack for centring and layer lines: a box-aligned sheet cannot do better)
   let minGap = 1e9; for (let i = 0; i < g.nodes.length; i++) for (let j = i + 1; j < g.nodes.length; j++) { const d = gapOf(box(g.nodes[i]), box(g.nodes[j])); minGap = Math.min(minGap, d); if (d < 0) add(3, "overlap", g.nodes[i].id + " × " + g.nodes[j].id); else if (d < 24) add(2, "too-close", `${g.nodes[i].id} × ${g.nodes[j].id} ${d.toFixed(0)}u`); }
   // direction: every edge that is not declared reversed runs forward along the main axis, by layers and by coordinates
   const rev = new Set(plan.reversed); let reversed = 0;
@@ -76,7 +76,7 @@ const audit = (name, sc, dir) => {
     const depth = new Set(L.values()).size, need = Math.max(...lp.values()) + 1; if (reversed > 0 && dist.size === g0.nodes.length && g0.nodes.length <= 60 && depth > need) add(2, "ribbon", `${depth} layers, the flow is only ${need} steps deep from ${start[0]}`); }
   const lim = sc.maxReversed ?? ref.reversed; if (reversed > lim) add(2, "too-many-reversed", `${reversed} > ${lim}`);
   // layers are straight lines: same layer, same main coordinate (centres)
-  const mains = new Map(); g.nodes.forEach((m) => { const l = L.get(m.id); const v = mains.get(l); if (v === undefined) mains.set(l, m.position[main]); else if (Math.abs(v - m.position[main]) > 1) add(2, "ragged-layer", `${m.id} in layer ${l}`); });
+  const mains = new Map(); g.nodes.forEach((m) => { const l = L.get(m.id); const v = mains.get(l); if (v === undefined) mains.set(l, m.position[main]); else if (Math.abs(v - m.position[main]) > 16) add(2, "ragged-layer", `${m.id} in layer ${l}`); });
   const ls = [...mains].sort((a, b) => a[0] - b[0]); for (let i = 1; i < ls.length; i++) if (ls[i][1] <= ls[i - 1][1]) add(3, "layers-out-of-order", `${ls[i - 1][0]}/${ls[i][0]}`);
   // crossings of centre lines, against the scenario's bound and the plain reference
   const cx = centreCross(g); const bound = sc.maxCross ?? Math.floor(ref.crossings * 1.0);
@@ -87,7 +87,7 @@ const audit = (name, sc, dir) => {
     if (sc.tree && os.length > 1) { const cs = os.map((id) => by.get(id).position[cross]); const mid = (Math.min(...cs) + Math.max(...cs)) / 2; if (Math.abs(mid - m.position[cross]) > 2) add(2, "parent-off-centre", `${m.id} by ${(m.position[cross] - mid).toFixed(0)}u`); } });
   // edge length: nothing is flung far across the sheet
   { let total = 0, minimal = 0; g.edges.forEach((x) => { if (x.source === x.target) return; const a = by.get(x.source).position, b = by.get(x.target).position; total += Math.hypot(a.x - b.x, a.y - b.y); minimal += Math.abs(a[main] - b[main]); }); if (minimal && total / minimal > 1.6) add(2, "sprawl", `edges are ${(total / minimal).toFixed(2)}× their forward distance`); }
-  { const xs = g.nodes.map((m) => box(m)), w = Math.max(...xs.map((b) => b.r)) - Math.min(...xs.map((b) => b.l)), h = Math.max(...xs.map((b) => b.b)) - Math.min(...xs.map((b) => b.t)); const cxm = (Math.max(...xs.map((b) => b.r)) + Math.min(...xs.map((b) => b.l))) / 2, cym = (Math.max(...xs.map((b) => b.b)) + Math.min(...xs.map((b) => b.t))) / 2; if (Math.abs(cxm) > 2 || Math.abs(cym) > 2) add(2, "not-centred", `centre ${cxm.toFixed(0)},${cym.toFixed(0)}`); const density = g.nodes.length * 104 * 36 / (w * h || 1); if (g.nodes.length > 6 && density < 0.02) add(2, "too-sparse", `${(density * 100).toFixed(1)}% filled, ${w.toFixed(0)}×${h.toFixed(0)}`); }
+  { const xs = g.nodes.map((m) => box(m)), w = Math.max(...xs.map((b) => b.r)) - Math.min(...xs.map((b) => b.l)), h = Math.max(...xs.map((b) => b.b)) - Math.min(...xs.map((b) => b.t)); const cxm = (Math.max(...xs.map((b) => b.r)) + Math.min(...xs.map((b) => b.l))) / 2, cym = (Math.max(...xs.map((b) => b.b)) + Math.min(...xs.map((b) => b.t))) / 2; if (Math.abs(cxm) > 16 || Math.abs(cym) > 16) add(2, "not-centred", `centre ${cxm.toFixed(0)},${cym.toFixed(0)}`); const density = g.nodes.length * 104 * 36 / (w * h || 1); if (g.nodes.length > 6 && density < 0.02) add(2, "too-sparse", `${(density * 100).toFixed(1)}% filled, ${w.toFixed(0)}×${h.toFixed(0)}`); }
   // deterministic, and independent of the order things were written in
   { const again = planLayers(g0, { direction: dir }).graph; if (again.nodes.some((m, i) => Math.hypot(m.position.x - g.nodes[i].position.x, m.position.y - g.nodes[i].position.y) > 0.01)) add(3, "not-deterministic", "");
     const r = rng(3); const sh = planLayers({ nodes: shuffle(g0.nodes, r), edges: shuffle(g0.edges, r) }, { direction: dir }).graph; const c2 = centreCross(sh); if (c2 > cx + 1) add(2, "order-dependent", `shuffled input gives ${c2} crossings, not ${cx}`); }

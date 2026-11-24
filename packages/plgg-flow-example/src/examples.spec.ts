@@ -1,4 +1,4 @@
-import { frameOf } from "plgg-flow";
+import { frameOf, nodeSize } from "plgg-flow";
 import { test, check, toBe } from "plgg-test";
 import {
   parseSpec,
@@ -10,10 +10,10 @@ import {
   fitDemo,
   applyDemoSpec,
 } from "plgg-flow-example/examples";
-test("all twenty-five diagrams have unique identities and valid directed edges", () =>
+test("all twenty-six diagrams have unique identities and valid directed edges", () =>
   check(
     new Set(examples.map((e) => e.name)).size ===
-      25 &&
+      26 &&
       examples.every(({ initial }) => {
         const graph = initial();
         const ids = new Set(
@@ -145,6 +145,34 @@ test("DSL geometry edits refit the board and text-only edits preserve the camera
       changed.camera.scale < flow.camera.scale &&
       JSON.stringify(changed.camera) ===
         JSON.stringify(fitDemo(changed).camera),
+    toBe(true),
+  );
+});
+
+test("every gallery box sits on grid lines and Rooms opens on its two floors", () => {
+  const index = examples.findIndex(
+      (d) => d.id === "rooms",
+    ),
+    flow = examples[index]!.initial();
+  return check(
+    examples[index - 1]?.id === "layered" &&
+      flow.rooms?.rooms.length === 18 &&
+      flow.nodes.length === 14 &&
+      flow.camera.yaw === -0.5 &&
+      flow.camera.pitch === 0.45 &&
+      examples.every((d) =>
+        d.initial().nodes.every((n) => {
+          const size = nodeSize(n);
+          return (
+            (n.position.x - size.width / 2) %
+              32 ===
+              0 &&
+            (n.position.y - size.height / 2) %
+              32 ===
+              0
+          );
+        }),
+      ),
     toBe(true),
   );
 });

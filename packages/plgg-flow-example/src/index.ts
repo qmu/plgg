@@ -1,3 +1,4 @@
+import { resizeNode, nodeSize } from "plgg-flow";
 import { diffGraph } from "plgg-flow/revisions";
 import { writeDrawing } from "plgg-flow/storage";
 import {
@@ -26,7 +27,10 @@ import {
   foldGroup,
   prune,
 } from "plgg-flow/hierarchy";
-import { planLayers } from "plgg-flow/autoLayout";
+import {
+  planLayers,
+  planRooms,
+} from "plgg-flow/autoLayout";
 import {
   isSome,
   none,
@@ -786,25 +790,26 @@ const controls = (
         ),
       ];
     case "snap":
-      return [
+      return [16, 32, 0].map((step) =>
         change(
-          `吸着間隔：${f.snap} → ${f.snap === 32 ? 64 : 32}`,
-          (f) => ({
-            ...f,
-            snap: f.snap === 32 ? 64 : 32,
-          }),
+          step ? `snap ${step}` : "snap off",
+          (f) => ({ ...f, snap: step }),
+          f.snap === step,
         ),
-      ];
+      );
     case "resize":
       return [
         input(
           "Process の幅",
-          String(process?.width ?? 104),
+          String(
+            process
+              ? nodeSize(process).width
+              : 96,
+          ),
           (v) =>
-            revise("Process", (n) => ({
-              ...n,
-              width: Number(v),
-            })),
+            revise("Process", (n) =>
+              resizeNode(n, Number(v)),
+            ),
           [70, 250],
         ),
       ];
@@ -1264,6 +1269,7 @@ const controls = (
       return [cardHistory(s)];
     case "outline":
       return [hierarchyBrowser(s)];
+    case "rooms":
     case "layered":
     case "space":
       return [];
@@ -1439,7 +1445,7 @@ const helpRows: readonly (readonly [
   ],
   [
     'node 名前 label "表示名" width 150',
-    "表示名と幅。空白を含む名前は \" で囲みます。",
+    '表示名と幅。空白を含む名前は " で囲みます。',
   ],
   [
     "node 枠 group / node 子 in 枠",
@@ -1454,7 +1460,10 @@ const helpRows: readonly (readonly [
     "循環する接続や、出力の本数を制限します。",
   ],
   ["snap 32", "ドラッグ時に吸着する格子の間隔。"],
-  ["# コメント", "# から行末までは無視されます。"],
+  [
+    "# コメント",
+    "# から行末までは無視されます。",
+  ],
 ];
 const helpToast: Html<Action> = el(
   "button",
@@ -1554,13 +1563,26 @@ const header = (
  * keeps its way; otherwise the frame's shape decides.
  */
 const optimize: Change = (f) => {
+  if (f.rooms) {
+    const { axes, rooms, graph } = planRooms(
+      f,
+      f.rooms.axes,
+    );
+    return fitDemo({
+      ...f,
+      ...graph,
+      rooms: { axes, rooms },
+    });
+  }
   // a sheet with groups keeps each group whole: the
   // groups and loose nodes are arranged as units
   if (f.nodes.some((n) => n.group))
-    return fitDemo({ ...f, ...arrangeHierarchy(f) });
+    return fitDemo({
+      ...f,
+      ...arrangeHierarchy(f),
+    });
   const frame = frameOf(f),
-    wide =
-      frame.x - (f.cover ?? 0) >= frame.y;
+    wide = frame.x - (f.cover ?? 0) >= frame.y;
   // heights the author gave are theirs: depth is only
   // recomputed where the sheet asked for it
   const options = f.layered?.options ?? {
@@ -1576,11 +1598,11 @@ const optimize: Change = (f) => {
     options,
   );
   const placed = new Map(
-      plan.graph.nodes.map((n) => [
-        n.id,
-        n.position,
-      ]),
-    );
+    plan.graph.nodes.map((n) => [
+      n.id,
+      n.position,
+    ]),
+  );
   const laid: Flow = {
     ...f,
     nodes: f.nodes.map((n) => {
@@ -1662,6 +1684,7 @@ const featureInput = (
 ): unknown => {
   const f = s.flow;
   switch (id) {
+    case "rooms":
     case "layered":
     case "space":
       return id;
@@ -1912,8 +1935,25 @@ const view = (m: Model): Html<Action> => {
             "small",
             [],
             [
-              text(
-                "Shift＋ドラッグで範囲選択 · ⌘（Ctrl）＋ドラッグで回転 · Ctrl（⌘）＋スクロールでズーム。タッチは1本指でパン、2本指で回転・ピンチズーム。",
+              // one line per kind of pointer; the
+              // stylesheet shows the one in use
+              el(
+                "span",
+                [attr("class", "hint-mouse")],
+                [
+                  text(
+                    "Shift＋ドラッグで範囲選択 · ⌘（Ctrl）＋ドラッグで回転 · ⌘（Ctrl）＋スクロールでズーム",
+                  ),
+                ],
+              ),
+              el(
+                "span",
+                [attr("class", "hint-touch")],
+                [
+                  text(
+                    "1本指で移動 · 2本指で回転とズーム",
+                  ),
+                ],
               ),
             ],
           ),

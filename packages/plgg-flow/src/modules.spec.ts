@@ -236,7 +236,7 @@ test("React Flow import resolves unordered relative coordinates and reports cust
       r.content.drawing.nodes[0]?.position.x ===
         152 &&
       r.content.drawing.nodes[0]?.position.y ===
-        224 &&
+        222 &&
       r.content.drawing.nodes[0]?.label ===
         "<script>" &&
       r.content.drawing.nodes[0]?.data?.foo === 1,
@@ -352,10 +352,10 @@ test("fit container includes nested card extents and leaves child world coordina
   const result = fitContainer(g, "root", 10),
     root = result.nodes[0];
   return check(
-    root?.width === 192 &&
-      root.height === 138 &&
-      root.position.x === 54 &&
-      root.position.y === 41 &&
+    root?.width === 224 &&
+      root.height === 160 &&
+      root.position.x === 48 &&
+      root.position.y === 48 &&
       root.position.z === 7 &&
       result.nodes[2] === child &&
       result.nodes[3] === g.nodes[3] &&

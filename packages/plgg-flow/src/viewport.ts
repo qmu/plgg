@@ -1,6 +1,14 @@
+import {
+  roomFor,
+  type RoomLayout,
+} from "plgg-flow/autoLayout";
+import { roomView } from "plgg-flow/roomView";
 import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
-import { nodeSize } from "plgg-flow/nodeSize";
+import {
+  grid,
+  nodeSize,
+} from "plgg-flow/nodeSize";
 import {
   type Side,
   wireGraph,
@@ -66,6 +74,7 @@ import {
   subtree,
 } from "plgg-flow/hierarchy";
 import {
+  releasePointer,
   beginStroke,
   movePointer,
   orbitByDrag,
@@ -304,14 +313,18 @@ const footprint = (
 const depthStems = (
   camera: Camera,
   nodes: Flow["nodes"],
+  rooms?: RoomLayout,
 ) => {
+  const at = project(camera);
   const stems = nodes
     .map((n) => {
-      const p = onGround(
-          camera,
-          n.position.x,
-          n.position.y,
-        ),
+      const p = at({
+          ...n.position,
+          z: rooms
+            ? (roomFor(rooms, n)?.min.z ??
+              n.position.z)
+            : groundHeight,
+        }),
         q = project(camera)(n.position);
       return `M${p.x} ${p.y}L${q.x} ${q.y}`;
     })
@@ -739,7 +752,10 @@ export const flowView = (
         if (!used && !canConnect) return [];
         // where arrows arrive, the arrowhead is the mark:
         // no dot under it
-        if (!canConnect && used?.direction === "target")
+        if (
+          !canConnect &&
+          used?.direction === "target"
+        )
           return [];
         const direction = canConnect
           ? connecting
@@ -1359,8 +1375,10 @@ export const flowView = (
               some(disconnect(original)),
             ),
           ];
+          // a wire is a hairline; what takes the click is
+          // a band around it wide enough for a finger
           const hitWidth =
-            edge.interactionWidth ?? 0;
+            edge.interactionWidth ?? 16;
           return hitWidth > 0
             ? el("g", events, [
                 el(
@@ -1369,7 +1387,10 @@ export const flowView = (
                     a("class", "edge-hit"),
                     a("d", path),
                     a("fill", "none"),
-                    a("stroke", "transparent"),
+                    a("stroke", "#000"),
+                    // unseen whatever a stylesheet does
+                    // to stroke colours
+                    a("stroke-opacity", 0),
                     a("stroke-width", hitWidth),
                     a("stroke-linecap", "round"),
                     a("pointer-events", "stroke"),
@@ -1935,50 +1956,7 @@ export const flowView = (
                   )({ ...s, drag: none() })
                 : { ...s, drag: none() };
             }
-            const snap = s.snap,
-              drag = state.drag;
-            const anchor =
-              isSome(drag) &&
-              drag.content.mode === "node"
-                ? s.nodes.find(
-                    (n) =>
-                      n.id === drag.content.node,
-                  )
-                : undefined;
-            const geometry =
-              snap && anchor
-                ? moveConstrainedSelection(
-                    s,
-                    selectedNodes(s).filter(
-                      (id) =>
-                        !s.nodes.find(
-                          (n) => n.id === id,
-                        )?.locked,
-                    ),
-                    {
-                      x:
-                        Math.round(
-                          anchor.position.x /
-                            snap,
-                        ) *
-                          snap -
-                        anchor.position.x,
-                      y:
-                        Math.round(
-                          anchor.position.y /
-                            snap,
-                        ) *
-                          snap -
-                        anchor.position.y,
-                      z: 0,
-                    },
-                  )
-                : {};
-            const released = {
-              ...s,
-              ...geometry,
-              drag: none(),
-            };
+            const released = releasePointer(s);
             if (
               name === "pointerup" &&
               isSome(s.drag)
@@ -2205,22 +2183,36 @@ export const flowView = (
       }),
     ],
     [
-      surfaceLayer(
-        state.camera,
-        [state.frame],
-        () => groundSurface(state),
-      ),
-      ...drawNodes.map((n) =>
-        footprintLayer(
-          n.item,
-          [state.camera],
-          () => footprint(state.camera, n.item),
-        ),
-      ),
-      gridLayer(state.camera, [state.frame], () =>
-        worldGrid(state),
-      ),
-      depthStems(state.camera, drawNodes),
+      ...(state.rooms
+        ? [
+            roomView(state.rooms, state.camera),
+            depthStems(
+              state.camera,
+              drawNodes,
+              state.rooms,
+            ),
+          ]
+        : [
+            surfaceLayer(
+              state.camera,
+              [state.frame],
+              () => groundSurface(state),
+            ),
+            ...drawNodes.map((n) =>
+              footprintLayer(
+                n.item,
+                [state.camera],
+                () =>
+                  footprint(state.camera, n.item),
+              ),
+            ),
+            gridLayer(
+              state.camera,
+              [state.frame],
+              () => worldGrid(state),
+            ),
+            depthStems(state.camera, drawNodes),
+          ]),
       ...projected
         .filter((n) => n.group && !n.collapsed)
         .map((group) => {
@@ -2273,16 +2265,54 @@ export const flowView = (
                   bottom: -Infinity,
                 },
               );
+              const origin = project(
+                state.camera,
+              )({
+                x: 0,
+                y: 0,
+                z: group.position.z,
+              });
+              const step = grid * group.scale;
+              const left =
+                origin.x +
+                Math.floor(
+                  (box.left -
+                    origin.x -
+                    12 * group.scale) /
+                    step,
+                ) *
+                  step;
+              const top =
+                origin.y +
+                Math.floor(
+                  (box.top -
+                    origin.y -
+                    12 * group.scale) /
+                    step,
+                ) *
+                  step;
               const right =
-                  box.right +
-                  12 +
-                  (group.grow?.x ?? 0) *
-                    group.scale,
-                bottom =
-                  box.bottom +
-                  12 +
-                  (group.grow?.y ?? 0) *
-                    group.scale;
+                origin.x +
+                Math.ceil(
+                  (box.right -
+                    origin.x +
+                    12 * group.scale) /
+                    step,
+                ) *
+                  step +
+                (group.grow?.x ?? 0) *
+                  group.scale;
+              const bottom =
+                origin.y +
+                Math.ceil(
+                  (box.bottom -
+                    origin.y +
+                    12 * group.scale) /
+                    step,
+                ) *
+                  step +
+                (group.grow?.y ?? 0) *
+                  group.scale;
               // The corner handle drags the frame's size.
               const handle = el<Change>(
                 "rect",
@@ -2346,16 +2376,10 @@ export const flowView = (
                 [
                   a("data-group", group.id),
                   a("pointer-events", "none"),
-                  a("x", box.left - 12),
-                  a("y", box.top - 12),
-                  a(
-                    "width",
-                    right - box.left + 12,
-                  ),
-                  a(
-                    "height",
-                    bottom - box.top + 12,
-                  ),
+                  a("x", left),
+                  a("y", top),
+                  a("width", right - left),
+                  a("height", bottom - top),
                   a("rx", 12),
                   a("fill", "#167b7009"),
                   a("stroke", "#8bb8aa"),
@@ -2546,6 +2570,7 @@ export const flowView = (
             el(
               "polygon",
               [
+                a("class", "marquee"),
                 a("pointer-events", "none"),
                 a(
                   "points",
@@ -2576,6 +2601,7 @@ export const flowView = (
               el(
                 "rect",
                 [
+                  a("class", "marquee"),
                   a("pointer-events", "none"),
                   a("x", Math.min(p.x, d.last.x)),
                   a("y", Math.min(p.y, d.last.y)),

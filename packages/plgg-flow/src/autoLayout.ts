@@ -1,6 +1,10 @@
-import type { Point } from "plgg-board";
-import type { Graph } from "./model";
-import { nodeSize } from "plgg-flow/nodeSize";
+import type { Point, Point3 } from "plgg-board";
+import type { Graph, FlowNode } from "./model";
+import {
+  grid,
+  alignBox,
+  nodeSize,
+} from "plgg-flow/nodeSize";
 import { islands } from "plgg-flow/analysis";
 
 import { components } from "plgg-flow/topology";
@@ -240,7 +244,7 @@ const placeRow = (
       };
     }
     blocks.push(block);
-    offset += v.size / 2 + 40;
+    offset += v.size / 2 + grid;
   }
   for (const b of blocks)
     for (let i = b.start; i <= b.end; i++)
@@ -258,7 +262,7 @@ const reserve = (
       (occupied.get(v.layer) ?? []).map(
         (other) => {
           const gap =
-            (v.size + other.size) / 2 + 40;
+            (v.size + other.size) / 2 + grid;
           return [
             other.cross - gap,
             other.cross + gap,
@@ -304,8 +308,16 @@ const placeTree = (group: Vertex[]) => {
     let end = 0;
     for (const child of v.outgoing) {
       const box = bounds.get(child)!;
-      child.cross = end - box.left;
-      end = child.cross + box.right + 40;
+      child.cross = squareUp(end - box.left);
+      // Keep the midpoint of the extreme siblings on the parent grid.
+      if (
+        child ===
+          v.outgoing[v.outgoing.length - 1] &&
+        (child.cross - v.outgoing[0]!.cross) %
+          (2 * grid)
+      )
+        child.cross += grid;
+      end = child.cross + box.right + grid;
     }
     const centre =
       ((v.outgoing[0]?.cross ?? 0) +
@@ -318,7 +330,7 @@ const placeTree = (group: Vertex[]) => {
       left: Math.min(-v.size / 2, -centre),
       right: Math.max(
         v.size / 2,
-        end - 40 - centre,
+        end - grid - centre,
       ),
     });
   }
@@ -415,12 +427,12 @@ const placeComponent = (
   for (const row of ordered) {
     let x =
       -row.reduce(
-        (s, v) => s + v.size + 40,
-        -40,
+        (s, v) => s + v.size + grid,
+        -grid,
       ) / 2;
     for (const v of row) {
       v.cross = x + v.size / 2;
-      x += v.size + 40;
+      x += v.size + grid;
     }
   }
   for (let pass = 0; pass < 8; pass++) {
@@ -475,13 +487,13 @@ const placeComponent = (
     let x =
       parent.cross -
       row.reduce(
-        (sum, v) => sum + v.size + 40,
-        -40,
+        (sum, v) => sum + v.size + grid,
+        -grid,
       ) /
         2;
     for (const v of row) {
       reserve([v], x + v.size / 2, occupied);
-      x += v.size + 40;
+      x += v.size + grid;
     }
   }
   for (const { chain } of routes)
@@ -507,8 +519,8 @@ const wrappedPositions = (
   }
   const span = (row: Vertex[]) =>
     row.reduce(
-      (sum, v) => sum + v.size + 40,
-      -40,
+      (sum, v) => sum + v.size + grid,
+      -grid,
     );
   const core = [...rows.values()]
     .map((row) =>
@@ -590,7 +602,7 @@ const wrappedPositions = (
             Number((half === far) !== inputs),
           cross: cross + v.size / 2,
         });
-        cross += v.size + 40;
+        cross += v.size + grid;
       }
     }
     inserted++;
@@ -613,8 +625,8 @@ export const planLayers = (
         n.id,
         vertex(
           n.id,
-          down ? height : width,
-          down ? width : height,
+          squareUp(down ? height : width),
+          squareUp(down ? width : height),
         ),
       ];
     }),
@@ -713,7 +725,7 @@ export const planLayers = (
     leaf.layer = leaf.incoming[0]!.layer + 1;
   let cross = 0;
   const virtual = new Map<number, Vertex[]>();
-  let gap = 96;
+  const gap = 3 * grid;
   for (const ids of groups.sort(
     (a, b) =>
       b.length - a.length ||
@@ -731,10 +743,6 @@ export const planLayers = (
     const group = ids
       .sort(compare)
       .map((id) => by.get(id)!);
-    const tree = group.every(
-      (v) => v.incoming.length <= 1,
-    );
-
     const neighbours = new Map(
       group.map((v) => [
         v,
@@ -761,14 +769,6 @@ export const planLayers = (
         .shift()!;
       virtual.set(i, chain);
     }
-    // Multiple return paths need room to turn beside the forward fan.
-    if (returns > 1)
-      gap = Math.max(
-        gap,
-        ...group.map((v) =>
-          Math.max(128, 2.5 * v.size),
-        ),
-      );
     const positions = wrappedPositions(
       group,
       neighbours,
@@ -805,20 +805,6 @@ export const planLayers = (
           reserve([v], v.cross, occupied);
         }
     }
-    if (tree || wrapped) {
-      for (const v of group)
-        for (const peer of neighbours.get(v)!) {
-          const slope =
-            Math.abs(v.cross - peer.cross) /
-            Math.abs(v.layer - peer.layer);
-          gap = Math.max(
-            gap,
-            wrapped
-              ? 0.6 * slope + v.main
-              : 0.4 * slope,
-          );
-        }
-    }
     const low = Math.min(
       ...group.map((v) => v.cross - v.size / 2),
     );
@@ -830,7 +816,7 @@ export const planLayers = (
         v.cross += cross - low;
     }
     for (const v of group) v.cross += cross - low;
-    cross += high - low + 40;
+    cross += high - low + grid;
   }
   const widths: number[] = [];
   for (const v of order)
@@ -849,7 +835,7 @@ export const planLayers = (
     if (!chain.length) continue;
     const via = chain.map((v) => {
       const main = centres[v.layer]! - length / 2;
-      const side = v.cross - (cross - 40) / 2;
+      const side = v.cross - (cross - grid) / 2;
       return down
         ? { x: side, y: main }
         : { x: main, y: side };
@@ -880,12 +866,27 @@ export const planLayers = (
       nodes: graph.nodes.map((n) => {
         const v = by.get(n.id)!,
           a = centres[v.layer]! - length / 2,
-          b = v.cross - (cross - 40) / 2;
+          b = v.cross - (cross - grid) / 2;
+        const size = nodeSize(n);
+        const aligned = (
+          centre: number,
+          extent: number,
+        ) => {
+          const top = alignBox(centre, extent);
+          return centre < 0 &&
+            top - centre === grid / 2
+            ? top - grid
+            : top;
+        };
         return {
           ...n,
           position: {
-            x: down ? b : a,
-            y: down ? a : b,
+            x: down
+              ? aligned(b, size.width)
+              : alignBox(a, size.width),
+            y: down
+              ? alignBox(a, size.height)
+              : aligned(b, size.height),
             z: options.depth ? v.layer * 48 : 0,
           },
         };
@@ -901,3 +902,255 @@ export const layeredLayout = (
   graph: Graph,
   options?: LayerOptions,
 ): Graph => planLayers(graph, options).graph;
+
+export type Direction = "x" | "y" | "z";
+export type RoomAxes = Readonly<
+  Partial<
+    Record<
+      Direction,
+      {
+        attribute: string;
+        values: readonly string[];
+      }
+    >
+  >
+>;
+export type Room = {
+  index: [number, number, number];
+  values: [string, string, string];
+  min: Point3;
+  max: Point3;
+};
+export type RoomLayout = {
+  axes: RoomAxes;
+  rooms: Room[];
+};
+export const roomValue = (
+  node: FlowNode,
+  axis: RoomAxes[Direction],
+) => {
+  const value =
+    axis && node.data?.[axis.attribute];
+  return typeof value === "string" ? value : "—";
+};
+export const roomFor = (
+  layout: RoomLayout,
+  node: FlowNode,
+) =>
+  layout.rooms.find(
+    (room) =>
+      room.values[0] ===
+        roomValue(node, layout.axes.x) &&
+      room.values[1] ===
+        roomValue(node, layout.axes.y) &&
+      room.values[2] ===
+        roomValue(node, layout.axes.z),
+  );
+const squareUp = (n: number) =>
+  Math.ceil(n / grid) * grid;
+export const planRooms = (
+  graph: Graph,
+  axes: RoomAxes,
+) => {
+  const values = (direction: Direction) => {
+    const axis = axes[direction];
+    const observed = graph.nodes.map((n) =>
+      roomValue(n, axis),
+    );
+    const named = new Set(
+      [
+        ...(axis?.values ?? []),
+        ...observed,
+      ].filter((v) => v !== "—"),
+    );
+    return [
+      ...named,
+      ...(!named.size || observed.includes("—")
+        ? ["—"]
+        : []),
+    ];
+  };
+  const xs = values("x"),
+    ys = values("y"),
+    zs = values("z");
+  const indices = new Map(
+    graph.nodes.map((n) => [
+      n.id,
+      [
+        xs.indexOf(roomValue(n, axes.x)),
+        ys.indexOf(roomValue(n, axes.y)),
+        zs.indexOf(roomValue(n, axes.z)),
+      ] satisfies [number, number, number],
+    ]),
+  );
+  const buckets = new Map<string, FlowNode[]>(),
+    internal = new Map<
+      string,
+      Graph["edges"][number][]
+    >(),
+    neighbours = new Map<string, string[]>();
+  for (const n of graph.nodes) {
+    const key = indices.get(n.id)!.join(",");
+    const members = buckets.get(key) ?? [];
+    members.push(n);
+    buckets.set(key, members);
+    neighbours.set(n.id, []);
+  }
+  for (const e of graph.edges) {
+    const a = indices.get(e.source),
+      b = indices.get(e.target);
+    if (!a || !b) continue;
+    neighbours.get(e.source)!.push(e.target);
+    neighbours.get(e.target)!.push(e.source);
+    const key = a.join(",");
+    if (key === b.join(",")) {
+      const list = internal.get(key) ?? [];
+      list.push(e);
+      internal.set(key, list);
+    }
+  }
+  const widths = xs.map(() => 160),
+    depths = ys.map(() => squareUp(110));
+  const local = new Map<string, Point3>();
+  for (const [i] of xs.entries())
+    for (const [j] of ys.entries()) {
+      let band = grid;
+      for (const [k] of zs.entries()) {
+        const key = [i, j, k].join(",");
+        const nodes = buckets.get(key);
+        if (!nodes) continue;
+        nodes.sort((a, b) => compare(a.id, b.id));
+        const edges = internal.get(key) ?? [];
+        let bottom = 0;
+        const placed = edges.length
+          ? planLayers({ nodes, edges }).graph
+              .nodes
+          : nodes.map((n) => {
+              const s = nodeSize(n);
+              const position = {
+                x: s.width / 2,
+                y: bottom + s.height / 2,
+                z: 0,
+              };
+              bottom += squareUp(s.height) + grid;
+              return { ...n, position };
+            });
+        const left = Math.min(
+            ...placed.map(
+              (n) =>
+                n.position.x -
+                nodeSize(n).width / 2,
+            ),
+          ),
+          top = Math.min(
+            ...placed.map(
+              (n) =>
+                n.position.y -
+                nodeSize(n).height / 2,
+            ),
+          );
+        bottom = 0;
+        for (const n of placed) {
+          const s = nodeSize(n),
+            x = n.position.x - left + grid,
+            y = n.position.y - top;
+          local.set(n.id, {
+            x,
+            y: band + y,
+            z: k * 140,
+          });
+          widths[i] = Math.max(
+            widths[i]!,
+            squareUp(x + s.width / 2 + grid),
+          );
+          bottom = Math.max(
+            bottom,
+            y + s.height / 2,
+          );
+        }
+        band += squareUp(bottom) + grid;
+      }
+      depths[j] = Math.max(depths[j]!, band);
+    }
+  const boundaries = (sizes: number[]) => {
+    const ends = [0];
+    for (const size of sizes)
+      ends.push(ends[ends.length - 1]! + size);
+    return ends;
+  };
+  const x = boundaries(widths),
+    y = boundaries(depths),
+    rooms: Room[] = [];
+  // Use the first placement to measure neighbours on the free (sheet-y)
+  // axis. Reordering a band preserves its height and all slab boundaries.
+  const barycentres = new Map(
+    graph.nodes.map((n) => {
+      const ns = neighbours.get(n.id)!;
+      const sum = ns.reduce(
+        (total, id) =>
+          total +
+          y[indices.get(id)![1]]! +
+          local.get(id)!.y,
+        0,
+      );
+      return [n.id, sum / (ns.length || 1)];
+    }),
+  );
+  for (const [key, nodes] of buckets) {
+    if (nodes.length < 2 || internal.has(key))
+      continue;
+    let top = Math.min(
+      ...nodes.map(
+        (n) =>
+          local.get(n.id)!.y -
+          nodeSize(n).height / 2,
+      ),
+    );
+    nodes.sort(
+      (a, b) =>
+        barycentres.get(a.id)! -
+          barycentres.get(b.id)! ||
+        compare(a.id, b.id),
+    );
+    for (const n of nodes) {
+      const height = nodeSize(n).height;
+      local.set(n.id, {
+        ...local.get(n.id)!,
+        y: top + height / 2,
+      });
+      top += squareUp(height) + grid;
+    }
+  }
+  for (const [i, v] of xs.entries())
+    for (const [j, w] of ys.entries())
+      for (const [k, u] of zs.entries())
+        rooms.push({
+          index: [i, j, k],
+          values: [v, w, u],
+          min: { x: x[i]!, y: y[j]!, z: k * 140 },
+          max: {
+            x: x[i + 1]!,
+            y: y[j + 1]!,
+            z: (k + 1) * 140,
+          },
+        });
+  return {
+    axes,
+    rooms,
+    graph: {
+      ...graph,
+      nodes: graph.nodes.map((n) => {
+        const [i, j] = indices.get(n.id)!,
+          p = local.get(n.id)!;
+        return {
+          ...n,
+          position: {
+            x: x[i]! + p.x,
+            y: y[j]! + p.y,
+            z: p.z,
+          },
+        };
+      }),
+    },
+  };
+};

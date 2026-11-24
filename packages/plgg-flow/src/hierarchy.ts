@@ -1,4 +1,7 @@
-import { nodeSize } from "plgg-flow/nodeSize";
+import {
+  grid,
+  nodeSize,
+} from "plgg-flow/nodeSize";
 import { ok, err, type Result } from "plgg";
 import { matchesData } from "plgg-flow/metadata";
 import { adjacency } from "plgg-flow/topology";
@@ -439,8 +442,15 @@ export const fitContainer = (
     top = Math.min(top, n.position.y - h);
     bottom = Math.max(bottom, n.position.y + h);
   }
-  const width = right - left + 2 * padding,
-    height = bottom - top + 2 * padding,
+  left =
+    Math.floor((left - padding) / grid) * grid;
+  right =
+    Math.ceil((right + padding) / grid) * grid;
+  top = Math.floor((top - padding) / grid) * grid;
+  bottom =
+    Math.ceil((bottom + padding) / grid) * grid;
+  const width = right - left,
+    height = bottom - top,
     x = (left + right) / 2,
     y = (top + bottom) / 2;
   if (

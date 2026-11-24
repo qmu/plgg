@@ -1,5 +1,14 @@
-import type { LayerOptions } from "./autoLayout";
-import { nodeSize } from "plgg-flow/nodeSize";
+import { roomFor } from "plgg-flow/autoLayout";
+import type {
+  RoomLayout,
+  LayerOptions,
+} from "./autoLayout";
+import {
+  freePosition,
+  grid,
+  alignBox,
+  nodeSize,
+} from "plgg-flow/nodeSize";
 import {
   constrainedDelta,
   type Movement,
@@ -126,6 +135,7 @@ export type Flow = Graph &
      * panel laid over the board hides; fitting keeps
      * the diagram clear of it. */
     cover?: number;
+    rooms?: RoomLayout;
     layered?: Readonly<{
       options: LayerOptions;
       computed: ReadonlyMap<string, Point3>;
@@ -178,6 +188,7 @@ export const createFlow = (
   graph: Graph,
 ): Flow => ({
   ...graph,
+  snap: grid,
   camera: frontCamera({ x: 450, y: 290 }),
   selected: none(),
   source: none(),
@@ -402,7 +413,16 @@ export const addNode =
       ? state
       : {
           ...state,
-          nodes: [...state.nodes, node],
+          nodes: [
+            ...state.nodes,
+            {
+              ...node,
+              position: freePosition(
+                node,
+                state.nodes,
+              ),
+            },
+          ],
           selected: some(node.id),
         };
 export const disconnect =
@@ -612,6 +632,93 @@ export const beginStroke =
       }),
     };
   };
+const boxDelta = (
+  node: FlowNode,
+  travel: Point,
+  step: number,
+) => {
+  const { width, height } = nodeSize(node),
+    p = node.position;
+  return {
+    x:
+      alignBox(p.x + travel.x, width, step) - p.x,
+    y:
+      alignBox(p.y + travel.y, height, step) -
+      p.y,
+    z: 0,
+  };
+};
+// An authored selection may start off-grid. After the anchor moves,
+// bring each moved box onto the same grid, then subsequent steps are rigid.
+const moveOnGrid = (
+  flow: Flow,
+  roots: readonly string[],
+  delta: Point3,
+  step: number,
+) => {
+  const geometry = moveConstrainedSelection(
+    flow,
+    roots,
+    delta,
+  );
+  if (
+    flow.movement ||
+    flow.nodes.some((n) => n.extent === "parent")
+  )
+    return geometry;
+  const moved = subtree(flow.nodes, roots);
+  return {
+    ...geometry,
+    nodes: geometry.nodes.map((n) => {
+      if (!moved.has(n.id)) return n;
+      const offset = boxDelta(
+        n,
+        { x: 0, y: 0 },
+        step,
+      );
+      if (!offset.x && !offset.y) return n;
+      return {
+        ...n,
+        position: {
+          ...n.position,
+          x: n.position.x + offset.x,
+          y: n.position.y + offset.y,
+        },
+      };
+    }),
+  };
+};
+export const releasePointer: Change = (flow) => {
+  const idle = { ...flow, drag: none() };
+  if (
+    !isSome(flow.drag) ||
+    flow.drag.content.mode !== "node"
+  )
+    return idle;
+  const { node } = flow.drag.content,
+    anchor = flow.nodes.find(
+      (n) => n.id === node,
+    );
+  if (!anchor || anchor.locked) return idle;
+  const roots = selectedNodes(flow).filter(
+    (id) =>
+      !flow.nodes.find((n) => n.id === id)
+        ?.locked,
+  );
+  const geometry = flow.snap
+    ? moveOnGrid(
+        flow,
+        roots,
+        boxDelta(
+          anchor,
+          { x: 0, y: 0 },
+          flow.snap,
+        ),
+        flow.snap,
+      )
+    : {};
+  return settleRooms({ ...idle, ...geometry });
+};
 export const movePointer =
   (point: Point, pointer: number): Change =>
   (state) => {
@@ -710,25 +817,57 @@ export const movePointer =
       if (!group) return state;
       const delta = worldDelta(
         state.camera,
-        { x: dx, y: dy },
+        {
+          x: point.x - (d.first ?? d.last).x,
+          y: point.y - (d.first ?? d.last).y,
+        },
         project(state.camera)(group.position).z,
       );
       const grow = {
         x: Math.max(
           0,
-          (group.grow?.x ?? 0) + delta.x,
+          (group.grow?.x ?? 0) +
+            grid * Math.round(delta.x / grid),
         ),
         y: Math.max(
           0,
-          (group.grow?.y ?? 0) + delta.y,
+          (group.grow?.y ?? 0) +
+            grid * Math.round(delta.y / grid),
         ),
       };
+      const origin = project(state.camera)(
+          group.position,
+        ),
+        moved = project(state.camera)({
+          ...group.position,
+          x:
+            group.position.x +
+            grow.x -
+            (group.grow?.x ?? 0),
+          y:
+            group.position.y +
+            grow.y -
+            (group.grow?.y ?? 0),
+        });
       return {
         ...state,
         nodes: state.nodes.map((n) =>
           n.id === group.id ? { ...n, grow } : n,
         ),
-        drag: some({ ...d, last: point }),
+        drag: some({
+          ...d,
+          first: {
+            x:
+              (d.first ?? d.last).x +
+              moved.x -
+              origin.x,
+            y:
+              (d.first ?? d.last).y +
+              moved.y -
+              origin.y,
+          },
+          last: point,
+        }),
       };
     }
     const moving = state.nodes.find(
@@ -769,14 +908,7 @@ export const movePointer =
           },
           depth,
         ),
-        step = (at: number, by: number) =>
-          Math.round((at + by) / snap) * snap -
-          at,
-        adjusted = {
-          x: step(moving.position.x, travel.x),
-          y: step(moving.position.y, travel.y),
-          z: 0,
-        };
+        adjusted = boxDelta(moving, travel, snap);
       if (!adjusted.x && !adjusted.y)
         return {
           ...state,
@@ -796,10 +928,11 @@ export const movePointer =
         });
       return {
         ...state,
-        ...moveConstrainedSelection(
+        ...moveOnGrid(
           state,
           roots,
           adjusted,
+          snap,
         ),
         drag: some({
           ...d,
@@ -1037,4 +1170,94 @@ export const pruneEmptyGroups: Change = (
       (n) => !removed.has(n.id),
     ),
   });
+};
+
+export const settleRooms: Change = (flow) => {
+  const layout = flow.rooms;
+  if (!layout) return flow;
+  return {
+    ...flow,
+    nodes: flow.nodes.map((n) => {
+      const room = roomFor(layout, n);
+      if (!room) return n;
+      const size = nodeSize(n);
+      const clamp = (
+        at: number,
+        extent: number,
+        min: number,
+        max: number,
+      ) =>
+        Math.max(
+          min + extent / 2,
+          Math.min(
+            Math.floor((max - extent) / grid) *
+              grid +
+              extent / 2,
+            at,
+          ),
+        );
+      if (
+        n.position.x - size.width / 2 >=
+          room.min.x &&
+        n.position.x + size.width / 2 <=
+          room.max.x &&
+        n.position.y - size.height / 2 >=
+          room.min.y &&
+        n.position.y + size.height / 2 <=
+          room.max.y &&
+        n.position.z === room.min.z
+      )
+        return n;
+      return {
+        ...n,
+        position: {
+          x: clamp(
+            n.position.x,
+            size.width,
+            room.min.x,
+            room.max.x,
+          ),
+          y: clamp(
+            n.position.y,
+            size.height,
+            room.min.y,
+            room.max.y,
+          ),
+          z: room.min.z,
+        },
+      };
+    }),
+  };
+};
+
+export const resizeNode = (
+  n: FlowNode,
+  width: number,
+  height = nodeSize(n).height,
+): FlowNode => {
+  const w = Math.max(
+      grid,
+      Math.round(width / grid) * grid,
+    ),
+    h = Math.max(
+      grid,
+      Math.round(height / grid) * grid,
+    ),
+    before = nodeSize(n);
+  return {
+    ...n,
+    width: w,
+    height: h,
+    position: {
+      ...n.position,
+      x: alignBox(
+        n.position.x - before.width / 2 + w / 2,
+        w,
+      ),
+      y: alignBox(
+        n.position.y - before.height / 2 + h / 2,
+        h,
+      ),
+    },
+  };
 };

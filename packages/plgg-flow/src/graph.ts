@@ -1,3 +1,4 @@
+import { freePosition } from "plgg-flow/nodeSize";
 import { nodeSize } from "plgg-flow/nodeSize";
 import { boundaryConnections } from "plgg-flow/hierarchy";
 import type { Port } from "plgg-flow/connections";
@@ -65,6 +66,10 @@ export const splitEdge = (
     graph.nodes.some((n) => n.id === node.id)
   )
     return graph;
+  node = {
+    ...node,
+    position: freePosition(node, graph.nodes),
+  };
   const {
     sourceHandle,
     targetHandle,

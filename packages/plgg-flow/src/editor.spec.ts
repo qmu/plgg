@@ -126,13 +126,13 @@ test("mixed selections delete parallel wires and cards together", () => {
     toBe(true),
   );
 });
-test("label width rounds padded text to an eight-unit grid", () =>
+test("label width rounds padded text to the 32-unit grid", () =>
   check(
     nodeSize({ label: "a" }).width === 64 &&
       nodeSize({ label: "サービス" }).width ===
-        88 &&
+        96 &&
       nodeSize({ label: "Long label" }).width ===
-        112 &&
+        128 &&
       nodeSize({
         label: "Long label",
         width: 53,

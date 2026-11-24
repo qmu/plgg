@@ -1,3 +1,4 @@
+import { freePosition } from "plgg-flow/nodeSize";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
   ok,
@@ -228,13 +229,14 @@ export const paste = (
     occupied.add(id);
     ids.set(n.id, id);
   }
-  const nodes = fragment.nodes.map((n) => {
+  const nodes = [...graph.nodes];
+  for (const n of fragment.nodes) {
     const { parent, ...rest } = n,
       owner =
         parent === undefined
           ? undefined
           : ids.get(parent);
-    return {
+    const copy = {
       ...rest,
       id: ids.get(n.id) ?? n.id,
       ...(owner === undefined
@@ -246,7 +248,11 @@ export const paste = (
         z: n.position.z + offset.z,
       },
     };
-  });
+    nodes.push({
+      ...copy,
+      position: freePosition(copy, nodes),
+    });
+  }
   const used = edgeIds(graph.edges);
   const edges = fragment.edges.flatMap((e) => {
     const source = ids.get(e.source),
@@ -266,7 +272,7 @@ export const paste = (
       : [];
   });
   return {
-    nodes: [...graph.nodes, ...nodes],
+    nodes,
     edges: [...graph.edges, ...edges],
   };
 };

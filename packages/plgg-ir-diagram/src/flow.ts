@@ -95,6 +95,10 @@ figure{margin:0;position:relative}
 .flow-board:active,.flow-board:active g{cursor:grabbing}
 .flow-board path.edge,.flow-board .edge-hit{cursor:pointer}
 .flow-board circle{cursor:crosshair}
+.flow-board .edge-hit{stroke-opacity:0!important}
+.flow-board .marquee{fill:rgb(0 0 0/.06);stroke:var(--ink);stroke-width:1;stroke-dasharray:5 4;vector-effect:non-scaling-stroke;animation:marquee 1.8s linear infinite}
+@keyframes marquee{to{stroke-dashoffset:-18}}
+@media (prefers-reduced-motion:reduce){.flow-board .marquee{animation:none}}
 .controls{position:absolute;top:8px;left:8px;display:flex}
 .controls button{font:inherit;font-size:12px;cursor:pointer;background:var(--paper);color:var(--ink);border:1px solid var(--ink);padding:3px 10px}
 .controls button+button{margin-left:-1px}

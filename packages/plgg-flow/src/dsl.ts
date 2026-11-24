@@ -1,7 +1,10 @@
 import {
   planLayers,
+  planRooms,
+  type RoomAxes,
   type LayerOptions,
 } from "plgg-flow/autoLayout";
+import { grid } from "plgg-flow/nodeSize";
 import { ok, err, type Result } from "plgg";
 import {
   acyclicConnection,
@@ -39,6 +42,7 @@ export type Spec = Readonly<{
   graph: Graph;
   rules: readonly Rule[];
   snap?: number;
+  axes?: RoomAxes;
   layout?: LayerOptions;
   pinned?: readonly string[];
 }>;
@@ -129,6 +133,7 @@ const parseNode = (
       i += 3;
     } else if (
       word === "value" ||
+      word === "height" ||
       word === "width"
     ) {
       const v = num(ts[i + 1]);
@@ -139,8 +144,20 @@ const parseNode = (
       node =
         word === "value"
           ? { ...node, value: v }
-          : { ...node, width: v };
+          : { ...node, [word]: v };
       i += 2;
+    } else if (word && word.indexOf("=") > 0) {
+      const iEq = word.indexOf("=");
+      node = {
+        ...node,
+        data: {
+          ...node.data,
+          [word.slice(0, iEq)]: word.slice(
+            iEq + 1,
+          ),
+        },
+      };
+      i++;
     } else
       return err(
         `${id.text}: 不明な指定「${word ?? ""}」`,
@@ -181,9 +198,11 @@ export const parseSpec = (
   const nodes: FlowNode[] = [],
     edges: Edge[] = [],
     rules: Rule[] = [];
+  let rooms = false;
+  let axes: RoomAxes = {};
   let layout: LayerOptions | undefined;
   const pinned: string[] = [];
-  let snap: number | undefined;
+  let snap: number | undefined = grid;
   const lines = source.split("\n");
   for (const [n, raw] of lines.entries()) {
     const line = raw.replace(/#.*$/, "").trim();
@@ -203,10 +222,29 @@ export const parseSpec = (
       if (r.__tag === "Err")
         return err(at + r.content);
       edges.push(r.content);
+    } else if (head === "axis") {
+      const [, dir, key, ...values] = ts.map(
+        (t) => t.text,
+      );
+      if (
+        (dir !== "x" &&
+          dir !== "y" &&
+          dir !== "z") ||
+        !key
+      )
+        return err(at + "axis x|y|z 属性 [値…]");
+      axes = {
+        ...axes,
+        [dir]: { attribute: key, values },
+      };
     } else if (head === "layout") {
       const [, kind, ...args] = ts.map(
         (t) => t.text,
       );
+      if (kind === "rooms" && !args.length) {
+        rooms = true;
+        continue;
+      }
       const direction = args[0];
       const explicit =
         direction === "down" ||
@@ -226,8 +264,13 @@ export const parseSpec = (
         ...(depth ? { depth } : {}),
       };
     } else if (head === "snap") {
-      snap = num(ts[1]);
-      if (snap === undefined)
+      snap =
+        ts[1]?.text === "off" ? 0 : num(ts[1]);
+      if (
+        snap === undefined ||
+        snap < 0 ||
+        ts.length !== 2
+      )
         return err(
           at + "snap には数値が必要です",
         );
@@ -273,6 +316,7 @@ export const parseSpec = (
     return err(`未定義のノード「${stray}」`);
   return ok({
     graph: { nodes, edges },
+    ...(rooms ? { axes } : {}),
     ...(layout ? { layout, pinned } : {}),
     rules,
     ...(snap === undefined ? {} : { snap }),
@@ -303,8 +347,22 @@ export const applySpec =
       allowConnection,
       snap,
       layered,
+      rooms,
       ...rest
     } = flow;
+    if (spec.axes) {
+      const { graph, rooms, axes } = planRooms(
+        spec.graph,
+        spec.axes,
+      );
+      return {
+        ...rest,
+        ...graph,
+        rooms: { rooms, axes },
+        snap: spec.snap ?? grid,
+        ...allow(spec.rules),
+      };
+    }
     const pins = new Set(spec.pinned);
     const unpinned = spec.graph.edges.flatMap(
       (edge, index) =>
@@ -356,9 +414,7 @@ export const applySpec =
           }
         : {}),
       ...allow(spec.rules),
-      ...(spec.snap === undefined
-        ? {}
-        : { snap: spec.snap }),
+      snap: spec.snap ?? grid,
     };
   };
 
@@ -383,6 +439,20 @@ export const printSpec = (
     ]),
   );
   return [
+    ...(flow.rooms
+      ? [
+          "layout rooms",
+          ...Object.entries(flow.rooms.axes).map(
+            ([direction, axis]) =>
+              [
+                "axis",
+                direction,
+                name(axis.attribute),
+                ...axis.values.map(name),
+              ].join(" "),
+          ),
+        ]
+      : []),
     ...(flow.layered
       ? [
           [
@@ -396,7 +466,10 @@ export const printSpec = (
             .join(" "),
         ]
       : []),
-    ...(flow.snap ? [`snap ${flow.snap}`] : []),
+    ...(flow.snap === undefined ||
+    flow.snap === grid
+      ? []
+      : [`snap ${flow.snap || "off"}`]),
     ...rules.map((r) =>
       r.kind === "acyclic"
         ? "rule acyclic"
@@ -413,7 +486,7 @@ export const printSpec = (
         p.y === n.position.y &&
         p.z === n.position.z;
       const attributes = [
-        ...(auto
+        ...(auto || flow.rooms
           ? []
           : [
               "at",
@@ -425,6 +498,12 @@ export const printSpec = (
                 ? [positionText(n.position.z)]
                 : []),
             ]),
+        ...Object.entries(n.data ?? {}).flatMap(
+          ([k, v]) =>
+            typeof v === "string"
+              ? [name(k + "=" + v)]
+              : [],
+        ),
         ...(n.group ? ["group"] : []),
         ...(n.collapsed ? ["collapsed"] : []),
         ...(n.parent
@@ -436,9 +515,12 @@ export const printSpec = (
         ...(n.value === undefined
           ? []
           : ["value", String(n.value)]),
+        ...(n.height === undefined
+          ? []
+          : ["height", String(n.height)]),
         ...(n.width === undefined
           ? []
-          : ["width", coord(n.width)]),
+          : ["width", String(n.width)]),
         ...(n.grow && (n.grow.x || n.grow.y)
           ? [
               "grow",
