@@ -1254,3 +1254,70 @@ parallel runs in one aisle are ≥ 8 apart; path length ≤ 1.6 × the
 Manhattan distance between its sockets; routes are identical for
 two cameras; moving one node changes only paths touching it;
 routing all wires of the sample takes under 2 ms.
+
+## Layers, redone as a layer cake (owner on the layers sample: "I see it, but as an example it is ugly; I would not want to use this")
+
+Agreed, looking at it: three identical upright panes overlapping
+almost entirely, nodes that do not visibly belong to any of them,
+names on top of each other, captions skewed, wires weaving through
+the panes. And the sample's layers repeat what the top-down ranks
+already said, so the third dimension adds nothing. "The front view
+is exactly the layout without the axis" was this reviewer's
+requirement and it is what forces the panes. Withdrawn.
+
+**The picture people want is the layer cake**: flat boards stacked
+one above another with air between, each carrying its own nodes,
+connections dropping from board to board. Everyone has drawn it by
+hand; nobody has it from a text.
+
+- `layout layered` + one axis: each value is a **board**. Boards
+  are horizontal (the flow's x–z plane), stacked along y, the
+  first-written value on top, 144 between boards (multiple of 16).
+- **On a board** the layer's nodes are laid out by the edges among
+  them with the layered layout along x (left to right), rows going
+  back along z; nodes with no in-layer edges are ordered by the
+  barycentre of their neighbours on the boards above and below, so
+  drops are short. Every board has the same footprint (the largest
+  one, padded by 32), centred on one vertical line.
+- Nodes are the standard boxes standing on their board, face to the
+  viewer (as in the rooms storeys).
+- **A board is a thing**: paper fill at 92 %, ink outline 1px, and
+  a thickness of 6 (a thin slab: its two visible side faces in the
+  wash). Painted far to near with the nodes and wires of the board
+  below before the board above.
+- The layer's name stands at the board's front-left corner, on the
+  front edge, 12px 600 ink — outside the footprint, never on a
+  node.
+- Wires: in-board wires are the standard wires lying on the board's
+  plane at socket height; between boards the orthogonal route of
+  "Wires in space" — out to the aisle, one vertical drop, in. A
+  drop passes through a board only if there is no aisle free; then
+  it is drawn dotted for the stretch hidden by the board.
+- **Views.** Opens as a true isometric from the front left above
+  (yaw −π/4, elevation 0.62). 正面 (yaw 0, elevation 0.12): the
+  boards seen nearly edge-on — a banded diagram, layers as rows.
+  上 (elevation 1.2): the boards as plans, stepping up the screen.
+  No exact face-on views. 立体 returns to the opening view.
+- Pinning a layer (click its name) lifts everything else to quiet.
+- This is the rooms space with a single axis in role `y` and the
+  in-cell layout done by edges; implement it as that — one
+  mechanism, not a second one. Remove the upright-pane layer mode
+  (`layerAxis` planes in z) and its specs.
+
+Sample 「レイヤーに分ける」: the same ten nodes and layers, but the
+edges inside a layer matter (画面: Web → Checkout; 業務: Auth →
+Orders → Payments, Catalog → Orders; データ: none), about twelve
+edges in all. It must look like something one would put in a
+design document as it is.
+
+**The same taste applies to every space sheet** (rooms, added
+dimensions): storey floors become boards — paper 92 %, pencil
+outline, thickness 4 — and the opening view is the isometric
+(yaw −π/4, elevation 0.62) unless that hides a whole slab behind
+another, in which case yaw −0.6.
+
+Specs: boards are parallel, equally spaced, share one footprint and
+one centre line; every node stands on its layer's board inside the
+footprint; in-board order follows the edges (a source is left of
+its target); printed text round-trips; pinning quiets the other
+boards; no upright-pane code remains.
