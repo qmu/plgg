@@ -5,11 +5,12 @@ import { portPosition } from "plgg-flow/nodeBody";
 import { project } from "plgg-board";
 import { viewAt } from "plgg-flow/model";
 import {
-  faceTable,
+  roomFaceView,
   inSlab,
 } from "plgg-flow/roomCamera";
 import {
   roomView,
+  roomStage,
   roomLabels,
 } from "plgg-flow/roomView";
 import { renderToString } from "plgg-view";
@@ -57,7 +58,7 @@ node D layer=db owner=ops env=test
 node E layer=db owner=ops
 A -> B
 C -> D`;
-test("rooms contain every box and floors occupy disjoint bands in the front view", () => {
+test("rooms contain every box and cards stand on their storey and occupy disjoint volumes", () => {
   const flow = read(sheet),
     layout = flow.rooms!;
   return check(
@@ -66,17 +67,19 @@ test("rooms contain every box and floors occupy disjoint bands in the front view
         s = nodeSize(n),
         p = n.position;
       return (
-        aligned(n) &&
         p.x - s.width / 2 >= r.min.x &&
         p.y - s.height / 2 >= r.min.y &&
         p.x + s.width / 2 <= r.max.x &&
         p.y + s.height / 2 <= r.max.y &&
-        p.z === r.min.z &&
+        p.y + s.height / 2 === r.max.y - 16 &&
+        p.z > r.min.z &&
         p.z < r.max.z &&
         flow.nodes
           .slice(i + 1)
           .every(
             (m) =>
+              Math.abs(m.position.z - p.z) >=
+                32 ||
               Math.abs(m.position.x - p.x) * 2 >=
                 s.width + nodeSize(m).width ||
               Math.abs(m.position.y - p.y) * 2 >=
@@ -111,7 +114,9 @@ test("slabs meet at common boundaries and the complete lattice includes empty ro
               ? r.min[axis] === s.min[axis] &&
                 r.max[axis] === s.max[axis]
               : r.index[i]! < s.index[i]!
-                ? r.max[axis] <= s.min[axis]
+                ? axis === "y"
+                  ? s.max.y <= r.min.y
+                  : r.max[axis] <= s.min[axis]
                 : true,
           ),
         ),
@@ -184,14 +189,15 @@ test("room DSL infers value order, ignores at, prints attributes and settles a d
   return check(
     !printed.includes(" at ") &&
       printSpec(read(printed), []) === printed &&
-      r.index[0] === 0 &&
+      r.index[0] === 1 &&
       r.values[0] === "z" &&
       aligned(p) &&
       p.position.x + nodeSize(p).width / 2 <=
         r.max.x &&
       p.position.y - nodeSize(p).height / 2 >=
         r.min.y &&
-      p.position.z === r.min.z,
+      p.position.z < r.max.z &&
+      p.position.z > r.min.z,
     toBe(true),
   );
 });
@@ -264,7 +270,6 @@ test("multi-selection drags align authored boxes and carry the whole selection t
     first.nodes.every((n) => aligned(n)) &&
       next.nodes.every(
         (n, i) =>
-          aligned(n) &&
           n.position.x -
             first.nodes[i]!.position.x ===
             32 &&
@@ -308,118 +313,27 @@ test("successive layers leave six squares between default boxes", () => {
   );
 });
 
-test("turning reveals one plate, ruling path and value per floor", () => {
-  const flow = read(sheet),
-    html = (angle: number) =>
-      renderToString(
-        roomView(
-          flow.rooms!,
-          viewAt(angle, 0)(flow).camera,
-        ),
-      ),
-    front = html(0),
-    turned = html(-0.5);
-  const floors = new Set(
-    flow.rooms!.rooms.map((r) => r.min.z),
-  ).size;
+test("the stage draws three far faces, ruled walls and outline storeys with axes above the cards", () => {
+  const f = viewAt(-0.6, 0.5)(read(sheet));
+  const stage = renderToString(
+    roomStage(f.rooms!, f.camera),
+  );
+  const html = renderToString(flowView(f));
   return check(
-    turned.match(/class="room-plate"/g)
-      ?.length === floors &&
-      turned.match(/class="room-ruling"/g)
-        ?.length === floors &&
-      front.includes(">app<") &&
-      front.includes(">dev<") &&
-      !front.includes(">live<") &&
-      turned.includes(">live<") &&
-      turned.includes(">env<"),
+    stage.match(/class="room-face"/g)?.length ===
+      3 &&
+      stage.includes(
+        'class="room-ruling" d="M',
+      ) &&
+      stage.includes(
+        'class="room-storeys" d="M',
+      ) &&
+      html.includes('class="room-shadow"') &&
+      html.lastIndexOf("data-room-axis") >
+        html.indexOf('class="room-shadow"'),
     toBe(true),
   );
 });
-
-test("the rooms lattice paints every stroke in at most eight paths", () => {
-  const flow = read(sheet);
-  const html = renderToString(
-    roomView(flow.rooms!, flow.camera, flow),
-  );
-  const lattice = html.match(
-    /<g class="room-lattice">([\s\S]*?)<\/g>/,
-  )?.[1];
-  const paths =
-    lattice?.match(/<path\b/g)?.length ?? 0;
-  return check(
-    paths > 0 && paths <= 8,
-    toBe(true),
-  );
-});
-test("the axes share the ground origin, extend forty units and tick every slab boundary", () => {
-  const flow = read(sheet),
-    layout = flow.rooms!;
-  return check(
-    [
-      [0, 0],
-      [-0.6, 0.5],
-      [0.6, -0.5],
-    ].every(([yaw, pitch]) => {
-      const camera = viewAt(
-          yaw!,
-          pitch!,
-        )(flow).camera,
-        at = project(camera),
-        origin = { x: 0, y: 0, z: 0 };
-      const html = renderToString(
-        roomView(layout, camera, flow),
-      );
-      return (
-        (
-          ["x", "y", "z"] satisfies (
-            | "x"
-            | "y"
-            | "z"
-          )[]
-        ).every((axis) => {
-          const limit = Math.max(
-            ...layout.rooms.map(
-              (r) => r.max[axis],
-            ),
-          );
-          const end = at({
-              ...origin,
-              [axis]: limit + 40,
-            }),
-            start = at(origin);
-          const path = html.match(
-            new RegExp(
-              'data-room-axis="' +
-                axis +
-                '" d="([^"]+)"',
-            ),
-          )?.[1];
-          if (!yaw && axis === "z")
-            return (
-              path === `M${start.x} ${start.y}h0`
-            );
-          return (
-            path?.startsWith(
-              `M${start.x} ${start.y}L${end.x} ${end.y}M`,
-            ) &&
-            path.split("M").length - 4 ===
-              new Set(
-                layout.rooms.map(
-                  (r) => r.min[axis],
-                ),
-              ).size +
-                1
-          );
-        }) &&
-        (yaw
-          ? html.includes('class="room-plate"')
-          : html.includes('class="room-floor"'))
-      );
-    }),
-    toBe(true),
-  );
-});
-
 test("slab selections intersect across attributes", () =>
   check(
     [
@@ -440,47 +354,28 @@ test("slab selections intersect across attributes", () =>
     toBe(true),
   ));
 
-test("each face fits its nodes into separate table cells or slots", () => {
-  const flow = read(sheet);
+test("face views preserve the stage and shift deeper levels twelve pixels", () => {
+  const f = viewAt(0, 0)(read(sheet));
+  const face = roomFaceView(f);
+  const at = project(face.camera);
+  const n = f.nodes[0]!,
+    p = at(n.position),
+    q = at(face.nodes[0]!.position);
+  const pinned = roomFaceView({
+    ...f,
+    roomPins: { env: "live" },
+  });
   return check(
-    (
-      [
-        [0, 0],
-        [0, Math.PI / 2],
-        [Math.PI / 2, 0],
-      ] satisfies [number, number][]
-    ).every(([yaw, pitch]) => {
-      const table = faceTable(
-        viewAt(yaw, pitch)(flow),
-      );
-      return (
-        table.camera.yaw === 0 &&
-        table.camera.pitch === 0 &&
-        table.nodes.every((a, i) =>
-          table.nodes
-            .slice(i + 1)
-            .every(
-              (b) =>
-                Math.abs(
-                  a.position.x - b.position.x,
-                ) *
-                  2 >=
-                  nodeSize(a).width +
-                    nodeSize(b).width ||
-                Math.abs(
-                  a.position.y - b.position.y,
-                ) *
-                  2 >=
-                  nodeSize(a).height +
-                    nodeSize(b).height,
-            ),
-        )
-      );
-    }),
+    face.rooms === f.rooms &&
+      q.x - p.x === 24 &&
+      q.y - p.y === -24 &&
+      pinned.nodes.every(
+        (n) =>
+          !!n.hidden === (n.data?.env !== "live"),
+      ),
     toBe(true),
   );
 });
-
 test("room labels clear one another and perspective stays bounded through a turn", () => {
   const flow = read(sheet),
     layout = flow.rooms!;
@@ -526,37 +421,18 @@ test("room labels clear one another and perspective stays bounded through a turn
   return check(true, toBe(true));
 });
 
-test("floor plates reverse paint order after half a turn", () => {
-  const flow = read(sheet);
-  const values = (yaw: number) =>
-    [
-      ...renderToString(
-        roomView(
-          flow.rooms!,
-          viewAt(yaw, 0.48)(flow).camera,
-        ),
-      ).matchAll(
-        /class="room-floor-value"[^>]*>([^<]+)</g,
-      ),
-    ].map((m) => m[1]);
-  const front = values(-0.62),
-    back = values(Math.PI - 0.62);
-  return check(
-    front.length === 3 &&
-      front.join() === back.reverse().join(),
-    toBe(true),
-  );
-});
-
 test("inter-floor wires use one vertical riser at the upper socket in either direction", () => {
-  const flow = read(sheet + "\nA -> C\nC -> A");
-  const wires = wireGraph(flow).filter(
-    (w) => w.source.z !== w.target.z,
+  const flow = read(sheet);
+  const wires = [
+    { source: "A", target: "D" },
+    { source: "D", target: "A" },
+  ].flatMap((edge) =>
+    wireGraph({ ...flow, edges: [edge] }),
   );
   return check(
     wires.length >= 2 &&
       wires.every((w) => {
-        const rises = w.target.z > w.source.z;
+        const rises = w.target.y < w.source.y;
         const upper = rises ? w.target : w.source;
         const run = rises
           ? w.points.slice(0, -1)
@@ -576,11 +452,11 @@ test("inter-floor wires use one vertical riser at the upper socket in either dir
           w.target.x === socket.x &&
           w.target.y === socket.y &&
           foot?.x === upper.x &&
-          foot.y === upper.y &&
+          foot.z === upper.z &&
           run.every(
             (p) =>
-              p.z ===
-              Math.min(w.source.z, w.target.z),
+              p.y ===
+              Math.max(w.source.y, w.target.y),
           )
         );
       }),
@@ -604,8 +480,12 @@ test("hover and selection guide a room node to its three segment midpoints in on
   const path = axes
     .map((axis) => {
       const q = at({
-        x: 0,
-        y: 0,
+        x: Math.max(
+          ...layout.rooms.map((r) => r.max.x),
+        ),
+        y: Math.max(
+          ...layout.rooms.map((r) => r.max.y),
+        ),
         z: 0,
         [axis]:
           (room.min[axis] + room.max[axis]) / 2,
@@ -696,6 +576,35 @@ test("only an incident node or two pinned endpoints ink a room wire", () => {
         runs.every((t) => t === tone)
       );
     }),
+    toBe(true),
+  );
+});
+
+test("roles and pinned slices round-trip independently of declaration order", () => {
+  const source =
+    'layout rooms\naxis owner one two\naxis env a b\naxis "x" left right\naxis region east west\naxis team red blue\nview row=owner pin=env=b y=x column=region x=team\nnode A env=a\nnode B env=b';
+  const flow = read(source);
+  const printed = printSpec(flow, []);
+  const view = roomFaceView(
+    viewAt(-0.6, 0.5)(flow),
+  );
+  const declaration = read(
+    "layout rooms\naxis z env prod test\nnode A env=prod",
+  );
+  const legacy = printSpec(declaration, []);
+  return check(
+    printed === printSpec(read(printed), []) &&
+      printed.includes("pin=env=b") &&
+      view.nodes.find((n) => n.id === "A")
+        ?.hidden === true &&
+      !view.nodes.find((n) => n.id === "B")
+        ?.hidden &&
+      legacy.includes(
+        "axis env prod test\nview z=env",
+      ) &&
+      !printSpec(read(sheet), []).includes(
+        "view ",
+      ),
     toBe(true),
   );
 });

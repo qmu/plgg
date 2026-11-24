@@ -1,3 +1,4 @@
+import { roomFor } from "plgg-flow/autoLayout";
 import {
   socketRegion,
   fixedCurve,
@@ -251,7 +252,7 @@ export const wireGraph = (
     clearance,
     radius,
     options.draggedNode,
-    Boolean(graph.rooms),
+    graph.rooms,
     graph.nodes.length,
     graph.edges.length,
   ];
@@ -1106,19 +1107,27 @@ export const wireGraph = (
     let w = original;
     const edge = required(visible[i]),
       old = previousWire.get(edge);
-    if (
+    const source = byId.get(edge.source),
+      target = byId.get(edge.target);
+    const sourceFloor =
       graph.rooms &&
-      w.source.z !== w.target.z
+      source &&
+      roomFor(graph.rooms, source)?.max.y;
+    const targetFloor =
+      graph.rooms &&
+      target &&
+      roomFor(graph.rooms, target)?.max.y;
+    if (
+      sourceFloor !== undefined &&
+      targetFloor !== undefined &&
+      sourceFloor !== targetFloor
     ) {
-      const floor = Math.min(
-        w.source.z,
-        w.target.z,
-      );
+      const rises = sourceFloor > targetFloor;
+      const y = rises ? w.source.y : w.target.y;
       const run = w.points.map((p) => ({
         ...p,
-        z: floor,
+        y,
       }));
-      const rises = w.target.z > floor;
       const { controls, ...body } = w;
       w = {
         ...body,
@@ -1132,16 +1141,13 @@ export const wireGraph = (
               at: w.target,
               toward: {
                 ...w.target,
-                z: w.target.z + 1,
+                y: w.target.y - 1,
               },
             }
           : {
               ...w.arrow,
-              at: { ...w.arrow.at, z: floor },
-              toward: {
-                ...w.arrow.toward,
-                z: floor,
-              },
+              at: { ...w.arrow.at, y },
+              toward: { ...w.arrow.toward, y },
             },
       };
     }

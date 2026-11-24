@@ -110,30 +110,13 @@ export const boardCss = (root: string) => `
     stroke: var(--trace) !important;
     stroke-width: 0.8;
   }
-  .flow-board .room-lattice .room-outer {
-    stroke: var(--ink);
-  }
-  .flow-board .room-lattice .room-inner {
-    stroke: var(--trace);
-  }
-  .flow-board .room-lattice .room-empty {
-    stroke: var(--wash);
-  }
-  .flow-board .room-scene .room-floor {
-    fill: var(--wash);
-  }
-  .flow-board .room-far { stroke: var(--pencil); }
-  .flow-board .room-clear { fill: transparent; }
-  .flow-board .room-selected { fill: var(--wash); }
-  .flow-board .room-floor { opacity: .4; }
+  .flow-board .room-stack { fill: none; stroke: var(--pencil); }
+  .flow-board .room-stack-near { fill: none; stroke: var(--ink); }
   .flow-board .room-shadow { fill: var(--pencil); opacity: .28; }
-  .flow-board .room-caption { visibility: hidden; }
-  .flow-board .room-cell:hover .room-caption { visibility: visible; }
   .flow-board .room-scene [data-room-axis] { stroke: var(--ink); }
   .flow-board .room-scene .room-guides { stroke: var(--pencil); }
-  .flow-board .room-plate { fill: var(--wash); fill-opacity: .55; stroke: var(--ink); }
-  .flow-board .room-ruling, .flow-board .room-uprights { fill: none; stroke: var(--trace); stroke-width: .8; }
-  .flow-board .room-floor-value { font-size: 12px; font-weight: 600; }
+  .flow-board .room-face { fill: var(--wash); fill-opacity: .55; stroke: var(--pencil); }
+  .flow-board .room-ruling, .flow-board .room-storeys { fill: none; stroke: var(--trace); stroke-width: .8; }
   .flow-board .room-wire-ink { --room-tone: var(--ink); }
   .flow-board .room-wire-pencil { --room-tone: var(--pencil); }
   .flow-board path.edge:is(.room-wire-ink,.room-wire-pencil) { stroke: var(--room-tone); stroke-width: 1px; vector-effect: non-scaling-stroke; }

@@ -1,7 +1,4 @@
-import {
-  roomFor,
-  type RoomLayout,
-} from "plgg-flow/autoLayout";
+import { roomFor } from "plgg-flow/autoLayout";
 import {
   faceAxes,
   movingRooms,
@@ -12,7 +9,11 @@ import {
   wireDepthRuns,
   type Occluder,
 } from "plgg-flow/wireDepth";
-import { roomView } from "plgg-flow/roomView";
+import {
+  roomStage,
+  roomShadow,
+  roomView,
+} from "plgg-flow/roomView";
 import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
 import {
@@ -353,7 +354,6 @@ const depthStems = (
   camera: Camera,
   nodes: Flow["nodes"],
   parents: ReadonlyMap<string, FlowNode>,
-  rooms?: RoomLayout,
 ) => {
   const at = project(camera);
   const stems = nodes
@@ -366,10 +366,7 @@ const depthStems = (
           ...n.position,
           z: parent?.group
             ? parent.position.z
-            : rooms
-              ? (roomFor(rooms, n)?.min.z ??
-                n.position.z)
-              : groundHeight,
+            : groundHeight,
         }),
         q = project(camera)(n.position);
       return `M${p.x} ${p.y}L${q.x} ${q.y}`;
@@ -626,10 +623,11 @@ export const flowView = (
   const filter = roomFilter(flow);
   const muted = (n: FlowNode) =>
     !!flow.rooms &&
-    Object.entries(filter).some(
-      ([key, value]) =>
-        (n.data?.[key] ?? "—") !== value,
-    );
+    (!!n.roomReceded ||
+      Object.entries(filter).some(
+        ([key, value]) =>
+          (n.data?.[key] ?? "—") !== value,
+      ));
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
   const ports = portsFor(state);
@@ -745,13 +743,35 @@ export const flowView = (
       string,
       Record<Side, boolean>
     >();
+    const at = project(state.camera);
+    const cellDepth = (
+      n: FlowNode,
+      depth: number,
+    ) => {
+      const room =
+        state.rooms && roomFor(state.rooms, n);
+      return room
+        ? (at(room.min).z + at(room.max).z) / 2 +
+            depth * 1e-6
+        : depth;
+    };
     const layers: Layer[] = drawNodes.map((n) => {
       // The projected geometry is shared by drawing and hit targets.
       const cached = bodies.get(n.item);
       const solid =
         cached?.camera === state.camera
           ? cached.solid
-          : projectNodeBody(n, state.camera);
+          : projectNodeBody(
+              n,
+              state.rooms &&
+                faceAxes(state.camera)
+                ? {
+                    ...state.camera,
+                    yaw: 0,
+                    pitch: 0,
+                  }
+                : state.camera,
+            );
       if (cached?.solid !== solid)
         bodies.set(n.item, {
           camera: state.camera,
@@ -974,7 +994,10 @@ export const flowView = (
           );
         });
       const value = {
-        depth: solid.depth,
+        depth: cellDepth(
+          n,
+          state.rooms ? n.p.z : solid.depth,
+        ),
         html: lazy(deferred, () =>
           el<Change>(
             "g",
@@ -1956,6 +1979,19 @@ export const flowView = (
       for (const layer of group)
         layers.push(layer);
     }
+    if (state.rooms)
+      for (const n of drawNodes) {
+        const cell = roomFor(state.rooms, n);
+        if (cell)
+          layers.push({
+            depth: cellDepth(n, n.p.z) - 1e-8,
+            html: roomShadow(
+              n,
+              cell.max.y,
+              state.camera,
+            ),
+          });
+      }
     const sorted = layers.sort(
       (a, b) =>
         a.depth - b.depth ||
@@ -2715,16 +2751,10 @@ export const flowView = (
     [
       ...(state.rooms
         ? [
-            roomView(
+            roomStage(
               state.rooms,
               state.camera,
-              state,
-            ),
-            depthStems(
-              state.camera,
-              drawNodes,
-              parents,
-              state.rooms,
+              state.roomPins,
             ),
           ]
         : [
@@ -2809,6 +2839,15 @@ export const flowView = (
           )
         : lazy(emptyPreview, undefined),
       depthLayers(),
+      ...(state.rooms
+        ? [
+            roomView(
+              state.rooms,
+              state.camera,
+              state,
+            ),
+          ]
+        : []),
       ...(active &&
       scene.edges.some(
         (e) => e.original === active,

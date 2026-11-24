@@ -126,25 +126,26 @@ DB -> Catalog
   demo(
     "rooms",
     "部屋に分ける",
-    "軸の値をクリックすると、その区画が浮かびます。正面・上・横で表に、⌘（Ctrl）＋ドラッグで回せます。",
+    "軸の値をクリックすると、その区画が浮かびます。東京・大阪の建物を並べ、担当ごとの階を正面・上・横から見たり、⌘（Ctrl）＋ドラッグで回せます。",
     `layout rooms
-axis x 層 入口 処理 保存
-axis y 担当 顧客 注文 基盤
-axis z 環境 本番 検証
-node Web 層=入口 担当=顧客 環境=本番
-node Preview 層=入口 担当=顧客 環境=検証
-node Gateway 層=入口 担当=基盤 環境=本番
-node Checkout 層=入口 担当=注文 環境=本番
-node Auth 層=処理 担当=顧客 環境=本番
-node Orders 層=処理 担当=注文 環境=本番
-node Payments 層=処理 担当=注文 環境=本番
-node Sandbox 層=処理 担当=注文 環境=検証
-node Monitor 層=処理 担当=基盤 環境=本番
-node Users 層=保存 担当=顧客 環境=本番
-node Ledger 層=保存 担当=注文 環境=本番
-node Fixtures 層=保存 担当=注文 環境=検証
-node Logs 層=保存 担当=基盤 環境=本番
-node Trace 層=保存 担当=基盤 環境=検証
+axis 層 入口 処理 保存
+axis 担当 顧客 注文 基盤
+axis 環境 本番 検証
+axis 地域 東京 大阪
+node Web 層=入口 担当=顧客 環境=本番 地域=東京
+node Preview 層=入口 担当=顧客 環境=検証 地域=大阪
+node Gateway 層=入口 担当=基盤 環境=本番 地域=東京
+node Checkout 層=入口 担当=注文 環境=本番 地域=大阪
+node Auth 層=処理 担当=顧客 環境=本番 地域=東京
+node Orders 層=処理 担当=注文 環境=本番 地域=東京
+node Payments 層=処理 担当=注文 環境=本番 地域=大阪
+node Sandbox 層=処理 担当=注文 環境=検証 地域=大阪
+node Monitor 層=処理 担当=基盤 環境=本番 地域=東京
+node Users 層=保存 担当=顧客 環境=本番 地域=東京
+node Ledger 層=保存 担当=注文 環境=本番 地域=大阪
+node Fixtures 層=保存 担当=注文 環境=検証 地域=大阪
+node Logs 層=保存 担当=基盤 環境=本番 地域=東京
+node Trace 層=保存 担当=基盤 環境=検証 地域=大阪
 Web -> Gateway
 Checkout -> Gateway
 Gateway -> Auth

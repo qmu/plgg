@@ -8,6 +8,8 @@ import {
 } from "plgg-flow/model";
 import {
   planLayers,
+  roles,
+  type Axis,
   planRooms,
   type RoomAxes,
   type LayerOptions,
@@ -215,7 +217,9 @@ export const parseSpec = (
     edges: Edge[] = [],
     rules: Rule[] = [];
   let rooms = false;
-  let axes: RoomAxes = {};
+  const definitions: Axis[] = [];
+  const assignments = new Map<string, string>();
+  const pins = new Map<string, string>();
   let layout: LayerOptions | undefined;
   const pinned: string[] = [];
   let snap: number | undefined = grid;
@@ -248,20 +252,47 @@ export const parseSpec = (
         return err(at + r.content);
       edges.push(r.content);
     } else if (head === "axis") {
-      const [, dir, key, ...values] = ts.map(
-        (t) => t.text,
-      );
+      const words = ts
+        .slice(1)
+        .map((t) => t.text);
+      const legacy =
+        ["x", "y", "z"].includes(
+          words[0] ?? "",
+        ) &&
+        words.length >= 2 &&
+        !ts[1]?.quoted;
+      const role = legacy
+        ? words.shift()
+        : undefined;
+      const attribute = words.shift();
       if (
-        (dir !== "x" &&
-          dir !== "y" &&
-          dir !== "z") ||
-        !key
+        !attribute ||
+        definitions.some(
+          (a) => a.attribute === attribute,
+        )
       )
-        return err(at + "axis x|y|z 属性 [値…]");
-      axes = {
-        ...axes,
-        [dir]: { attribute: key, values },
-      };
+        return err(at + "axis 属性 [値…]");
+      definitions.push({
+        attribute,
+        values: words,
+      });
+      if (role) assignments.set(attribute, role);
+    } else if (head === "view") {
+      for (const t of ts.slice(1)) {
+        const [role, attribute, ...value] =
+          t.text.split("=");
+        if (
+          !attribute ||
+          (!roles.some((r) => r === role) &&
+            role !== "pin")
+        )
+          return err(
+            at + "view x=属性 / pin=属性=値",
+          );
+        assignments.set(attribute, role!);
+        if (role === "pin" && value.length)
+          pins.set(attribute, value.join("="));
+      }
     } else if (head === "layout") {
       const [, kind, ...args] = ts.map(
         (t) => t.text,
@@ -339,6 +370,34 @@ export const parseSpec = (
     );
   if (stray !== undefined)
     return err(`未定義のノード「${stray}」`);
+  const axes: Record<
+    string,
+    Axis & { pin?: string }
+  > = {};
+  for (const attribute of assignments.keys())
+    if (
+      !definitions.some(
+        (a) => a.attribute === attribute,
+      )
+    )
+      return err("未定義の軸 " + attribute);
+  for (const [i, a] of definitions.entries()) {
+    const role =
+      assignments.get(a.attribute) ??
+      roles[i] ??
+      "pin";
+    const key =
+      role === "pin"
+        ? "pin:" + a.attribute
+        : role;
+    if (axes[key])
+      return err("軸の役割が重複 " + role);
+    const pin = pins.get(a.attribute);
+    axes[key] = {
+      ...a,
+      ...(pin !== undefined && { pin }),
+    };
+  }
   return ok({
     graph: { nodes, edges },
     ...(rooms ? { axes } : {}),
@@ -384,6 +443,11 @@ const laySpec =
         ...rest,
         ...graph,
         rooms: { rooms, axes },
+        camera: {
+          ...flow.camera,
+          turntable: true,
+          perspective: 0,
+        },
         snap: spec.snap ?? grid,
         ...allow(spec.rules),
       };
@@ -422,6 +486,12 @@ const laySpec =
     return {
       ...rest,
       ...spec.graph,
+      ...(flow.camera.turntable && {
+        camera: {
+          ...flow.camera,
+          turntable: false,
+        },
+      }),
       ...(spec.layout
         ? {
             edges: spec.graph.edges.map(
@@ -494,7 +564,12 @@ export type Subject =
   | Readonly<{ kind: "edge"; index: number }>
   | Readonly<{
       kind: "directive";
-      name: "layout" | "axis" | "snap" | "rule";
+      name:
+        | "layout"
+        | "axis"
+        | "view"
+        | "snap"
+        | "rule";
     }>;
 export type Line = Readonly<{
   subject: Subject;
@@ -583,13 +658,45 @@ const buildLines = (
       ? [
           directive("layout", ["rooms"]),
           ...Object.entries(flow.rooms.axes).map(
-            ([dir, axis]) =>
+            ([, axis]) =>
               directive("axis", [
-                dir,
-                name(axis.attribute),
+                ["x", "y", "z"].includes(
+                  axis.attribute,
+                )
+                  ? JSON.stringify(axis.attribute)
+                  : name(axis.attribute),
                 ...axis.values.map(name),
               ]),
           ),
+          ...(Object.entries(
+            flow.rooms.axes,
+          ).some(
+            ([key, a], i) =>
+              key !==
+                (roles[i] ??
+                  "pin:" + a.attribute) ||
+              (a.pin !== undefined &&
+                a.pin !== a.values[0]),
+          )
+            ? [
+                directive(
+                  "view",
+                  Object.entries(
+                    flow.rooms.axes,
+                  ).map(([key, a]) =>
+                    name(
+                      key.startsWith("pin:")
+                        ? "pin=" +
+                            a.attribute +
+                            (a.pin === undefined
+                              ? ""
+                              : "=" + a.pin)
+                        : key + "=" + a.attribute,
+                    ),
+                  ),
+                ),
+              ]
+            : []),
         ]
       : []),
     ...(options

@@ -3,10 +3,9 @@ import { sheetTools } from "plgg-ir-diagram/flowSheet";
 import { project } from "plgg-board";
 import {
   frameOf,
-  faceTable,
+  roomFaceView,
   roomLabels,
   nodeSize,
-  bodyDepth,
   viewAt,
 } from "plgg-flow";
 import { test, check, toBe } from "plgg-test";
@@ -162,17 +161,17 @@ test("DSL geometry edits refit the board and text-only edits preserve the camera
   );
 });
 
-test("every gallery box sits on grid lines and Rooms opens on its two floors", () => {
+test("every gallery box sits on grid lines and Rooms opens on its three storeys", () => {
   const index = examples.findIndex(
       (d) => d.id === "rooms",
     ),
     flow = examples[index]!.initial();
   return check(
     examples[index - 1]?.id === "layered" &&
-      flow.rooms?.rooms.length === 18 &&
+      flow.rooms?.rooms.length === 36 &&
       flow.nodes.length === 14 &&
-      flow.camera.yaw === -0.62 &&
-      flow.camera.pitch === 0.48 &&
+      flow.camera.yaw === -0.6 &&
+      flow.camera.pitch === 0.5 &&
       examples.every((d) =>
         d.initial().nodes.every((n) => {
           const size = nodeSize(n);
@@ -190,71 +189,28 @@ test("every gallery box sits on grid lines and Rooms opens on its two floors", (
   );
 });
 
-test("room services cover at most a quarter of either projected box at front and opening angles", () => {
+test("the gallery building has three horizontal floors and upright cards", () => {
   const flow = examples
-    .find((d) => d.id === "rooms")!
+    .find((e) => e.id === "rooms")!
     .initial();
+  const rooms = flow.rooms!.rooms;
   return check(
-    [flow, viewAt(0, 0)(flow)].every((f) => {
-      const at = project(f.camera);
-      const boxes = f.nodes.map((n) => {
-        const { width, height } = nodeSize(n),
-          depth = bodyDepth(n);
-        const points = [-1, 1].flatMap((i) =>
-          [-1, 1].flatMap((j) =>
-            [-1, 1].map((k) =>
-              at({
-                x: n.position.x + (i * width) / 2,
-                y:
-                  n.position.y + (j * height) / 2,
-                z: n.position.z + k * depth,
-              }),
-            ),
-          ),
-        );
-        const left = Math.min(
-            ...points.map((p) => p.x),
-          ),
-          right = Math.max(
-            ...points.map((p) => p.x),
-          ),
-          top = Math.min(
-            ...points.map((p) => p.y),
-          ),
-          bottom = Math.max(
-            ...points.map((p) => p.y),
-          );
-        return {
-          left,
-          right,
-          top,
-          bottom,
-          area: (right - left) * (bottom - top),
-        };
-      });
-      return boxes.every((a, i) =>
-        boxes
-          .slice(i + 1)
-          .every(
-            (b) =>
-              Math.max(
-                0,
-                Math.min(a.right, b.right) -
-                  Math.max(a.left, b.left),
-              ) *
-                Math.max(
-                  0,
-                  Math.min(a.bottom, b.bottom) -
-                    Math.max(a.top, b.top),
-                ) <=
-              Math.min(a.area, b.area) / 4,
-          ),
-      );
-    }),
+    new Set(rooms.map((c) => c.max.y)).size ===
+      3 &&
+      new Set(rooms.map((c) => c.caption))
+        .size === 2 &&
+      flow.nodes.every((n) =>
+        rooms.some(
+          (c) =>
+            c.members.includes(n.id) &&
+            n.position.y +
+              nodeSize(n).height / 2 ===
+              c.max.y - 16,
+        ),
+      ),
     toBe(true),
   );
 });
-
 test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
   const flow = examples
     .find((d) => d.id === "rooms")!
@@ -263,7 +219,7 @@ test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
     open = frameOf(f).x - 320;
   const labels = roomLabels(f.rooms!, f.camera);
   return check(
-    labels.length === 11 &&
+    labels.length === 13 &&
       labels.every((l) => {
         const width = l.value.length * 13;
         const left =
@@ -312,7 +268,7 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
         [Math.PI / 2, 0],
       ] satisfies [number, number][]
     ).every(([yaw, pitch]) => {
-      const table = faceTable(
+      const table = roomFaceView(
         fitDemo(viewAt(yaw, pitch)(f)),
       );
       const at = project(table.camera);

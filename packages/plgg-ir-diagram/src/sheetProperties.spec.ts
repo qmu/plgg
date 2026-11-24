@@ -193,11 +193,11 @@ const cases: readonly Case[] = [
     "node A at 0 0 value 8",
   ],
   [
-    "layout rooms\naxis x 層 一 二\nnode A 層=一",
+    "layout rooms\naxis 層 一 二\nnode A 層=一",
     single,
     "層",
     "二",
-    "layout rooms\naxis x 層 一 二\nnode A 層=二",
+    "layout rooms\naxis 層 一 二\nnode A 層=二",
   ],
   [
     "layout layered down\nA -> B",
@@ -281,18 +281,18 @@ const cases: readonly Case[] = [
     "",
   ],
   [
-    "layout rooms\naxis x 層 一",
+    "layout rooms\naxis 層 一",
     [],
     "x 軸の属性",
     "担当",
-    "layout rooms\naxis x 担当 一",
+    "layout rooms\naxis 担当 一",
   ],
   [
-    "layout rooms\naxis x 層 一\naxis y 担当 人",
+    "layout rooms\naxis 層 一\naxis 担当 人",
     [],
     "x 軸の文字",
     "y",
-    "layout rooms\naxis y 層 一\naxis x 担当 人",
+    "layout rooms\naxis 層 一\naxis 担当 人\nview y=層 x=担当",
   ],
 ];
 for (const [

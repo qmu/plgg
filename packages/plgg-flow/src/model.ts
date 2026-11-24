@@ -71,6 +71,7 @@ export type FlowNode = Readonly<{
   grow?: Readonly<{ x: number; y: number }>;
   collapsed?: boolean;
   locked?: boolean;
+  roomReceded?: boolean;
   hidden?: boolean;
   value?: number;
   position: Point3;
@@ -567,6 +568,7 @@ export const viewAt =
     );
     const camera = {
       ...state.camera,
+      turntable: !!state.rooms,
       yaw,
       pitch,
       perspective: state.rooms
@@ -585,7 +587,28 @@ export const viewAt =
     // Pan and off-center zoom move the subject under the screen center.
     // Keep its depth when choosing the next pivot.
     const center =
-      pivot?.position ??
+      (state.rooms?.rooms.length
+        ? {
+            x:
+              Math.max(
+                ...state.rooms.rooms.map(
+                  (r) => r.max.x,
+                ),
+              ) / 2,
+            y:
+              Math.max(
+                ...state.rooms.rooms.map(
+                  (r) => r.max.y,
+                ),
+              ) / 2,
+            z:
+              Math.max(
+                ...state.rooms.rooms.map(
+                  (r) => r.max.z,
+                ),
+              ) / 2,
+          }
+        : pivot?.position) ??
       (previous &&
       Math.hypot(
         previous.x - screen.x,
@@ -614,7 +637,17 @@ export const orbitByDrag =
       Math.PI / frameOf(state).x;
     return viewAt(
       state.camera.yaw - dx * radiansPerUnit,
-      state.camera.pitch - dy * radiansPerUnit,
+      state.rooms
+        ? Math.max(
+            -0.2,
+            Math.min(
+              1.45,
+              state.camera.pitch -
+                dy * radiansPerUnit,
+            ),
+          )
+        : state.camera.pitch -
+            dy * radiansPerUnit,
     )(state);
   };
 export const front: Change = viewAt(0, 0);
@@ -1211,11 +1244,10 @@ export const settleRooms: Change = (flow) => {
           room.min.x &&
         n.position.x + size.width / 2 <=
           room.max.x &&
-        n.position.y - size.height / 2 >=
-          room.min.y &&
-        n.position.y + size.height / 2 <=
-          room.max.y &&
-        n.position.z === room.min.z
+        n.position.y ===
+          room.max.y - 16 - size.height / 2 &&
+        n.position.z >= room.min.z + 16 &&
+        n.position.z <= room.max.z - 16
       )
         return n;
       return {
@@ -1227,13 +1259,14 @@ export const settleRooms: Change = (flow) => {
             room.min.x,
             room.max.x,
           ),
-          y: clamp(
-            n.position.y,
-            size.height,
-            room.min.y,
-            room.max.y,
+          y: room.max.y - 16 - size.height / 2,
+          z: Math.min(
+            room.max.z - 16,
+            Math.max(
+              room.min.z + 16,
+              n.position.z,
+            ),
           ),
-          z: room.min.z,
         },
       };
     }),

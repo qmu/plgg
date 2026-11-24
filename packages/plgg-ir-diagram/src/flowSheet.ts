@@ -19,7 +19,7 @@ import { project } from "plgg-board";
 import {
   addNode,
   viewAt,
-  faceTable,
+  roomStack,
   turnRooms,
   roomLabels,
   nodeSize,
@@ -54,9 +54,12 @@ import {
 } from "plgg-view";
 import { custom } from "plgg-view/client";
 // Initial and reset sessions both open on the front of the board.
-export const fitDemo = (original: Flow): Flow => {
-  const flow = faceTable(original);
-  if (!flow.nodes.length) return flow;
+export const fitDemo = (flow: Flow): Flow => {
+  if (
+    !flow.nodes.length &&
+    !flow.rooms?.rooms.length
+  )
+    return flow;
   const camera = {
     ...flow.camera,
     origin: { x: 0, y: 0 },
@@ -82,28 +85,34 @@ export const fitDemo = (original: Flow): Flow => {
             ),
           ),
     ) ?? []),
-    ...(face ? [] : flow.nodes).flatMap((n) => {
-      const { width, height } = nodeSize(n);
-      return [-1, 1].flatMap((x) =>
-        [-1, 1].flatMap((y) =>
-          [-1, 1].map((z) =>
-            at({
-              x: n.position.x + (x * width) / 2,
-              y: n.position.y + (y * height) / 2,
-              z: n.position.z + z * bodyDepth(n),
-            }),
+    ...(flow.rooms ? [] : flow.nodes).flatMap(
+      (n) => {
+        const { width, height } = nodeSize(n);
+        return [-1, 1].flatMap((x) =>
+          [-1, 1].flatMap((y) =>
+            [-1, 1].map((z) =>
+              at({
+                x: n.position.x + (x * width) / 2,
+                y:
+                  n.position.y + (y * height) / 2,
+                z:
+                  n.position.z + z * bodyDepth(n),
+              }),
+            ),
           ),
-        ),
-      );
-    }),
-    ...(face ? [] : wireGraph(flow)).flatMap(
-      (w) =>
-        bridgePoints(
-          w.points,
-          w.lift,
-          flow.camera.pitch === 0 &&
-            flow.camera.yaw === 0,
-        ).map(at),
+        );
+      },
+    ),
+    ...(flow.rooms
+      ? []
+      : wireGraph(flow)
+    ).flatMap((w) =>
+      bridgePoints(
+        w.points,
+        w.lift,
+        flow.camera.pitch === 0 &&
+          flow.camera.yaw === 0,
+      ).map(at),
     ),
   ].reduce(
     (box, p) => ({
@@ -119,6 +128,13 @@ export const fitDemo = (original: Flow): Flow => {
       bottom: -Infinity,
     },
   );
+  const stack = flow.rooms
+    ? (roomStack(
+        flow.rooms,
+        camera,
+        flow.roomPins,
+      )?.margin ?? 0)
+    : 0;
   const frame = frameOf(flow),
     open = frame.x - (flow.cover ?? 0),
     margin = 96;
@@ -134,8 +150,16 @@ export const fitDemo = (original: Flow): Flow => {
     axis: "x" | "y",
   ) => {
     const spans = [
-      { at: low, lo: 0, hi: 0 },
-      { at: high, lo: 0, hi: 0 },
+      {
+        at: low,
+        lo: axis === "y" ? -stack : 0,
+        hi: 0,
+      },
+      {
+        at: high,
+        lo: 0,
+        hi: axis === "x" ? stack : 0,
+      },
       ...labels.map((l) => {
         const width = l.value.length * 13;
         const left =
@@ -206,8 +230,8 @@ export const fitDemo = (original: Flow): Flow => {
     // Label collisions depend on pixel-sized glyphs at the fitted scale.
     for (let i = 0; i < 16; i++) {
       let left = bounds.left * scale,
-        right = bounds.right * scale,
-        top = bounds.top * scale,
+        right = bounds.right * scale + stack,
+        top = bounds.top * scale - stack,
         bottom = bounds.bottom * scale;
       for (const l of roomLabels(flow.rooms, {
         ...camera,
@@ -240,9 +264,9 @@ export const fitDemo = (original: Flow): Flow => {
     }
   }
   return {
-    ...original,
+    ...flow,
     camera: {
-      ...original.camera,
+      ...flow.camera,
       scale,
       origin,
     },
@@ -383,7 +407,7 @@ export const roomFrames = <Action>(
     },
   );
 };
-export const roomsOpening = viewAt(-0.62, 0.48);
+export const roomsOpening = viewAt(-0.6, 0.5);
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
     const { axes, rooms, graph } = planRooms(
@@ -561,6 +585,14 @@ const helpRows: readonly (readonly [
   [
     "rule acyclic / rule max-outputs 1",
     "循環する接続や、出力の本数を制限します。",
+  ],
+  [
+    "axis 層 入口 処理 保存",
+    "部屋の分類に使う属性と値を順番に指定します。",
+  ],
+  [
+    "view x=層 column=地域",
+    "属性を方向や建物の列・行に割り当てます。pin=地域=東京 で値を固定します。",
   ],
   ["snap 32", "ドラッグ時に吸着する格子の間隔。"],
   [
@@ -979,9 +1011,9 @@ export const sheetToolbar = <Action>(
             ...(
               [
                 ["正面", 0, 0],
-                ["上", 0, -Math.PI / 2],
+                ["上", 0, Math.PI / 2],
                 ["横", Math.PI / 2, 0],
-                ["立体", -0.62, 0.48],
+                ["立体", -0.6, 0.5],
               ] satisfies [
                 string,
                 number,

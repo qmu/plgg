@@ -1,3 +1,12 @@
+import {
+  classify,
+  type Axis,
+} from "plgg-flow/classify";
+import { planSpace } from "plgg-flow/space";
+import {
+  roles,
+  type View,
+} from "plgg-flow/spaceView";
 import type { Point, Point3 } from "plgg-board";
 import type { Graph, FlowNode } from "./model";
 import {
@@ -931,65 +940,43 @@ export const layeredLayout = (
 ): Graph => planLayers(graph, options).graph;
 
 export type Direction = "x" | "y" | "z";
+export * from "plgg-flow/classify";
+export * from "plgg-flow/spaceView";
+export * from "plgg-flow/space";
 export type RoomAxes = Readonly<
-  Partial<
-    Record<
-      Direction,
-      {
-        attribute: string;
-        values: readonly string[];
-      }
-    >
-  >
+  Record<string, Axis & { pin?: string }>
 >;
 export type Room = {
   occupied: boolean;
+  members: readonly string[];
+  block: number;
+  caption: string;
   index: [number, number, number];
   values: [string, string, string];
   min: Point3;
   max: Point3;
 };
 export type RoomLayout = {
-  tableHidden?: RoomAxes[Direction];
-  tableAxes?: readonly [
-    Direction,
-    Direction,
-    Direction,
-  ];
   axes: RoomAxes;
   rooms: Room[];
 };
-export const roomValue = (
-  node: FlowNode,
-  axis: RoomAxes[Direction],
-) => {
-  const value =
-    axis && node.data?.[axis.attribute];
-  return typeof value === "string" ? value : "—";
-};
 const memberships = new WeakMap<
   RoomLayout,
-  WeakMap<FlowNode, Room | undefined>
+  Map<string, Room>
 >();
 export const roomFor = (
   layout: RoomLayout,
   node: FlowNode,
 ) => {
-  const cache =
-    memberships.get(layout) ??
-    new WeakMap<FlowNode, Room | undefined>();
-  if (cache.has(node)) return cache.get(node);
-  const values = [
-    layout.axes.x,
-    layout.axes.y,
-    layout.axes.z,
-  ].map((axis) => roomValue(node, axis));
-  const room = layout.rooms.find((r) =>
-    r.values.every((v, i) => v === values[i]),
-  );
-  cache.set(node, room);
-  memberships.set(layout, cache);
-  return room;
+  let members = memberships.get(layout);
+  if (!members) {
+    members = new Map();
+    for (const r of layout.rooms)
+      for (const id of r.members)
+        members.set(id, r);
+    memberships.set(layout, members);
+  }
+  return members.get(node.id);
 };
 const squareUp = (n: number) =>
   Math.ceil(n / grid) * grid;
@@ -997,250 +984,64 @@ const computeRooms = (
   graph: Graph,
   axes: RoomAxes,
 ) => {
-  const values = (direction: Direction) => {
-    const axis = axes[direction];
-    const observed = graph.nodes.map((n) =>
-      roomValue(n, axis),
-    );
-    const named = new Set(
-      [
-        ...(axis?.values ?? []),
-        ...observed,
-      ].filter((v) => v !== "—"),
-    );
-    return [
-      ...named,
-      ...(!named.size || observed.includes("—")
-        ? ["—"]
-        : []),
-    ];
-  };
-  const xs = values("x"),
-    ys = values("y"),
-    zs = values("z");
-  const indices = new Map(
-    graph.nodes.map((n) => [
-      n.id,
-      [
-        xs.indexOf(roomValue(n, axes.x)),
-        ys.indexOf(roomValue(n, axes.y)),
-        zs.indexOf(roomValue(n, axes.z)),
-      ] satisfies [number, number, number],
-    ]),
+  const data = classify(
+    graph,
+    Object.values(axes),
   );
-  const buckets = new Map<string, FlowNode[]>(),
-    internal = new Map<
-      string,
-      Graph["edges"][number][]
-    >(),
-    neighbours = new Map<string, string[]>();
-  for (const n of graph.nodes) {
-    const key = indices.get(n.id)!.join(",");
-    const members = buckets.get(key) ?? [];
-    members.push(n);
-    buckets.set(key, members);
-    neighbours.set(n.id, []);
+  const pins: Record<string, string> = {};
+  const view: View = { pins };
+  for (const [key, a] of Object.entries(axes)) {
+    const role = roles.find((r) => r === key);
+    if (role) view[role] = a.attribute;
+    else
+      pins[a.attribute] =
+        a.pin ??
+        data.axes.find(
+          (d) => d.attribute === a.attribute,
+        )!.values[0]!;
   }
-  for (const e of graph.edges) {
-    const a = indices.get(e.source),
-      b = indices.get(e.target);
-    if (!a || !b) continue;
-    neighbours.get(e.source)!.push(e.target);
-    neighbours.get(e.target)!.push(e.source);
-    const key = a.join(",");
-    if (key === b.join(",")) {
-      const list = internal.get(key) ?? [];
-      list.push(e);
-      internal.set(key, list);
-    }
-  }
-  const widths = xs.map(() => 160),
-    depths = ys.map(() => squareUp(110));
-  const bandHeights = ys.map(() =>
-    zs.map(() => 0),
-  );
-  const local = new Map<string, Point3>();
-  for (const [i] of xs.entries())
-    for (const [j] of ys.entries()) {
-      for (const [k] of zs.entries()) {
-        const key = [i, j, k].join(",");
-        const nodes = buckets.get(key);
-        if (!nodes) continue;
-        nodes.sort((a, b) => compare(a.id, b.id));
-        const edges = internal.get(key) ?? [];
-        let bottom = 0;
-        const placed = edges.length
-          ? planLayers({ nodes, edges }).graph
-              .nodes
-          : nodes.map((n) => {
-              const s = nodeSize(n);
-              const position = {
-                x: s.width / 2,
-                y: bottom + s.height / 2,
-                z: 0,
-              };
-              bottom +=
-                squareUp(s.height) + 2 * grid;
-              return { ...n, position };
-            });
-        const left = Math.min(
-            ...placed.map(
-              (n) =>
-                n.position.x -
-                nodeSize(n).width / 2,
-            ),
-          ),
-          top = Math.min(
-            ...placed.map(
-              (n) =>
-                n.position.y -
-                nodeSize(n).height / 2,
-            ),
-          );
-        bottom = 0;
-        for (const n of placed) {
-          const s = nodeSize(n),
-            x = n.position.x - left + 2 * grid,
-            y = n.position.y - top;
-          local.set(n.id, {
-            x,
-            y,
-            z: k * 220,
-          });
-          widths[i] = Math.max(
-            widths[i]!,
-            squareUp(x + s.width / 2 + 2 * grid),
-          );
-          bottom = Math.max(
-            bottom,
-            y + s.height / 2,
-          );
-        }
-        bandHeights[j]![k] = Math.max(
-          bandHeights[j]![k]!,
-          squareUp(bottom),
-        );
-      }
-    }
-  const boundaries = (sizes: number[]) => {
-    const ends = [0];
-    for (const size of sizes)
-      ends.push(ends[ends.length - 1]! + size);
-    return ends;
-  };
-  // At the opening angle a higher floor projects toward the preceding
-  // row. Reserve its projected displacement before the next occupied band.
-  const bandStarts = bandHeights.map(
-    (heights, j) => {
-      let top = 2 * grid;
-      let previous = -1;
-      const starts = heights.map(
-        (height, floor) => {
-          if (!height) return top;
-          if (previous >= 0)
-            top += squareUp(
-              ((floor - previous) *
-                220 *
-                Math.tan(0.48)) /
-                Math.cos(0.62),
-            );
-          const start = top;
-          top += height + 2 * grid;
-          previous = floor;
-          return start;
-        },
-      );
-      depths[j] = Math.max(depths[j]!, top);
-      return starts;
-    },
-  );
-  for (const [id, p] of local) {
-    const [, j, k] = indices.get(id)!;
-    local.set(id, {
-      ...p,
-      y: p.y + bandStarts[j]![k]!,
-    });
-  }
-  const x = boundaries(widths),
-    y = boundaries(depths),
-    rooms: Room[] = [];
-  // Use the first placement to measure neighbours on the free (sheet-y)
-  // axis. Reordering a band preserves its height and all slab boundaries.
-  const barycentres = new Map(
-    graph.nodes.map((n) => {
-      const ns = neighbours.get(n.id)!;
-      const sum = ns.reduce(
-        (total, id) =>
-          total +
-          y[indices.get(id)![1]]! +
-          local.get(id)!.y,
-        0,
-      );
-      return [n.id, sum / (ns.length || 1)];
+  const space = planSpace(data, view);
+  const sheet = (p: Point3) => ({
+    ...p,
+    y:
+      space.slabs.y[space.slabs.y.length - 1]! -
+      p.y,
+  });
+  const rooms = space.blocks.flatMap((b, block) =>
+    b.cells.map((c) => {
+      const lo = sheet(c.min),
+        hi = sheet(c.max);
+      return {
+        block,
+        caption: [
+          ...(view.column
+            ? [b.address.column]
+            : []),
+          ...(view.row ? [b.address.row] : []),
+        ].join(" / "),
+        members: c.nodes.map((n) => n.id),
+        occupied: !!c.nodes.length,
+        index: c.index,
+        values: c.values,
+        min: { ...lo, y: hi.y },
+        max: { ...hi, y: lo.y },
+      };
     }),
   );
-  for (const [key, nodes] of buckets) {
-    if (nodes.length < 2 || internal.has(key))
-      continue;
-    let top = Math.min(
-      ...nodes.map(
-        (n) =>
-          local.get(n.id)!.y -
-          nodeSize(n).height / 2,
-      ),
-    );
-    nodes.sort(
-      (a, b) =>
-        barycentres.get(a.id)! -
-          barycentres.get(b.id)! ||
-        compare(a.id, b.id),
-    );
-    for (const n of nodes) {
-      const height = nodeSize(n).height;
-      local.set(n.id, {
-        ...local.get(n.id)!,
-        y: top + height / 2,
-      });
-      top += squareUp(height) + 2 * grid;
-    }
-  }
-  for (const [i, v] of xs.entries())
-    for (const [j, w] of ys.entries())
-      for (const [k, u] of zs.entries())
-        rooms.push({
-          occupied: buckets.has(
-            [i, j, k].join(","),
-          ),
-          index: [i, j, k],
-          values: [v, w, u],
-          min: { x: x[i]!, y: y[j]!, z: k * 220 },
-          max: {
-            x: x[i + 1]!,
-            y: y[j + 1]!,
-            z: (k + 1) * 220,
-          },
-        });
   return {
     axes,
     rooms,
     graph: {
       edges: graph.edges,
       nodes: graph.nodes.map((n) => {
-        const [i, j] = indices.get(n.id)!,
-          p = local.get(n.id)!;
-        return {
-          ...n,
-          position: {
-            x: x[i]! + p.x,
-            y: y[j]! + p.y,
-            z: p.z,
-          },
-        };
+        const p = space.place(n);
+        return p
+          ? { ...n, position: sheet(p) }
+          : n;
       }),
     },
   };
 };
-
 const roomPlans = new WeakMap<
   Graph["nodes"],
   {
@@ -1255,9 +1056,7 @@ export const planRooms = (
   const known = roomPlans.get(graph.nodes);
   if (
     known?.edges === graph.edges &&
-    known.plan.axes.x === axes.x &&
-    known.plan.axes.y === axes.y &&
-    known.plan.axes.z === axes.z
+    known.plan.axes === axes
   )
     return known.plan;
   const plan = computeRooms(graph, axes);

@@ -481,7 +481,20 @@ export const sheetProperties = <A>(
   const node = nodes[0],
     edge = edges[0];
   const axisRows = () =>
-    axes.flatMap((dir) => {
+    [
+      ...new Set([
+        ...Object.keys(flow.rooms?.axes ?? {}),
+        ...[
+          "x",
+          "y",
+          "z",
+          "column",
+          "row",
+        ].filter(
+          (role) => !flow.rooms?.axes[role],
+        ),
+      ]),
+    ].flatMap((dir) => {
       if (!flow.rooms) return [];
       const axis = flow.rooms.axes[dir] ?? {
         attribute: "",
@@ -510,8 +523,15 @@ export const sheetProperties = <A>(
           ),
           choice(
             dir + " 軸の文字",
-            dir,
-            axes.map((v) => [v, v]),
+            dir.startsWith("pin:") ? "pin" : dir,
+            [
+              "x",
+              "y",
+              "z",
+              "column",
+              "row",
+              "pin",
+            ].map((v) => [v, v]),
             (v) =>
               change(
                 roomAxes((a) =>
@@ -519,7 +539,10 @@ export const sheetProperties = <A>(
                     Object.entries(a).map(
                       ([key, val]) => [
                         key === dir
-                          ? v
+                          ? v === "pin"
+                            ? "pin:" +
+                              axis.attribute
+                            : v
                           : key === v
                             ? dir
                             : key,

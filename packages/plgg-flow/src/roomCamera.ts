@@ -1,13 +1,13 @@
 import {
   project,
+  worldDelta,
   type Camera,
   type Point3,
 } from "plgg-board";
 import {
-  planRooms,
   type Direction,
-  type Room,
   type RoomLayout,
+  roomFor,
 } from "plgg-flow/autoLayout";
 import type { Flow } from "./model";
 export const directions: readonly Direction[] = [
@@ -15,23 +15,6 @@ export const directions: readonly Direction[] = [
   "y",
   "z",
 ];
-const layoutLimits = new WeakMap<
-  RoomLayout,
-  Point3
->();
-export const limitsOf = (layout: RoomLayout) => {
-  const known = layoutLimits.get(layout);
-  if (known) return known;
-  const limits = { x: 0, y: 0, z: 0 };
-  for (const room of layout.rooms)
-    for (const axis of directions)
-      limits[axis] = Math.max(
-        limits[axis],
-        room.max[axis],
-      );
-  layoutLimits.set(layout, limits);
-  return limits;
-};
 export const roomFilter = (flow: Flow) =>
   flow.roomHover
     ? {
@@ -45,18 +28,6 @@ export const inSlab = (
 ) =>
   Object.entries(filter).every(
     ([key, value]) => values[key] === value,
-  );
-export const cornersOf = (
-  room: Pick<Room, "min" | "max">,
-) =>
-  [room.min.x, room.max.x].flatMap((x) =>
-    [room.min.y, room.max.y].flatMap((y) =>
-      [room.min.z, room.max.z].map((z) => ({
-        x,
-        y,
-        z,
-      })),
-    ),
   );
 export const faceAxes = (
   camera: Camera,
@@ -76,124 +47,109 @@ export const faceAxes = (
   if (hidden === "z") return ["x", "y"];
   return undefined;
 };
-export const faceTable = (flow: Flow): Flow => {
-  if (!flow.rooms) return flow;
-  if (flow.camera.perspective)
-    return faceTable({
-      ...flow,
-      camera: { ...flow.camera, perspective: 0 },
-    });
-  // As the last twelve degrees collapse the hidden axis, open up
-  // the slots of the table in its two remaining world coordinates.
-  const depth = project(flow.camera);
+export const roomStack = (
+  layout: RoomLayout,
+  camera: Camera,
+  pins: Flow["roomPins"] = {},
+) => {
+  const face = faceAxes(camera);
   const hidden = directions.find(
-    (d) =>
-      d !== "z" &&
-      Math.abs(
-        depth({ x: 0, y: 0, z: 0, [d]: 1 }).z,
-      ) >= Math.cos(Math.PI / 15),
+    (d) => face && !face.includes(d),
   );
-  if (!hidden) return flow;
-  const across = hidden === "x" ? "z" : "x";
-  const down = hidden === "y" ? "z" : "y";
-  const x = flow.rooms.axes[across],
-    y = flow.rooms.axes[down];
-  const plan = planRooms(flow, {
-    ...(x && { x }),
-    ...(y && { y }),
-  });
-  const angle = Math.acos(
-    Math.min(
-      1,
-      Math.abs(
-        depth({ x: 0, y: 0, z: 0, [hidden]: 1 })
-          .z,
-      ),
-    ),
+  if (!hidden) return;
+  const index = directions.indexOf(hidden);
+  const nearHigh =
+    project(camera)({
+      x: 0,
+      y: 0,
+      z: 0,
+      [hidden]: 1,
+    }).z > 0;
+  const increasing =
+    hidden === "y" ? !nearHigh : nearHigh;
+  const last = layout.rooms.reduce(
+    (max, r) => Math.max(max, r.index[index]!),
+    0,
   );
-  if (angle > 1e-8) {
-    const f = 1 - angle / (Math.PI / 15);
-    const t = f * f * (3 - 2 * f);
-    const orient = (
-      axis: Direction,
-      screen: "x" | "y",
-    ) => {
-      const p = { x: 0, y: 0, z: 0, [axis]: 1 };
-      const q = project({
-        ...flow.camera,
-        perspective: 0,
-        origin: { x: 0, y: 0 },
-      })(p);
-      return Math.sign(q[screen]) || 1;
-    };
-    const sx = orient(across, "x"),
-      sy = orient(down, "y");
-    const blend = (
-      world: Point3,
-      table: Point3,
-    ) => ({
-      ...world,
-      [across]:
-        world[across] * (1 - t) +
-        table.x * sx * t,
-      [down]:
-        world[down] * (1 - t) + table.y * sy * t,
-    });
-    const cells = new Map(
-      plan.rooms.map((r) => [
-        JSON.stringify(r.index.slice(0, 2)),
-        r,
-      ]),
-    );
-    return {
-      ...flow,
-      nodes: flow.nodes.map((n, i) => ({
-        ...n,
-        position: blend(
-          n.position,
-          plan.graph.nodes[i]!.position,
+  const axis = layout.axes[hidden];
+  const pin = axis && pins[axis.attribute];
+  return {
+    hidden,
+    index,
+    pin,
+    margin: pin === undefined ? 12 * last : 0,
+    offset: (level: number) =>
+      pin !== undefined
+        ? 0
+        : 12 *
+          (increasing ? last - level : level),
+  };
+};
+export const roomFaceView = (
+  flow: Flow,
+): Flow => {
+  if (!flow.rooms) return flow;
+  const camera = flow.camera.perspective
+    ? { ...flow.camera, perspective: 0 }
+    : flow.camera;
+  const layout = flow.rooms;
+  const stack = roomStack(
+    layout,
+    camera,
+    flow.roomPins,
+  );
+  if (!stack) {
+    if (
+      Object.keys(layout.axes).some((key) =>
+        key.startsWith("pin:"),
+      )
+    )
+      return {
+        ...flow,
+        camera,
+        nodes: flow.nodes.map((n) =>
+          roomFor(layout, n)
+            ? n
+            : { ...n, hidden: true },
         ),
-      })),
-      rooms: {
-        ...flow.rooms,
-        rooms: flow.rooms.rooms.map((r) => {
-          const cell = cells.get(
-            JSON.stringify([
-              r.index[directions.indexOf(across)],
-              r.index[directions.indexOf(down)],
-            ]),
-          );
-          return cell
-            ? {
-                ...r,
-                min: blend(r.min, cell.min),
-                max: blend(r.max, cell.max),
-              }
-            : r;
-        }),
-      },
-    };
+      };
+    return camera === flow.camera
+      ? flow
+      : { ...flow, camera };
   }
+  const { index, pin } = stack;
   return {
     ...flow,
-    ...plan.graph,
-    rooms: {
-      axes: plan.axes,
-      tableHidden: flow.rooms.axes[hidden],
-      rooms: plan.rooms,
-      tableAxes: [across, down, hidden],
-    },
-    camera: {
-      ...flow.camera,
-      yaw: 0,
-      pitch: 0,
-      perspective: 0,
-    },
+    camera,
+    nodes: flow.nodes.map((n) => {
+      const room = roomFor(layout, n);
+      if (!room) return { ...n, hidden: true };
+      const offset = stack.offset(
+        room.index[index]!,
+      );
+      const delta = worldDelta(camera, {
+        x: offset,
+        y: -offset,
+      });
+      return {
+        ...n,
+        roomReceded: offset !== 0,
+        hidden:
+          !!n.hidden ||
+          (pin !== undefined &&
+            pin !== room.values[index]),
+        position: {
+          x: n.position.x + delta.x,
+          y: n.position.y + delta.y,
+          z: n.position.z + delta.z,
+        },
+      };
+    }),
   };
 };
 export const movingRooms = (flow: Flow): Flow => {
   const motion = flow.roomMotion;
-  if (!motion) return faceTable(flow);
+  if (!motion) return roomFaceView(flow);
   const { from, to, progress: t } = motion;
   const mix = (a: number, b: number) =>
     a + (b - a) * t;
@@ -236,12 +192,12 @@ export const movingRooms = (flow: Flow): Flow => {
     },
   };
   if (motion.duration === 350)
-    return faceTable({ ...flow, camera });
+    return roomFaceView({ ...flow, camera });
   const before = new Map(
     from.nodes.map((n) => [n.id, n.position]),
   );
   const rooms = to.rooms;
-  return faceTable({
+  return roomFaceView({
     ...flow,
     camera,
     nodes: to.nodes.map((n) => ({
