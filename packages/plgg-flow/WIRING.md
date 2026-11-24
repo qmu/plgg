@@ -1041,3 +1041,26 @@ router re-routing the moved node's own wires (6–10 ms).
 Open: frame budget of 8 ms not yet met (router: own wires of the moved
 node); audit `slow-drag` 12; `drag-jump-neighbour` 18; static moderate
 53 (`siblings-cross` 18, `wiggly` 14).
+
+## Round 21 review — adopted; the named scenes read better, step in dense sheets does not
+
+Reviewer first tightened the audit: on a fat span a wire that strays
+more than 30u outside the box of its own two nodes is a moderate
+`excursion` (the diamond humps were only a note before).
+
+Seen on the contact sheet: `pipelineSkips` 4 → 2 crossings (the
+two-page minimum), arcs nested by span; `diamonds` curve a→f / c→d
+pass M as one S inside their span; `selfAndMulti` bundles are centred
+on the chord, C→B enters B from below, no crossings; `siblings-cross`
+18 → 2 (both in `overlapping`).
+
+Not good enough, carried to round 22:
+- step style in dense sheets (`grid5x4` 15 moderate, `clusters` 8):
+  `wiggly` 14 → 19, `double-cross` 2 → 6.
+- `siblings-disagree-on-side` 0 → 10: diamonds/step sends a→M out of
+  a's bottom while a→d, a→f leave its right. Allowed only when the
+  facing side is blocked; here it is a workaround.
+- the curve bundle is a flat-topped hexagon, not a lens of arcs.
+- drag: `drag-jump` 5 → 8, `drag-jump-neighbour` 18 → 20; clusters
+  a1→a4 still flips sides (102u) when a3 narrows the passage.
+- total moderate 93 → 93: the gain in looks is not a gain in count.

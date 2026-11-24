@@ -6,6 +6,9 @@ import {
   simplify,
   free,
   crossesItself,
+  rounded,
+  vertical,
+  normal,
   type Box,
 } from "plgg-flow/wireGeometry";
 import {
@@ -84,6 +87,44 @@ const cuts = (a: Point[], b: Point[]) => {
         distance(required(a[v.i - 1]), v.p),
   );
 };
+// Curves can cross obliquely between samples.
+const curveCuts = (p: Point[], q: Point[]) => {
+  const result: Cut[] = [];
+  for (let i = 1; i < p.length; i++) {
+    const a = required(p[i - 1]),
+      b = required(p[i]);
+    for (let j = 1; j < q.length; j++) {
+      const c = required(q[j - 1]),
+        d = required(q[j]);
+      if (
+        Math.max(a.x, b.x) < Math.min(c.x, d.x) ||
+        Math.min(a.x, b.x) > Math.max(c.x, d.x) ||
+        Math.max(a.y, b.y) < Math.min(c.y, d.y) ||
+        Math.min(a.y, b.y) > Math.max(c.y, d.y)
+      )
+        continue;
+      const dx = b.x - a.x,
+        dy = b.y - a.y,
+        ux = d.x - c.x,
+        uy = d.y - c.y,
+        det = dx * uy - dy * ux;
+      if (!det) continue;
+      const f =
+          ((c.x - a.x) * uy - (c.y - a.y) * ux) /
+          det,
+        g =
+          ((c.x - a.x) * dy - (c.y - a.y) * dx) /
+          det;
+      if (f > 0 && f < 1 && g > 0 && g < 1)
+        result.push({
+          i,
+          j,
+          p: { x: a.x + dx * f, y: a.y + dy * f },
+        });
+    }
+  }
+  return result;
+};
 const near = (
   a: Point[],
   b: Point[],
@@ -101,14 +142,34 @@ const join = (
   after: Point[],
   at: Point,
   radius: number,
+  curve: boolean,
 ) => {
   if (!before.length) return after;
+  if (curve) {
+    // Leave enough tangent length on both curves to round their junction.
+    let left = before.length - 1,
+      right = 0;
+    while (
+      left > 1 &&
+      distance(required(before[left]), at) <
+        radius
+    )
+      left--;
+    while (
+      right + 2 < after.length &&
+      distance(required(after[right]), at) <
+        radius
+    )
+      right++;
+    before = before.slice(0, left + 1);
+    after = after.slice(right);
+  }
   const a = required(before[before.length - 1]),
     b = required(after[0]),
     u = distance(at, a),
     v = distance(at, b);
   const r = Math.min(radius, u, v);
-  if (r < 2) return [];
+  if (r < 0.5) return [];
   const arc = Array.from(
     { length: 7 },
     (_, i) => {
@@ -135,6 +196,7 @@ const splice = (
   start: Cut,
   end: Cut,
   radius: number,
+  curve: boolean,
 ) => {
   const middle = q.slice(start.j, end.j);
   if (!middle.length)
@@ -147,40 +209,122 @@ const splice = (
     middle,
     start.p,
     radius,
+    curve,
   );
   return head.length
-    ? join(head, p.slice(end.i), end.p, radius)
+    ? join(
+        head,
+        p.slice(end.i),
+        end.p,
+        radius,
+        curve,
+      )
     : [];
 };
 // Adjacent fillets need a visible straight or they read like a diagonal.
 const distinctBends = (path: Point[]) => {
-  let span = 0;
+  let span = 0,
+    along = 0;
   for (let j = 1; j < path.length; j++) {
     const p = required(path[j - 1]),
       q = required(path[j]),
       d = distance(p, q);
-    if (
-      (Math.abs(p.x - q.x) < 0.001 ||
-        Math.abs(p.y - q.y) < 0.001) &&
-      d >= 6
-    )
-      span = 0;
-    else span += d;
+    const transverse = Math.min(
+      Math.abs(p.x - q.x),
+      Math.abs(p.y - q.y),
+    );
+    // A long oblique chord between fillets would be a slanted step.
+    if (transverse > d * 0.1 && d > 7)
+      return false;
+    along =
+      transverse <= 0.15 * d ? along + d : 0;
+    span = along >= 6 ? 0 : span + d;
     if (span > 32) return false;
   }
   return true;
+};
+// After exchanging prefixes, slide a conflicting elbow by one pitch
+// or collapse a redundant jog at the opposite socket.
+const trimJog = (
+  wire: Wire,
+  atSource: boolean,
+  radius: number,
+  boxes: Box[],
+) => {
+  const path = atSource
+    ? simplify(wire.points)
+    : simplify([...wire.points].reverse());
+  const socket = atSource
+      ? wire.source
+      : wire.target,
+    side = atSource
+      ? wire.sourceSide
+      : wire.targetSide;
+  const along = vertical(side) ? "y" : "x",
+    across = along === "x" ? "y" : "x",
+    sign = normal[side][along];
+  const candidates: Point[][] = [];
+  let transverse = 0;
+  for (let j = 1; j < path.length; j++) {
+    const p = required(path[j - 1]),
+      q = required(path[j]);
+    if (
+      p[along] === q[along] &&
+      Math.abs(q[across] - p[across]) > 4
+    )
+      transverse++;
+    if (transverse > 2) break;
+    if (
+      !transverse ||
+      p[across] !== q[across] ||
+      (q[along] - p[along]) * sign < 24
+    )
+      continue;
+    for (const pitch of transverse === 1
+      ? [-10, 10]
+      : [0]) {
+      const lane =
+        p[along] - (radius + pitch) * sign;
+      if ((lane - socket[along]) * sign < 18)
+        continue;
+      const head = rounded(
+        [
+          socket,
+          { ...socket, [along]: lane },
+          { ...p, [along]: lane },
+          q,
+        ],
+        radius,
+      );
+      const joined = [
+        ...head,
+        ...path.slice(j + 1),
+      ];
+      if (
+        free(head, boxes) &&
+        !crossesItself(joined)
+      )
+        candidates.push(
+          atSource ? joined : joined.reverse(),
+        );
+    }
+  }
+  return candidates;
 };
 // Swap only the portions of two lanes enclosed by successive crossings.
 export const mendFans = (
   original: Wire[],
   boxes: Box[],
   radius: number,
+  curve = false,
 ) => {
   const wires = [...original],
     profiles = wires.map(profile);
   const peers = neighbourIndex(profiles);
   const paths = wires.map((w) =>
-    w.edge.route === "step" &&
+    (curve
+      ? !w.edge.route || w.edge.route === "curve"
+      : w.edge.route === "step") &&
     !w.edge.waypoints?.length &&
     w.edge.source !== w.edge.target
       ? simplify(w.points)
@@ -214,11 +358,15 @@ export const mendFans = (
           ),
         );
         // Reversing travel order preserves all interior intersections.
-        const crossings = cuts(p, other);
         if (
-          crossings.length < (shared ? 1 : 2) ||
+          (curve && !shared) ||
           conflict(a, b, 8) < 8
         )
+          continue;
+        const crossings = curve
+          ? curveCuts(p, other)
+          : cuts(p, other);
+        if (crossings.length < (shared ? 1 : 2))
           continue;
         const trySwap = (
           p: Point[],
@@ -269,7 +417,7 @@ export const mendFans = (
                 ...q.slice(start.j, end.j),
                 end.p,
               ];
-            const cap = shared ? 32 : 14;
+            const cap = shared ? 48 : 14;
             if (
               !near(m, n, cap) ||
               !near(n, m, cap)
@@ -281,6 +429,7 @@ export const mendFans = (
               start,
               end,
               radius,
+              curve,
             );
             const y = splice(
               q,
@@ -292,12 +441,14 @@ export const mendFans = (
               },
               { ...end, i: end.j, j: end.i },
               radius,
+              curve,
             );
             if (
               !x.length ||
               !y.length ||
-              !distinctBends(x) ||
-              !distinctBends(y) ||
+              (!curve &&
+                (!distinctBends(x) ||
+                  !distinctBends(y))) ||
               !free(x, boxes) ||
               !free(y, boxes) ||
               crossesItself(x) ||
@@ -323,58 +474,115 @@ export const mendFans = (
               );
             if (reverseP) x.reverse();
             if (reverseQ) y.reverse();
-            const u = profile(make(a.wire, x)),
-              v = profile(make(b.wire, y));
-            const gain =
-              conflict(a, b) - conflict(u, v);
-            if (gain <= 1) continue;
-            const neighbours = new Set(
-              [u, v, a, b].flatMap((p) =>
-                peers.query(p).map((r) => r.i),
+            const originalU = profile(
+                make(a.wire, x),
               ),
-            );
-            const delta = [...neighbours].reduce(
-              (sum, k) =>
-                k === i || k === j
-                  ? sum
-                  : sum +
-                    conflict(
-                      u,
-                      required(profiles[k]),
-                    ) +
-                    conflict(
-                      v,
-                      required(profiles[k]),
-                    ) -
-                    conflict(
-                      a,
-                      required(profiles[k]),
-                    ) -
-                    conflict(
-                      b,
-                      required(profiles[k]),
+              originalV = profile(
+                make(b.wire, y),
+              );
+            type Swap = [
+              typeof originalU,
+              typeof originalV,
+              Point[],
+              Point[],
+            ];
+            const options =
+              function* (): Generator<Swap> {
+                yield [
+                  originalU,
+                  originalV,
+                  x,
+                  y,
+                ];
+                if (!shared || curve) return;
+                for (const trimmed of trimJog(
+                  originalU.wire,
+                  reverseP,
+                  radius,
+                  boxes,
+                ))
+                  yield [
+                    profile(
+                      make(a.wire, trimmed),
                     ),
-              0,
-            );
-            if (
-              gain <=
-              delta +
-                u.turn +
-                v.turn -
-                a.turn -
-                b.turn
-            )
-              continue;
-            wires[i] = u.wire;
-            wires[j] = v.wire;
-            peers.update(i, u);
-            peers.update(j, v);
-            profiles[i] = u;
-            profiles[j] = v;
-            changed = true;
-            paths[i] = x;
-            paths[j] = y;
-            return true;
+                    originalV,
+                    trimmed,
+                    y,
+                  ];
+                for (const trimmed of trimJog(
+                  originalV.wire,
+                  reverseQ,
+                  radius,
+                  boxes,
+                ))
+                  yield [
+                    originalU,
+                    profile(
+                      make(b.wire, trimmed),
+                    ),
+                    x,
+                    trimmed,
+                  ];
+              };
+            for (const [
+              u,
+              v,
+              px,
+              py,
+            ] of options()) {
+              const gain =
+                conflict(a, b) - conflict(u, v);
+              if (gain <= 1) continue;
+              const neighbours = new Set(
+                [u, v, a, b].flatMap((p) =>
+                  peers.query(p).map((r) => r.i),
+                ),
+              );
+              const delta = [
+                ...neighbours,
+              ].reduce(
+                (sum, k) =>
+                  k === i || k === j
+                    ? sum
+                    : sum +
+                      conflict(
+                        u,
+                        required(profiles[k]),
+                      ) +
+                      conflict(
+                        v,
+                        required(profiles[k]),
+                      ) -
+                      conflict(
+                        a,
+                        required(profiles[k]),
+                      ) -
+                      conflict(
+                        b,
+                        required(profiles[k]),
+                      ),
+                0,
+              );
+              if (
+                gain <=
+                delta +
+                  u.turn +
+                  v.turn -
+                  a.turn -
+                  b.turn
+              )
+                continue;
+              wires[i] = u.wire;
+              wires[j] = v.wire;
+              peers.update(i, u);
+              peers.update(j, v);
+              profiles[i] = u;
+              profiles[j] = v;
+              changed = true;
+              paths[i] = px;
+              paths[j] = py;
+              return true;
+            }
           }
           return false;
         };

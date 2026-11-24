@@ -179,6 +179,7 @@ const softCorridor = (
     left: number;
     right: number;
     push: number;
+    obstacle: Box;
   }[] = [];
   for (const q of boxes) {
     const pad = Math.min(
@@ -203,10 +204,85 @@ const softCorridor = (
         : Math.max(0, bottom + pad);
     if (!push) continue;
     if (left <= low || right >= high) return;
-    bands.push({ left, right, push });
+    bands.push({
+      left,
+      right,
+      push,
+      obstacle: q,
+    });
   }
   if (!bands.length)
     return rise ? undefined : [s, t];
+  // Ease into a clear level beside the obstacle without overshooting either socket.
+  if (
+    bands.length === 1 &&
+    Math.abs(rise) > 2 * clearance
+  ) {
+    const band = required(bands[0]);
+    const obstacle = band.obstacle;
+    if (
+      !boxes.some(
+        (q) =>
+          q !== obstacle &&
+          (upright ? q.t : q.l) < high &&
+          (upright ? q.b : q.r) > low &&
+          (upright ? q.l : q.t) <
+            Math.max(s[across], t[across]) &&
+          (upright ? q.r : q.b) >
+            Math.min(s[across], t[across]),
+      )
+    ) {
+      const fromLow =
+        advance > 0 ? s[across] : t[across];
+      const fromHigh =
+        advance > 0 ? t[across] : s[across];
+      const near =
+        (upright ? obstacle.l : obstacle.t) -
+        clearance;
+      const far =
+        (upright ? obstacle.r : obstacle.b) +
+        clearance;
+      const level =
+        fromLow < fromHigh ? near - 1 : far + 1;
+      if (
+        level > Math.min(fromLow, fromHigh) &&
+        level < Math.max(fromLow, fromHigh)
+      ) {
+        const ease = (f: number) =>
+          f * f * (3 - 2 * f);
+        // Shift the inflection of a single smoothstep until its value
+        // at the far rim is the required clearance level.
+        const height =
+          (level - fromLow) /
+          (fromHigh - fromLow);
+        let lower = 0,
+          upper = 1;
+        for (let i = 0; i < 12; i++) {
+          const mid = (lower + upper) / 2;
+          if (ease(mid) < height) lower = mid;
+          else upper = mid;
+        }
+        const rim =
+          (band.right - low) / (high - low);
+        const t = Math.max(1e-6, lower);
+        const weight =
+          (rim * (1 - t)) / (t * (1 - rim));
+        return Array.from(
+          { length: 65 },
+          (_, i) => {
+            const x =
+              s[along] + (advance * i) / 64;
+            const f = (x - low) / (high - low);
+            const y =
+              fromLow +
+              (fromHigh - fromLow) *
+                ease(f / (f + weight * (1 - f)));
+            return upright ? pt(y, x) : pt(x, y);
+          },
+        );
+      }
+    }
+  }
   // A single smooth arch can clear several cards on the same level.
   if (Math.abs(rise) < 1 && bands.length > 1) {
     const arch = (x: number) => {
@@ -285,8 +361,69 @@ const softCorridor = (
         : pt(x, baseline(x) + offset);
     });
 };
-export type Base = Wire & { spine?: Point[] };
+export type Base = Wire & {
+  spine?: Point[];
+  settled?: boolean;
+};
 export type Socket = Point3 & { side: Side };
+// Nested page arcs turn from the same stem. The deeper arc keeps its
+// vertical tangent longer, so a shallow sibling peels away inside it.
+export const archStep = (
+  s: Socket,
+  t: Socket,
+  level: number,
+  radius: number,
+) => {
+  const along = vertical(s.side) ? "y" : "x",
+    across = along === "x" ? "y" : "x";
+  if (!radius)
+    return [
+      s,
+      { ...s, [along]: level },
+      { ...t, [along]: level },
+      t,
+    ];
+  const shoulder = (p: Socket, q: Socket) => {
+    const stem = move(p, p.side, 14);
+    const width =
+      Math.sign(q[across] - p[across]) *
+      Math.min(
+        radius,
+        Math.abs(q[across] - p[across]) / 3,
+      );
+    const depth = level - stem[along];
+    const count = Math.max(
+      6,
+      Math.ceil(
+        Math.max(
+          Math.abs(depth),
+          Math.abs(width),
+        ) / 3,
+      ),
+    );
+    return [
+      p,
+      ...Array.from(
+        { length: count + 1 },
+        (_, i) => {
+          const a = (Math.PI * i) / (2 * count);
+          return {
+            ...stem,
+            [along]:
+              stem[along] + depth * Math.sin(a),
+            [across]:
+              stem[across] +
+              width * (1 - Math.cos(a)),
+          };
+        },
+      ),
+    ];
+  };
+  return [
+    ...shoulder(s, t),
+    ...shoulder(t, s).reverse(),
+  ];
+};
 export const archCurve = (
   s: Socket,
   t: Socket,
@@ -557,8 +694,8 @@ const routeBase = (
     if (free(path, boxes)) return make(path);
   }
   if (edge.source === edge.target) {
-    const l = move(s, s.side, 32),
-      r = move(t, t.side, 32);
+    const l = move(s, s.side, step ? 18 : 32),
+      r = move(t, t.side, step ? 18 : 32);
     const corner = vertical(s.side)
       ? pt(r.x, l.y)
       : pt(l.x, r.y);
@@ -647,6 +784,53 @@ const routeBase = (
     }
   }
   const along = axis === "x" ? "y" : "x";
+  // Enter and leave a blocked straight run on short, equal stems.
+  if (
+    step &&
+    opposite &&
+    Math.abs(s[axis] - t[axis]) < 1 &&
+    forward > 80
+  ) {
+    const barriers = padded.filter(
+      (q) =>
+        q.id !== edge.source &&
+        q.id !== edge.target &&
+        cuts(u, v, q),
+    );
+    if (barriers.length >= 2) {
+      const levels = [
+        Math.min(
+          ...barriers.map((q) =>
+            axis === "x" ? q.l : q.t,
+          ),
+        ),
+        Math.max(
+          ...barriers.map((q) =>
+            axis === "x" ? q.r : q.b,
+          ),
+        ),
+      ].sort(
+        (a, b) =>
+          Math.abs(a - s[axis]) -
+          Math.abs(b - s[axis]),
+      );
+      const left = move(s, s.side, 24),
+        right = move(t, t.side, 24);
+      for (const level of levels) {
+        const spine = [
+          s,
+          left,
+          { ...left, [axis]: level },
+          { ...right, [axis]: level },
+          right,
+          t,
+        ];
+        const arc = rounded(spine, radius);
+        if (safe(arc))
+          return { ...make(arc, 4), spine };
+      }
+    }
+  }
   if (s.side === t.side || (step && opposite)) {
     let mid = (u[along] + v[along]) / 2;
     if (s.side === t.side) {

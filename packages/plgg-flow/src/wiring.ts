@@ -1,3 +1,4 @@
+import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
   outline,
@@ -17,6 +18,8 @@ import { type Edge, type Graph } from "./model";
 import {
   required,
   distance,
+  vertical,
+  normal,
   obstacles,
   move,
   free,
@@ -28,6 +31,8 @@ import {
   boundsIndex,
 } from "plgg-flow/wireCorridors";
 import {
+  archStep,
+  archCurve,
   basePath,
   type Base,
 } from "plgg-flow/wireBase";
@@ -237,17 +242,56 @@ export const wireGraph = (
           t,
           clearance,
           radius,
+          a.depth,
+          Boolean(a.direct && b.count === 1),
           walls.map(boxId),
         ]);
         const build = () => {
-          const wire = basePath(
-            edge,
-            s,
-            t,
-            walls,
-            clearance,
-            radius,
-          );
+          let arch;
+          if (a.depth && a.side === b.side) {
+            const axis = vertical(a.side)
+              ? "y"
+              : "x";
+            const sign = normal[a.side][axis];
+            const level =
+              sign *
+              (Math.max(
+                sign * s[axis],
+                sign * t[axis],
+              ) +
+                a.depth);
+            const path =
+              edge.route === "step"
+                ? archStep(s, t, level, radius)
+                : archCurve(s, t, level);
+            if (free(path, walls))
+              arch = {
+                settled: true,
+                ...materialize(
+                  edge,
+                  s,
+                  t,
+                  path,
+                  2,
+                ),
+              };
+          }
+          const wire: Base =
+            arch ??
+            basePath(
+              edge,
+              s,
+              t,
+              walls,
+              clearance,
+              radius,
+            );
+          if (
+            a.direct &&
+            b.count === 1 &&
+            wire.spine?.length === 4
+          )
+            wire.settled = true;
           const shape =
             JSON.stringify([
               edge.source,
@@ -255,6 +299,7 @@ export const wireGraph = (
               edge.route,
               s,
               t,
+              wire.settled,
               wire.corners,
               wire.spine,
               radius,
@@ -292,33 +337,32 @@ export const wireGraph = (
           ),
         ),
       });
-      if (
-        plain &&
-        query(
-          expand(plain.bounds, clearance),
-        ).every(
-          (q) =>
-            q.id === edge.source ||
-            q.id === edge.target ||
-            free(plain.wire.points, [
-              inflate(q, clearance),
-            ]),
-        )
-      )
+      if (plain && edge.source === edge.target)
         return member(plain);
+      // A curve depends on the walls swept by its successive clearance
+      // envelopes. A blocked step also needs both walls of its lane.
+      let active = plain ? own : nearby;
+      let result = plain ?? route(active);
       for (;;) {
-        const result = route(nearby);
         const extra = query(
           expand(result.bounds, clearance),
         ).filter(
           (q) =>
-            !nearby.includes(q) &&
+            !active.includes(q) &&
             !free(result.wire.points, [
               inflate(q, clearance),
             ]),
         );
         if (!extra.length) return member(result);
-        nearby.push(...extra);
+        if (
+          result === plain &&
+          edge.route === "step"
+        )
+          active = nearby;
+        for (const wall of extra)
+          if (!active.includes(wall))
+            active.push(wall);
+        result = route(active);
       }
     },
   );

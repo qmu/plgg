@@ -1,3 +1,4 @@
+import type { Base, Socket } from "./wireBase";
 import type { Point } from "plgg-board";
 import type { Wire } from "./wiring";
 import type { planPorts } from "./wirePorts";
@@ -7,6 +8,7 @@ import {
   profile,
 } from "plgg-flow/wireInteraction";
 import {
+  normal,
   bezier,
   frame,
   free,
@@ -287,4 +289,253 @@ export const nestedFans = (
     }
   }
   return wires;
+};
+
+// Leave room for the next bend when a short channel compresses the fan.
+export const busJog = (
+  socket: Socket,
+  offset: number,
+  radius: number,
+  reach: number,
+  setback = 0,
+) => {
+  if (!offset || reach <= 0) return [socket];
+  const r = Math.min(
+    radius,
+    Math.abs(offset) / 2,
+    reach / 4,
+  );
+  const stem =
+    14 + Math.min(reach - 2 * r, setback);
+  const end = stem + 2 * r;
+  const points: Point[] = [socket];
+  for (let i = 0; i <= 6; i++) {
+    const angle = (i * Math.PI) / 12;
+    points.push(
+      move(
+        socket,
+        socket.side,
+        stem + r * Math.sin(angle),
+        Math.sign(offset) *
+          r *
+          (1 - Math.cos(angle)),
+      ),
+    );
+  }
+  for (let i = 6; i >= 0; i--) {
+    const angle = (i * Math.PI) / 12;
+    points.push(
+      move(
+        socket,
+        socket.side,
+        end - r * Math.sin(angle),
+        offset -
+          Math.sign(offset) *
+            r *
+            (1 - Math.cos(angle)),
+      ),
+    );
+  }
+  return points;
+};
+
+export const nestLayerFans = (
+  wires: Wire[],
+  bases: Base[],
+  ports: ReturnType<typeof planPorts>,
+  fans: Iterable<{ i: number; start: boolean }[]>,
+  walls: Box[][],
+  radius: number,
+) => {
+  // Across a layer gap, order the middle legs and the socket offsets
+  // together. An outer sibling turns first when viewed from the hub.
+  for (const fan of fans)
+    for (const direction of [-1, 1]) {
+      if (fan.length < 3) continue;
+      const group = fan.filter(({ i, start }) => {
+        const w = required(bases[i]),
+          p = start ? w.source : w.target,
+          q = start ? w.target : w.source;
+        const axis = vertical(
+          start ? w.sourceSide : w.targetSide,
+        )
+          ? "x"
+          : "y";
+        return (
+          Math.sign(q[axis] - p[axis]) ===
+          direction
+        );
+      });
+      if (group.length < 3 || !radius) continue;
+      const initial = required(group[0]);
+
+      const base = required(bases[initial.i]);
+      const root = initial.start
+          ? base.source
+          : base.target,
+        face = initial.start
+          ? base.sourceSide
+          : base.targetSide;
+      const along = vertical(face) ? "y" : "x",
+        across = along === "x" ? "y" : "x";
+      const extent =
+        ((initial.start
+          ? base.target
+          : base.source)[along] -
+          root[along]) *
+        normal[face][along];
+      if (
+        extent < 95 ||
+        !group.every(({ i, start }) => {
+          const w = required(bases[i]),
+            peer = start ? w.target : w.source;
+          return (
+            w.edge.route === "step" &&
+            w.spine?.length === 4 &&
+            Math.abs(
+              (peer[along] - root[along]) *
+                normal[face][along] -
+                extent,
+            ) < 2
+          );
+        })
+      )
+        continue;
+      const original = group.map(({ i }) =>
+        profile(required(wires[i])),
+      );
+      const cost = (shapes: typeof original) =>
+        shapes.reduce(
+          (sum, a, i) =>
+            sum +
+            shapes
+              .slice(0, i)
+              .reduce(
+                (n, b) => n + conflict(a, b),
+                0,
+              ),
+          0,
+        );
+      const before = cost(original);
+      if (before < 45) continue;
+      let best = before,
+        chosen: typeof original | undefined;
+      const ids = new Set(group.map((e) => e.i));
+      const outside = wires
+        .filter((_, i) => !ids.has(i))
+        .map(profile);
+      for (const offset of [
+        0, -10, 10, -20, 20,
+      ]) {
+        const candidates = group.map(
+          ({ start, i }) => {
+            const w = required(bases[i]),
+              plan = required(ports.plans[i]);
+            const s = {
+                ...w.source,
+                side: w.sourceSide,
+              },
+              t = {
+                ...w.target,
+                side: w.targetSide,
+              };
+            const far = start ? t : s,
+              rank = start
+                ? plan.a.rank
+                : plan.b.rank;
+            const channel =
+              root[along] +
+              normal[face][along] *
+                (extent / 2 +
+                  offset -
+                  Math.sign(
+                    far[across] - root[across],
+                  ) *
+                    rank *
+                    10);
+            const left = busJog(
+              s,
+              plan.a.rank * 10,
+              Math.min(3, radius),
+              extent / 3,
+            );
+            const right = busJog(
+              t,
+              plan.b.rank * 10,
+              Math.min(3, radius),
+              extent / 3,
+            );
+            const l = required(
+                left[left.length - 1],
+              ),
+              r = required(
+                right[right.length - 1],
+              );
+            if (
+              (channel - l[along]) *
+                normal[s.side][along] <
+                8 ||
+              (channel - r[along]) *
+                normal[t.side][along] <
+                8
+            )
+              return;
+            const core = rounded(
+              [
+                l,
+                { ...l, [along]: channel },
+                { ...r, [along]: channel },
+                r,
+              ],
+              radius,
+            );
+            const arc = [
+              ...left,
+              ...core.slice(1, -1),
+              ...right.reverse(),
+            ];
+            if (!free(arc, required(walls[i])))
+              return;
+            return profile(
+              materialize(
+                w.edge,
+                s,
+                t,
+                arc,
+                2 +
+                  2 * Number(left.length > 1) +
+                  2 * Number(right.length > 1),
+              ),
+            );
+          },
+        );
+        const next = candidates.filter(
+          (v) => v !== undefined,
+        );
+        const internal = cost(next);
+        if (
+          next.length !== group.length ||
+          internal >= before - 5
+        )
+          continue;
+        let penalty = 0;
+        for (const shape of outside) {
+          for (const [j, n] of next.entries())
+            penalty +=
+              conflict(n, shape) -
+              conflict(
+                required(original[j]),
+                shape,
+              );
+        }
+        const value = internal + penalty;
+        if (value < best) {
+          best = value;
+          chosen = next;
+        }
+      }
+      if (chosen)
+        for (const [j, { i }] of group.entries())
+          wires[i] = required(chosen[j]).wire;
+    }
 };

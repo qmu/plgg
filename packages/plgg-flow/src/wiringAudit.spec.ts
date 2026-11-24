@@ -8,6 +8,7 @@ import {
 import type { Edge, Graph } from "./model";
 import {
   wireGraph,
+  wireMetrics,
   type WireStyle,
   type Wire,
 } from "plgg-flow/wiring";
@@ -542,6 +543,187 @@ for (const route of [
             );
           });
         }),
+      );
+    },
+  );
+}
+
+test("diagonal curves pass opposite rims inside their endpoint span", () => {
+  const nodes = [
+    n("a", -200, -120),
+    n("c", -200, 120),
+    n("M", 0, 0),
+    n("d", 200, -120),
+    n("f", 200, 120),
+  ];
+  const wires = wireGraph({
+    nodes,
+    edges: [
+      e("a", "f"),
+      e("c", "d"),
+      e("a", "d"),
+      e("c", "f"),
+    ],
+  });
+  return check(
+    wires
+      .slice(0, 2)
+      .every((w, i) =>
+        w.points.every(
+          (p) =>
+            Math.abs(p.y) <= 120.01 &&
+            (Math.abs(p.x) > 52 ||
+              (i === 0 ? -p.y : p.y) >= 18),
+        ),
+      ),
+    toBe(true),
+  );
+});
+
+for (const route of [
+  "curve",
+  "step",
+] satisfies WireStyle[]) {
+  test(
+    route +
+      " places interleaved pipeline skips on two pages",
+    () => {
+      const graph = {
+        ...pipeline,
+        edges: pipeline.edges.map((edge) => ({
+          ...edge,
+          route,
+        })),
+      };
+      const wires = wireGraph(graph);
+      const arcs = wires.slice(7);
+      let conflicts = 0;
+      for (const a of arcs)
+        for (const b of arcs) {
+          const l = Math.min(
+              a.source.x,
+              a.target.x,
+            ),
+            r = Math.max(a.source.x, a.target.x);
+          const u = Math.min(
+              b.source.x,
+              b.target.x,
+            ),
+            v = Math.max(b.source.x, b.target.x);
+          if (
+            a.sourceSide === b.sourceSide &&
+            l < u &&
+            u < r &&
+            r < v
+          )
+            conflicts++;
+        }
+      return all([
+        check(conflicts, toBe(2)),
+        check(
+          wireMetrics(graph, wires).crossings,
+          toBe(2),
+        ),
+        check(
+          arcs.every((w) => {
+            const heights = w.points.map((p) =>
+              Math.abs(p.y),
+            );
+            const peak = heights.indexOf(
+              Math.max(...heights),
+            );
+            return heights.every((h, j) => {
+              const prev = heights[j - 1] ?? h;
+              return j <= peak
+                ? h >= prev - 1e-6
+                : h <= prev + 1e-6;
+            });
+          }),
+          toBe(true),
+        ),
+        check(
+          arcs.every(
+            (w) => w.sourceSide === w.targetSide,
+          ),
+          toBe(true),
+        ),
+      ]);
+    },
+  );
+
+  test(
+    route +
+      " centers a reciprocal bundle and faces the diagonal neighbour",
+    () => {
+      const nodes = [
+        n("A", -200, 0),
+        n("B", 200, 0),
+        n("C", 0, 160),
+      ];
+      const edges = [
+        e("A", "B"),
+        e("A", "B"),
+        e("A", "B"),
+        e("B", "A"),
+        e("B", "A"),
+        e("C", "B"),
+        e("B", "C"),
+        e("A", "C"),
+      ].map((edge) => ({ ...edge, route }));
+      const wires = wireGraph({ nodes, edges });
+      const levels = wires
+        .slice(0, 5)
+        .map(
+          (w) =>
+            w.points.reduce(
+              (best, p) =>
+                Math.abs(p.x) < Math.abs(best.x)
+                  ? p
+                  : best,
+              w.source,
+            ).y,
+        )
+        .sort((a, b) => a - b);
+      return all([
+        check(
+          wires[5]?.targetSide,
+          toBe("bottom"),
+        ),
+        check(
+          levels.every(
+            (v, i) =>
+              Math.abs(
+                v + (levels[4 - i] ?? Infinity),
+              ) < 0.05 &&
+              (!i ||
+                v - (levels[i - 1] ?? v) > 6),
+          ),
+          toBe(true),
+        ),
+      ]);
+    },
+  );
+
+  test(
+    route +
+      " preserves every self-loop point while another node moves",
+    () => {
+      const edges = [
+        e("editing", "editing"),
+        e("ready", "editing"),
+        e("editing", "ready"),
+      ].map((edge) => ({ ...edge, route }));
+      const loop = (x: number, y: number) =>
+        wireGraph({
+          nodes: [
+            n("editing", 0, 0),
+            n("ready", x, y),
+          ],
+          edges,
+        })[0]?.points;
+      return check(
+        loop(-160, -120),
+        toEqual(loop(95, -12)),
       );
     },
   );
