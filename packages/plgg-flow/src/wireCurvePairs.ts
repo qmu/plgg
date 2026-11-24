@@ -41,6 +41,7 @@ type Option = {
   length: number;
   free: boolean;
   faults: number;
+  sidePenalty?: number;
 };
 const cubics = cache<{
   plain: ReturnType<typeof canonical>["plain"];
@@ -224,45 +225,104 @@ export const selectCurvePairs = (
         required(multiplicity.get(pair(plan))) >
           1,
     );
-    const sides = (end: End, start: boolean) => {
-      const { common, allowed } = policy(
-        end,
-        start,
-      );
+    const sourcePolicy = policy(a, true);
+    const targetPolicy = policy(b, false);
+    const sides = (
+      end: End,
+      {
+        common,
+        allowed,
+      }: ReturnType<typeof policy>,
+    ) => {
       return fixed || (common && !obstructed)
         ? [end.side]
         : [end.side, ...allowed];
     };
-    const leftSides = sides(a, true),
-      rightSides = sides(b, false);
+    const leftSides = sides(a, sourcePolicy),
+      rightSides = sides(b, targetPolicy);
     const candidates = (
       leftSides: Side[],
       rightSides: Side[],
     ) => {
+      const make = (
+        left: Side,
+        right: Side,
+        detour: boolean,
+      ) =>
+        option(
+          edge,
+          {
+            ...portPosition(a.node, left, 0),
+            side: left,
+          },
+          {
+            ...portPosition(b.node, right, 0),
+            side: right,
+          },
+          walls,
+          detour,
+        );
       const variants = (detour: boolean) =>
         leftSides.flatMap((left) =>
           rightSides.map((right) =>
-            option(
-              edge,
-              {
-                ...portPosition(a.node, left, 0),
-                side: left,
-              },
-              {
-                ...portPosition(b.node, right, 0),
-                side: right,
-              },
-              walls,
-              detour,
-            ),
+            make(left, right, detour),
           ),
         );
-      const clear = variants(false).filter(
-        (v) => v.free,
-      );
-      const valid = clear.length
-        ? clear
-        : variants(true);
+      // Keep a shared fan socket, but aim independent ends at their peer.
+      const aligned = (
+        end: End,
+        side: Side,
+        start: boolean,
+      ) => {
+        const dx =
+          end.peer.position.x -
+          end.node.position.x;
+        const dy =
+          end.peer.position.y -
+          end.node.position.y;
+        return (
+          side === facing(dx, dy) ||
+          (side === end.side &&
+            (start ? sourcePolicy : targetPolicy)
+              .common)
+        );
+      };
+      const facingPair = (v: Option) =>
+        aligned(a, v.left, true) &&
+        aligned(b, v.right, false);
+      const plain = variants(false);
+      const clear = plain.filter((v) => v.free);
+      const preferred =
+        fixed || obstructed
+          ? []
+          : plain
+              .filter(facingPair)
+              .map((v) =>
+                v.free
+                  ? v
+                  : make(v.left, v.right, true),
+              )
+              .filter((v) => !v.faults);
+      const terminalFan =
+        degree.get(a.node.id) === 1 ||
+        degree.get(b.node.id) === 1;
+      // Allow a clear alternate at a fan tip when two facing cubics
+      // would coincide. An overlap costs 100 in the fan solver.
+      const alternative =
+        terminalFan &&
+        preferred.some((p) => p.free)
+          ? clear
+              .filter((v) => !facingPair(v))
+              .map((v) => ({
+                ...v,
+                sidePenalty: 60,
+              }))
+          : [];
+      const valid = preferred.length
+        ? [...preferred, ...alternative]
+        : clear.length
+          ? clear
+          : variants(true);
       const minFaults = Math.min(
         ...valid.map((v) => v.faults),
       );
@@ -332,9 +392,7 @@ export const selectCurvePairs = (
       out !== otherOut &&
       (out ? v.left : v.right) ===
         (otherOut ? other.left : other.right);
-    return (
-      (mixed ? 1000 : 0) + conflicts(v, other)
-    );
+    return (mixed ? 5 : 0) + conflicts(v, other);
   };
   // Solve each fan independently. A decision is never passed on to the
   // next fan, so solving order cannot propagate a change across a sheet.
@@ -359,7 +417,7 @@ export const selectCurvePairs = (
         let best = current,
           least = Infinity;
         for (const v of pool(p)) {
-          let count = 0;
+          let count = v.sidePenalty ?? 0;
           for (const [peer, other] of picks)
             if (peer !== p)
               count += cost(
@@ -393,7 +451,7 @@ export const selectCurvePairs = (
     let best = required(variants[0]),
       least = Infinity;
     for (const v of variants) {
-      let score = 0;
+      let score = v.sidePenalty ?? 0;
       for (const [index, star] of stars.entries())
         for (const [peer, route] of star)
           if (peer !== p)

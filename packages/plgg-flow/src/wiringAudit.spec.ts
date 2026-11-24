@@ -1,4 +1,7 @@
-import { curvePath } from "plgg-flow/wireCurve";
+import {
+  canonical,
+  curvePath,
+} from "plgg-flow/wireCurve";
 import { box } from "plgg-flow/wireGeometry";
 import { portPosition } from "plgg-flow/nodeBody";
 import {
@@ -1023,5 +1026,29 @@ test("diamonds diagonals use monotone filleted runs when their facing sockets ar
         ),
       ]);
     }),
+  );
+});
+
+test("canonical handles follow the socket axes and clamp their reach", () => {
+  const s = {
+    x: 0,
+    y: 0,
+    z: 0,
+    side: "bottom",
+  } satisfies import("./wireBase").Socket;
+  const arm = (
+    x: number,
+    y: number,
+    side: import("./nodeBody").Side,
+  ) => canonical(s, { x, y, z: 0, side }).p1.y;
+  return check(
+    [
+      arm(500, 80, "top"),
+      arm(500, 10, "top"),
+      arm(240, 20, "left"),
+      arm(500, 20, "left"),
+      arm(300, 400, "bottom"),
+    ],
+    toEqual([40, 24, 120, 160, 89]),
   );
 });

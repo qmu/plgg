@@ -1,6 +1,5 @@
 import type { Graph } from "./model";
 import { nodeSize } from "plgg-flow/nodeSize";
-import { components } from "plgg-flow/topology";
 import { islands } from "plgg-flow/analysis";
 
 export type LayerOptions = Readonly<{
@@ -45,36 +44,45 @@ const link = (a: Vertex, b: Vertex) => {
   b.incoming.push(a);
 };
 
-// Peel sources and sinks within each strongly connected component.
-// Parallel edges each contribute one vote to the degree difference.
-const feedbackOrder = (group: Vertex[]) => {
-  const left: Vertex[] = [],
-    right: Vertex[] = [];
-  const remaining = new Set(group);
-  while (remaining.size) {
-    let choice = group[0]!,
-      best = -Infinity,
-      sink = false;
-    for (const v of remaining) {
-      const ins = v.incoming.filter((n) =>
-        remaining.has(n),
-      ).length;
-      const outs = v.outgoing.filter((n) =>
-        remaining.has(n),
-      ).length;
-      const score =
-        !ins || !outs ? Infinity : outs - ins;
-      if (score > best) {
-        choice = v;
-        best = score;
-        sink = !outs && !!ins;
-        if (best === Infinity) break;
+// Reverse postorder puts every edge forward except DFS back edges.
+const flowOrder = (
+  vertices: Vertex[],
+  first?: Vertex,
+) => {
+  const roots = vertices.filter(
+    (v) => !v.incoming.length,
+  );
+  const queue = roots.length
+    ? roots
+    : first
+      ? [first]
+      : [];
+  const depth = new Map(queue.map((v) => [v, 0]));
+  for (const v of queue)
+    for (const n of v.outgoing)
+      if (!depth.has(n)) {
+        depth.set(n, depth.get(v)! + 1);
+        queue.push(n);
       }
-    }
-    remaining.delete(choice);
-    (sink ? right : left).push(choice);
-  }
-  return left.concat(right.reverse());
+  const seen = new Set<Vertex>();
+  const order: Vertex[] = [];
+  const visit = (v: Vertex) => {
+    if (seen.has(v)) return;
+    seen.add(v);
+    for (const n of v.outgoing
+      .slice()
+      .sort(
+        (a, b) =>
+          (depth.get(a) ?? Infinity) -
+            (depth.get(b) ?? Infinity) ||
+          compare(a.id, b.id),
+      ))
+      visit(n);
+    order.push(v);
+  };
+  queue.forEach(visit);
+  vertices.forEach(visit);
+  return order.reverse();
 };
 
 const mean = (
@@ -449,6 +457,104 @@ const placeComponent = (
   }
 };
 
+// Measure the core layers before deciding whether the peripheral fans
+// need another row. A hub with leaves on both sides has a one-node core.
+const wrappedPositions = (
+  group: readonly Vertex[],
+  neighbours: ReadonlyMap<
+    Vertex,
+    readonly Vertex[]
+  >,
+) => {
+  const rows = new Map<number, Vertex[]>();
+  for (const v of group) {
+    const row = rows.get(v.layer) ?? [];
+    row.push(v);
+    rows.set(v.layer, row);
+  }
+  const span = (row: Vertex[]) =>
+    row.reduce(
+      (sum, v) => sum + v.size + 40,
+      -40,
+    );
+  const core = [...rows.values()]
+    .map((row) =>
+      row.filter(
+        (v) => neighbours.get(v)!.length > 1,
+      ),
+    )
+    .filter((row) => row.length)
+    .map(span)
+    .sort((a, b) => a - b);
+  const median =
+    core[Math.floor(core.length / 2)] ?? Infinity;
+  const positions = new Map<
+    Vertex,
+    { layer: number; cross: number }
+  >();
+  let inserted = 0;
+  for (const [, row] of [...rows].sort(
+    ([a], [b]) => a - b,
+  )) {
+    const hub = neighbours
+      .get(row[0]!)!
+      .find(
+        (peer) =>
+          neighbours.get(peer)!.length >=
+          row.length,
+      );
+    if (
+      !hub ||
+      row.length < 6 ||
+      span(row) <= 3 * median ||
+      !row.every((v) => {
+        const ns = neighbours.get(v)!;
+        return (
+          ns.includes(hub) &&
+          ns.every(
+            (peer) =>
+              peer === hub ||
+              neighbours.get(peer)?.length === 1,
+          )
+        );
+      })
+    ) {
+      if (inserted)
+        for (const v of row)
+          positions.set(v, {
+            layer: v.layer + inserted,
+            cross: v.cross,
+          });
+      continue;
+    }
+    const inputs = !row[0]!.incoming.length;
+    row.sort((a, b) => a.cross - b.cross);
+    const first = Math.floor(row.length / 4);
+    const end = row.length - first;
+    // Keep the central leaves in the far row and pull each near wing
+    // inward by half a pitch. Rigid translations preserve box clearance.
+    const pitch = Math.min(
+      ...row.map((v) => v.size + 40),
+    );
+    row.forEach((v, i) => {
+      const far = i >= first && i < end;
+      positions.set(v, {
+        layer:
+          v.layer +
+          inserted +
+          Number(far !== inputs),
+        cross:
+          v.cross +
+          (far
+            ? 0
+            : (i < first ? pitch : -pitch) / 2),
+      });
+    });
+    inserted++;
+  }
+  return positions;
+};
+
 export const planLayers = (
   graph: Graph,
   options: LayerOptions = {},
@@ -486,13 +592,9 @@ export const planLayers = (
   const canonical = { nodes, edges };
   for (const e of edges)
     link(by.get(e.source)!, by.get(e.target)!);
-  const order = components(canonical).flatMap(
-    (ids) =>
-      feedbackOrder(
-        ids
-          .sort(compare)
-          .map((id) => by.get(id)!),
-      ),
+  const order = flowOrder(
+    [...by.values()],
+    by.get(graph.nodes[0]?.id ?? ""),
   );
   const rank = new Map(
     order.map((v, i) => [v, i]),
@@ -523,13 +625,23 @@ export const planLayers = (
         v.incoming.length === 1,
     ),
   );
+  const groups = [...islands(canonical)];
+  const cyclicNodes = new Set(
+    groups
+      .filter((ids) =>
+        ids.some((id) => cycles.has(id)),
+      )
+      .flat(),
+  );
   for (const v of order.slice().reverse()) {
     const fixed = v.outgoing.filter(
       (n) => !pendant.has(n),
     );
     if (
       fixed.length &&
-      fixed.length >= v.incoming.length
+      (fixed.length > v.incoming.length ||
+        (!cyclicNodes.has(v.id) &&
+          fixed.length === v.incoming.length))
     )
       v.layer =
         Math.min(...fixed.map((n) => n.layer)) -
@@ -537,19 +649,9 @@ export const planLayers = (
   }
   for (const leaf of pendant)
     leaf.layer = leaf.incoming[0]!.layer + 1;
-  const widths: number[] = [];
-  for (const v of order)
-    widths[v.layer] = Math.max(
-      widths[v.layer] ?? 0,
-      v.main,
-    );
-  let length = -96;
-  const centres = widths.map((w) => {
-    length += 96 + w;
-    return length - w / 2;
-  });
   let cross = 0;
-  for (const ids of [...islands(canonical)].sort(
+  let gap = 96;
+  for (const ids of groups.sort(
     (a, b) =>
       b.length - a.length ||
       b.reduce(
@@ -566,10 +668,49 @@ export const planLayers = (
     const group = ids
       .sort(compare)
       .map((id) => by.get(id)!);
-    placeComponent(
-      group,
-      group.some((v) => cycles.has(v.id)),
+    const tree = group.every(
+      (v) => v.incoming.length <= 1,
     );
+
+    const neighbours = new Map(
+      group.map((v) => [
+        v,
+        [...v.incoming, ...v.outgoing],
+      ]),
+    );
+    const returns = group.filter((v) =>
+      cycles.has(v.id),
+    ).length;
+    placeComponent(group, returns > 0);
+    // Multiple return paths need room to turn beside the forward fan.
+    if (returns > 1)
+      gap = Math.max(
+        gap,
+        ...group.map((v) =>
+          Math.max(128, 2.5 * v.size),
+        ),
+      );
+    const positions = wrappedPositions(
+      group,
+      neighbours,
+    );
+    for (const [v, position] of positions)
+      Object.assign(v, position);
+    const wrapped = positions.size > 0;
+    if (tree || wrapped) {
+      for (const v of group)
+        for (const peer of neighbours.get(v)!) {
+          const slope =
+            Math.abs(v.cross - peer.cross) /
+            Math.abs(v.layer - peer.layer);
+          gap = Math.max(
+            gap,
+            wrapped
+              ? 0.6 * slope + v.main
+              : 0.4 * slope,
+          );
+        }
+    }
     const low = Math.min(
       ...group.map((v) => v.cross - v.size / 2),
     );
@@ -579,6 +720,17 @@ export const planLayers = (
     for (const v of group) v.cross += cross - low;
     cross += high - low + 40;
   }
+  const widths: number[] = [];
+  for (const v of order)
+    widths[v.layer] = Math.max(
+      widths[v.layer] ?? 0,
+      v.main,
+    );
+  let length = -gap;
+  const centres = widths.map((w) => {
+    length += gap + w;
+    return length - w / 2;
+  });
   return {
     graph: {
       ...graph,

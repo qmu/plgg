@@ -1,5 +1,9 @@
-import { outline } from "plgg-flow/wireInteraction";
+import {
+  outline,
+  chordGap,
+} from "plgg-flow/wireInteraction";
 import type { Point } from "plgg-board";
+import type { Wire } from "./wiring";
 import type { Edge } from "./model";
 import type { Socket } from "plgg-flow/wireBase";
 import { materialize } from "plgg-flow/wirePath";
@@ -26,10 +30,26 @@ export const canonical = (
   steps?: number,
 ) => {
   const span = distance(s, t);
+  const projection = (socket: Socket) =>
+    Math.abs(
+      vertical(socket.side)
+        ? t.y - s.y
+        : t.x - s.x,
+    );
   const arm =
     s.side === t.side
       ? 24 + 0.13 * span
-      : Math.max(24, Math.min(160, 0.45 * span));
+      : Math.max(
+          24,
+          Math.min(
+            160,
+            0.5 *
+              Math.max(
+                projection(s),
+                projection(t),
+              ),
+          ),
+        );
   const p1 = move(s, s.side, arm),
     p2 = move(t, t.side, arm);
   const plain = bezier(
@@ -46,6 +66,100 @@ export const canonical = (
       ),
   );
   return { plain, p1, p2 };
+};
+// Sample both shapes along their runs so a long straight segment cannot
+// hide a larger deviation between its endpoints.
+const follows = (
+  path: readonly Point[],
+  guide: readonly Point[],
+) =>
+  path.every((p, i) => {
+    const a = path[i - 1] ?? p;
+    const steps = Math.max(
+      1,
+      Math.ceil(distance(a, p) / 4),
+    );
+    for (let j = 1; j <= steps; j++) {
+      const q = pt(
+        a.x + ((p.x - a.x) * j) / steps,
+        a.y + ((p.y - a.y) * j) / steps,
+      );
+      if (
+        !guide.some(
+          (end, k) =>
+            k > 0 &&
+            chordGap(q, guide[k - 1]!, end) < 20,
+        )
+      )
+        return false;
+    }
+    return true;
+  });
+
+export const fanCubic = (
+  wire: Wire,
+  s: Socket,
+  t: Socket,
+  boxes: Box[],
+) => {
+  const { plain, p1, p2 } = canonical(s, t);
+  if (
+    !follows(wire.points, plain) ||
+    !follows(plain, wire.points)
+  )
+    return wire;
+  // Moving a handle by d moves the midpoint by 3d/8. Try the
+  // smallest adjustment first, keeping both socket tangents fixed.
+  for (const d of [8, 16, 24, 32, 40, 48]) {
+    for (const [left, right] of [
+      [d, 0],
+      [-d, 0],
+      [0, d],
+      [0, -d],
+      [d, d],
+      [-d, -d],
+      [d, -d],
+      [-d, d],
+    ] satisfies [number, number][]) {
+      const a = move(
+        s,
+        s.side,
+        Math.max(8, distance(s, p1) + left),
+      );
+      const b = move(
+        t,
+        t.side,
+        Math.max(8, distance(t, p2) + right),
+      );
+      const path = bezier(
+        s,
+        a,
+        b,
+        t,
+        plain.length - 1,
+      );
+      if (
+        !blockers(wire.edge, path, boxes)
+          .length &&
+        !crossesItself(path)
+      )
+        return {
+          ...materialize(
+            wire.edge,
+            s,
+            t,
+            path,
+            0,
+            false,
+          ),
+          controls: [
+            { ...a, z: s.z },
+            { ...b, z: t.z },
+          ],
+        };
+    }
+  }
+  return wire;
 };
 export const blockers = (
   edge: Edge,

@@ -1,4 +1,8 @@
-import { curvePath } from "plgg-flow/wireCurve";
+import {
+  curvePath,
+  fanCubic,
+  canonical,
+} from "plgg-flow/wireCurve";
 import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
@@ -236,6 +240,22 @@ export const wireGraph = (
     bundles.set(key, members);
     membersByEdge.set(edge, members);
   }
+  const socketKey = (node: string, side: Side) =>
+    JSON.stringify([node, side]);
+  const socketCounts = new Map<string, number>();
+  for (const { edge, a, b } of ports.plans)
+    if (
+      (!edge.route || edge.route === "curve") &&
+      edge.source !== edge.target
+    )
+      for (const key of [
+        socketKey(edge.source, a.side),
+        socketKey(edge.target, b.side),
+      ])
+        socketCounts.set(
+          key,
+          (socketCounts.get(key) ?? 0) + 1,
+        );
   // Base paths depend only on the chosen sockets and nearby node boxes.
   const bases = ports.plans.map(
     ({ edge, a, b, curve: chosen }) => {
@@ -374,17 +394,48 @@ export const wireGraph = (
           : rememberBase(key, build);
       };
       // A clear natural path depends only on its sockets and its swept clearance.
-      const member = (base: BaseRoute) => ({
-        wire: { ...base.wire, edge },
-        token: base.token,
-        bounds: expand(
-          base.bounds,
-          Math.max(
-            18,
-            5 * Math.max(a.count, b.count),
+      const member = (base: BaseRoute) => {
+        if (
+          curve &&
+          !edge.waypoints?.length &&
+          edge.source !== edge.target &&
+          pair.length === 1 &&
+          !base.wire.controls &&
+          ((socketCounts.get(
+            socketKey(edge.source, a.side),
+          ) ?? 0) > 1 ||
+            (socketCounts.get(
+              socketKey(edge.target, b.side),
+            ) ?? 0) > 1)
+        ) {
+          const walls = query(
+            corridor(canonical(s, t).plain, 64),
+          );
+          const wire = fanCubic(
+            base.wire,
+            s,
+            t,
+            walls,
+          );
+          if (wire !== base.wire)
+            base = {
+              ...base,
+              wire,
+              bounds: corridor(wire.points, 0),
+            };
+        }
+        return {
+          wire: { ...base.wire, edge },
+          token: base.token,
+          bounds: expand(
+            base.bounds,
+            Math.max(
+              18,
+              5 * Math.max(a.count, b.count),
+            ),
           ),
-        ),
-      });
+        };
+      };
       if (chosen)
         return member({
           wire: chosen,
