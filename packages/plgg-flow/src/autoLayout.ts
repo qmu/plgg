@@ -2,6 +2,8 @@ import type { Graph } from "./model";
 import { nodeSize } from "plgg-flow/nodeSize";
 import { islands } from "plgg-flow/analysis";
 
+import { components } from "plgg-flow/topology";
+
 export type LayerOptions = Readonly<{
   direction?: "right" | "down";
   depth?: boolean;
@@ -44,45 +46,56 @@ const link = (a: Vertex, b: Vertex) => {
   b.incoming.push(a);
 };
 
-// Reverse postorder puts every edge forward except DFS back edges.
+// SCCs already come in topological order. Within each distance
+// tier, reverse postorder breaks only ties that close a cycle.
 const flowOrder = (
-  vertices: Vertex[],
+  graph: Graph,
+  by: ReadonlyMap<string, Vertex>,
   first?: Vertex,
 ) => {
-  const roots = vertices.filter(
+  const roots = [...by.values()].filter(
     (v) => !v.incoming.length,
   );
-  const queue = roots.length
-    ? roots
-    : first
-      ? [first]
-      : [];
-  const depth = new Map(queue.map((v) => [v, 0]));
-  for (const v of queue)
-    for (const n of v.outgoing)
-      if (!depth.has(n)) {
-        depth.set(n, depth.get(v)! + 1);
-        queue.push(n);
-      }
-  const seen = new Set<Vertex>();
-  const order: Vertex[] = [];
-  const visit = (v: Vertex) => {
-    if (seen.has(v)) return;
-    seen.add(v);
-    for (const n of v.outgoing
-      .slice()
-      .sort(
-        (a, b) =>
-          (depth.get(a) ?? Infinity) -
-            (depth.get(b) ?? Infinity) ||
-          compare(a.id, b.id),
-      ))
-      visit(n);
-    order.push(v);
+  const depth = new Map<Vertex, number>();
+  const measure = (queue: Vertex[]) => {
+    for (const v of queue) depth.set(v, 0);
+    for (const v of queue)
+      for (const n of v.outgoing)
+        if (!depth.has(n)) {
+          depth.set(n, depth.get(v)! + 1);
+          queue.push(n);
+        }
   };
-  queue.forEach(visit);
-  vertices.forEach(visit);
-  return order.reverse();
+  measure(
+    roots.length ? roots : first ? [first] : [],
+  );
+  return components(graph).flatMap((ids) => {
+    const group = ids
+      .sort(compare)
+      .map((id) => by.get(id)!);
+    if (!depth.has(group[0]!))
+      measure([group[0]!]);
+    const members = new Set(group);
+    const seen = new Set<Vertex>();
+    const order: Vertex[] = [];
+    const visit = (v: Vertex) => {
+      if (seen.has(v)) return;
+      seen.add(v);
+      for (const n of v.outgoing)
+        if (
+          members.has(n) &&
+          depth.get(v) === depth.get(n)
+        )
+          visit(n);
+      order.push(v);
+    };
+    group.forEach(visit);
+    return order
+      .reverse()
+      .sort(
+        (a, b) => depth.get(a)! - depth.get(b)!,
+      );
+  });
 };
 
 const mean = (
@@ -315,6 +328,7 @@ const placeTree = (group: Vertex[]) => {
 const placeComponent = (
   all: Vertex[],
   cyclic: boolean,
+  mainLine: ReadonlyMap<Vertex, Vertex>,
 ) => {
   if (all.every((v) => v.incoming.length <= 1)) {
     placeTree(all);
@@ -347,6 +361,9 @@ const placeComponent = (
       )
         chains.set(v, n);
     }
+    const next = mainLine.get(v);
+    if (next && next.layer === v.layer + 1)
+      chains.set(v, next);
     v.outgoing = core;
   }
 
@@ -529,27 +546,37 @@ const wrappedPositions = (
     }
     const inputs = !row[0]!.incoming.length;
     row.sort((a, b) => a.cross - b.cross);
-    const first = Math.floor(row.length / 4);
-    const end = row.length - first;
-    // Keep the central leaves in the far row and pull each near wing
-    // inward by half a pitch. Rigid translations preserve box clearance.
-    const pitch = Math.min(
-      ...row.map((v) => v.size + 40),
+    const count = Math.ceil(row.length / 2);
+    const wing = Math.floor(
+      (row.length - count) / 2,
     );
-    row.forEach((v, i) => {
-      const far = i >= first && i < end;
-      positions.set(v, {
-        layer:
-          v.layer +
-          inserted +
-          Number(far !== inputs),
-        cross:
-          v.cross +
-          (far
-            ? 0
-            : (i < first ? pitch : -pitch) / 2),
-      });
-    });
+    const far = row.slice(wing, wing + count);
+    const near = [
+      ...row.slice(0, wing),
+      ...row.slice(wing + count),
+    ];
+    // Leave a central opening in the near row for the distant fan.
+    const opening = Math.max(
+      0,
+      span(far) -
+        Math.min(...far.map((v) => v.size)),
+    );
+    for (const half of [far, near]) {
+      const extra = half === near ? opening : 0;
+      let cross =
+        hub.cross - (span(half) + extra) / 2;
+      for (const [i, v] of half.entries()) {
+        if (i === wing) cross += extra;
+        positions.set(v, {
+          layer:
+            v.layer +
+            inserted +
+            Number((half === far) !== inputs),
+          cross: cross + v.size / 2,
+        });
+        cross += v.size + 40;
+      }
+    }
     inserted++;
   }
   return positions;
@@ -592,8 +619,19 @@ export const planLayers = (
   const canonical = { nodes, edges };
   for (const e of edges)
     link(by.get(e.source)!, by.get(e.target)!);
+  const mainLine = new Map<Vertex, Vertex>();
+  for (const v of by.values()) {
+    const next = v.outgoing[0];
+    if (
+      next &&
+      new Set(v.outgoing).size === 1 &&
+      new Set(next.incoming).size === 1
+    )
+      mainLine.set(v, next);
+  }
   const order = flowOrder(
-    [...by.values()],
+    canonical,
+    by,
     by.get(graph.nodes[0]?.id ?? ""),
   );
   const rank = new Map(
@@ -681,7 +719,7 @@ export const planLayers = (
     const returns = group.filter((v) =>
       cycles.has(v.id),
     ).length;
-    placeComponent(group, returns > 0);
+    placeComponent(group, returns > 0, mainLine);
     // Multiple return paths need room to turn beside the forward fan.
     if (returns > 1)
       gap = Math.max(

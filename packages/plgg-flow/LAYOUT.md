@@ -138,3 +138,21 @@ For round L3:
 - `printSpec`: a node needs no `node` line when it appears in an edge
   and has nothing but its name (no `at`, label, group…). The demo's
   DSL panel then shows edges only.
+
+## Round L3 review — adopted
+
+stateMachine reads Idle | Loading | Error, Ready | Editing, Closed |
+Saving; retryLoop and orderFlow keep their main line straight with
+the loop nodes beside it; the demo's DSL panel shows edges only.
+Codex found the reviewer's `ribbon` bound wrong for orderFlow (it
+dropped an edge between components that must stay forward); the audit
+was corrected, and the sheet is 0 / 0 over 16 scenes × 2 directions.
+
+Open, from looking at the sheet rather than the numbers:
+- downward layouts of cyclic flows are tall and thin; reversed edges
+  hug the column on both sides.
+- microservices: 4 centre-line crossings (plain reference 9) but 8
+  wire crossings — long edges are not routed through the places the
+  layout reserved for them (virtual nodes are not passed to wiring).
+- the sample sits small in the demo frame; fit-to-view on load.
+- depth: reversed and long edges do not yet get their own height.

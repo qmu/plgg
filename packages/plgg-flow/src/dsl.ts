@@ -362,8 +362,14 @@ const coord = (n: number) =>
 export const printSpec = (
   flow: Flow,
   rules: readonly Rule[],
-): string =>
-  [
+): string => {
+  const endpoints = new Set(
+    flow.edges.flatMap((e) => [
+      e.source,
+      e.target,
+    ]),
+  );
+  return [
     ...(flow.layered
       ? [
           [
@@ -383,7 +389,7 @@ export const printSpec = (
         ? "rule acyclic"
         : `rule max-outputs ${r.limit}`,
     ),
-    ...flow.nodes.map((n) => {
+    ...flow.nodes.flatMap((n) => {
       const positionText = flow.layered
         ? String
         : coord;
@@ -393,9 +399,7 @@ export const printSpec = (
         p.x === n.position.x &&
         p.y === n.position.y &&
         p.z === n.position.z;
-      return [
-        "node",
-        name(n.id),
+      const attributes = [
         ...(auto
           ? []
           : [
@@ -429,7 +433,17 @@ export const printSpec = (
               coord(n.grow.y),
             ]
           : []),
-      ].join(" ");
+      ];
+      return !attributes.length &&
+        endpoints.has(n.id)
+        ? []
+        : [
+            [
+              "node",
+              name(n.id),
+              ...attributes,
+            ].join(" "),
+          ];
     }),
     ...flow.edges.map((e) =>
       [
@@ -442,3 +456,4 @@ export const printSpec = (
       ].join(" "),
     ),
   ].join("\n");
+};

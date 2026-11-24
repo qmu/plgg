@@ -138,7 +138,50 @@ test("stateMachine layers start at the flow entry", () => {
     })),
   });
   return check(
-    plan.layers.get("Idle") === 0,
+    [
+      ["Idle"],
+      ["Loading"],
+      ["Ready", "Error"],
+      ["Editing", "Closed"],
+      ["Saving"],
+    ].every((ids, layer) =>
+      ids.every(
+        (id) => plan.layers.get(id) === layer,
+      ),
+    ),
+    toBe(true),
+  );
+});
+
+test("twelve input leaves wrap into two centred rows of six", () => {
+  const leaves = Array.from(
+    { length: 12 },
+    (_, i) => String(i),
+  );
+  const plan = planLayers({
+    nodes: [...leaves, "Hub"].map((id) => ({
+      id,
+      label: id,
+      position: { x: 0, y: 0, z: 0 },
+    })),
+    edges: leaves.map((source) => ({
+      source,
+      target: "Hub",
+    })),
+  });
+  const rows = [0, 1].map((layer) =>
+    plan.graph.nodes
+      .filter(
+        (n) => plan.layers.get(n.id) === layer,
+      )
+      .map((n) => n.position.y),
+  );
+  return check(
+    rows.every(
+      (row) =>
+        row.length === 6 &&
+        Math.min(...row) + Math.max(...row) === 0,
+    ),
     toBe(true),
   );
 });

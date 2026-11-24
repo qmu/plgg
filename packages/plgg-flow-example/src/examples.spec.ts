@@ -48,3 +48,13 @@ test("every diagram is written in the DSL and prints back to the same graph", ()
     }),
     toBe(true),
   ));
+
+test("the layered demo prints edges only after its directive", () => {
+  const demo = examples.find(
+    (e) => e.id === "layered",
+  )!;
+  return check(
+    printSpec(demo.initial(), demo.spec().rules),
+    toBe(demo.source.trim()),
+  );
+});

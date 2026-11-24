@@ -66,7 +66,7 @@ test("layered pins stay out of placement and only dragged nodes gain coordinates
   return check(
     text.includes("layout layered down depth") &&
       text.includes("node Pin at 17 19") &&
-      text.includes("node A\n") &&
+      !text.includes("node A\n") &&
       text.includes("node B at 3 7 2") &&
       f.nodes.find((n) => n.id === "B")?.position
         .z === 48,
