@@ -946,3 +946,44 @@ order once per component by sorting (entry/exit keys), not by trial;
 (3) leftovers: `siblings-cross` 19, `wiggly` 16.
 Acceptance: zero `slow-cold`; `slow-drag` ≤ 5, none above 16 ms;
 `drag-jump` ≤ 5; `drag-jump-neighbour` ≤ 14; static moderate ≤ 55.
+
+## Round 18 review — adopted; the frame, not just the router
+
+Audit: `sev3 0`, zero `slow-cold`, drag frames ≤ 17 ms worst (median
+4–5 ms), static moderate 52, `drag-jump` 5; open: `slow-drag` 16,
+`drag-jump-neighbour` 20 (traced: M → d keeps its base path, shifts 10
+in lane assignment, then jumps 68 in *shortcut selection* — shortcuts
+are a wire-dependent reroute hiding in layer 2; a shortcut may only be
+taken if it is also valid with the wire alone on the sheet, i.e. decide
+it in layer 1).
+
+Measured in the browser on the demo (15 cards, 23 wires, dragging
+Orders): frame time median 1.6 ms but **p90 33 ms (curve) / 47 ms
+(step)** — the drag stutters. `scripts/drag-bench.mjs` shows why from
+Node: every frame costs 7–10 ms (curve) / 10–14 ms (step) inside
+`flowView` even when `wireGraph` was just called with the same nodes —
+the view's call does not hit the router's cache (its scene nodes differ
+in value or it rebuilds keys expensively), and then the whole SVG tree
+is rebuilt and diffed.
+
+Round 19, in order:
+1. `flowView` during a drag: make the router's memo hit for wires whose
+   inputs did not change (check what `scene.nodes` passes — strip
+   anything the router does not depend on before keying), and make key
+   construction cheap (no JSON of whole graphs per frame).
+   Target in `drag-bench.mjs`: `flowView` p90 ≤ 4 ms for both styles.
+2. Stop rebuilding what did not change: plgg-view has `lazy`
+   (`Html/model/element.ts`) — a subtree whose argument is `===` the
+   previous one is skipped by the diff. Give each wire's path group and
+   each node's group a `lazy` keyed by a stable object (the cached
+   `Wire`, the node object) so a drag frame only re-renders the moved
+   node and the wires that changed. Keep painter-order sorting working
+   for a tilted camera (lazy per layer item is fine).
+3. The shortcut rule above, to cut `drag-jump-neighbour`.
+4. Leftovers: `siblings-cross` 19, `wiggly` 12.
+
+Acceptance: `drag-bench.mjs` `flowView` p90 ≤ 4 ms (curve and step);
+audit `sev3 0`, `slow-drag` ≤ 5, `drag-jump-neighbour` ≤ 14, static
+moderate ≤ 55, `drag-jump` ≤ 5; all specs pass; a spec asserting that
+two consecutive `flowView` calls with one node moved return `===`
+lazy arguments for an unrelated wire.
