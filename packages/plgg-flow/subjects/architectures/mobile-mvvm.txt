@@ -1,0 +1,24 @@
+# モバイルアプリ（MVVM）
+# 見えるはずのこと: 画面は ViewModel だけを見て、通信と保存はリポジトリの下に隠れている。
+layout layered down
+axis 層 View ViewModel リポジトリ データ源
+node 一覧画面 層=View
+node 詳細画面 層=View
+node 設定画面 層=View
+node 一覧VM 層=ViewModel
+node 詳細VM 層=ViewModel
+node 設定VM 層=ViewModel
+node 商品リポジトリ 層=リポジトリ
+node 設定リポジトリ 層=リポジトリ
+node API通信 層=データ源
+node 端末DB 層=データ源
+node 設定ファイル 層=データ源
+一覧画面 -> 一覧VM
+詳細画面 -> 詳細VM
+設定画面 -> 設定VM
+一覧VM -> 商品リポジトリ
+詳細VM -> 商品リポジトリ
+設定VM -> 設定リポジトリ
+商品リポジトリ -> API通信
+商品リポジトリ -> 端末DB
+設定リポジトリ -> 設定ファイル
