@@ -18,6 +18,7 @@ export { sheetCss } from "plgg-ir-diagram/sheetCss";
 import { project } from "plgg-board";
 import {
   addNode,
+  selectedNodes,
   viewAt,
   roomViews,
   movingRooms,
@@ -135,7 +136,10 @@ export const fitDemo = (flow: Flow): Flow => {
     },
   );
   const frame = frameOf(flow),
-    open = frame.x - (flow.cover ?? 0),
+    inset = flow.sheetInsets ?? clearInsets,
+    open =
+      frame.x - (flow.cover ?? 0) - inset.left,
+    height = frame.y - inset.top - inset.bottom,
     margin = flow.rooms ? 80 : 96;
   const measure = (scale: number) => {
     let left = bounds.left * scale,
@@ -173,8 +177,9 @@ export const fitDemo = (flow: Flow): Flow => {
       width: right - left,
       height: bottom - top,
       origin: {
-        x: (open - left - right) / 2,
-        y: (frame.y - top - bottom) / 2,
+        x: inset.left + (open - left - right) / 2,
+        y:
+          inset.top + (height - top - bottom) / 2,
       },
     };
   };
@@ -185,7 +190,7 @@ export const fitDemo = (flow: Flow): Flow => {
     const box = measure(scale);
     if (
       box.width <= open - margin &&
-      box.height <= frame.y - margin
+      box.height <= height - margin
     ) {
       lower = scale;
       if (scale === upper) break;
@@ -203,22 +208,39 @@ export const fitDemo = (flow: Flow): Flow => {
     },
   };
 };
+const clearInsets = {
+  left: 0,
+  top: 0,
+  bottom: 0,
+};
 export const resizeDemo = (
   flow: Flow,
   height: number,
   fitted: boolean,
   cover = 0,
+  sheetInsets = clearInsets,
 ): Flow => {
   const previous = frameOf(flow);
   if (
     flow.frame &&
     previous.y === height &&
     previous.x === viewport.x &&
-    (flow.cover ?? 0) === cover
+    (flow.cover ?? 0) === cover &&
+    (flow.sheetInsets?.top ?? 0) ===
+      sheetInsets.top &&
+    (flow.sheetInsets?.left ?? 0) ===
+      sheetInsets.left &&
+    (flow.sheetInsets?.bottom ?? 0) ===
+      sheetInsets.bottom
   )
     return flow;
   const frame = { x: viewport.x, y: height };
-  const next = { ...flow, frame, cover };
+  const next = {
+    ...flow,
+    frame,
+    cover,
+    sheetInsets,
+  };
   if (
     fitted &&
     !flow.frame &&
@@ -400,7 +422,13 @@ const arrangeSheet: Change = (f) => {
       ...arrangeHierarchy(f),
     };
   const frame = frameOf(f),
-    wide = frame.x - (f.cover ?? 0) >= frame.y;
+    wide =
+      frame.x -
+        (f.cover ?? 0) -
+        (f.sheetInsets?.left ?? 0) >=
+      frame.y -
+        (f.sheetInsets?.top ?? 0) -
+        (f.sheetInsets?.bottom ?? 0);
   // heights the author gave are theirs: depth is only
   // recomputed where the sheet asked for it
   const options = f.layered?.options ?? {
@@ -473,11 +501,40 @@ export const resetSheet: Change = (f) => {
   });
   return fitDemo({ ...laid, nodes });
 };
+export const measuredFrame = (host: Element) => {
+  const stage = host.parentElement;
+  const panel = stage?.querySelector(".dsl");
+  const strip = host.querySelector(".toolbar");
+  const { width, height } =
+    host.getBoundingClientRect();
+  if (!width || !height) return;
+  const unit = (px: number) =>
+    Math.round((px * viewport.x) / width);
+  const box = panel?.getBoundingClientRect(),
+    tools = strip?.getBoundingClientRect();
+  const bottom =
+    box && Math.abs(width - box.width) < 1;
+  const side =
+    tools && Math.abs(height - tools.height) < 1;
+  const top =
+    tools && Math.abs(width - tools.width) < 1;
+  return {
+    height: unit(height),
+    cover: !bottom && box ? unit(box.width) : 0,
+    insets: {
+      left: side && tools ? unit(tools.width) : 0,
+      top: top && tools ? unit(tools.height) : 0,
+      bottom:
+        bottom && box ? unit(box.height) : 0,
+    },
+  };
+};
 export const observeFrame = <Action>(
   root: Element,
   resized: (
     height: number,
     cover: number,
+    insets: typeof clearInsets,
   ) => Action,
 ) =>
   custom<Action>("board-frame", (dispatch) => {
@@ -485,55 +542,35 @@ export const observeFrame = <Action>(
       ".canvas-wrap",
     );
     if (!host) return () => {};
-    let lastHeight = 0,
-      lastCover = -1;
-    const measure = ({
-      width,
-      height,
-    }: DOMRectReadOnly) => {
-      if (width <= 0 || height <= 0) return;
-      const y = Math.round(
-        (viewport.x * height) / width,
+    let previous = "";
+    const measure = () => {
+      const frame = measuredFrame(host);
+      if (!frame) return;
+      const key = JSON.stringify(frame);
+      if (key === previous) return;
+      previous = key;
+      dispatch(
+        resized(
+          frame.height,
+          frame.cover,
+          frame.insets,
+        ),
       );
-      // the DSL panel, when it lies over the board
-      const panel =
-        host.parentElement?.querySelector(".dsl");
-      const cover =
-        panel &&
-        getComputedStyle(panel).position ===
-          "absolute"
-          ? Math.round(
-              (viewport.x *
-                panel.getBoundingClientRect()
-                  .width) /
-                width,
-            )
-          : 0;
-      if (
-        (y === lastHeight &&
-          cover === lastCover) ||
-        y <= 0
-      )
-        return;
-      lastHeight = y;
-      lastCover = cover;
-      dispatch(resized(y, cover));
     };
-    const observer = new ResizeObserver(
-      (entries) => {
-        for (const entry of entries)
-          measure(entry.contentRect);
-      },
-    );
-    observer.observe(host);
-    const stopSelection = revealSelection(root);
-    const initial = requestAnimationFrame(() =>
-      measure(host.getBoundingClientRect()),
-    );
+    const observer = new ResizeObserver(measure);
+    for (const el of [
+      host,
+      root.querySelector(".toolbar"),
+      root.querySelector(".dsl"),
+    ])
+      if (el) observer.observe(el);
+    const stop = revealSelection(root);
+    const initial =
+      requestAnimationFrame(measure);
     return () => {
       cancelAnimationFrame(initial);
       observer.disconnect();
-      stopSelection();
+      stop();
     };
   });
 const helpRows: readonly (readonly [
@@ -641,6 +678,37 @@ export const sheetDsl = <Action>(
       attr("aria-label", "DSL"),
     ],
     [
+      el(
+        "button",
+        [
+          attr("type", "button"),
+          attr("class", "dsl-handle"),
+          attr(
+            "aria-label",
+            "DSL パネルの大きさを変更",
+          ),
+        ],
+        [
+          text(
+            [
+              "DSL",
+              flow.nodes.find((n) =>
+                selectedNodes(flow).includes(
+                  n.id,
+                ),
+              )?.label ??
+                flow.activeEdge?.label ??
+                (flow.activeEdge
+                  ? flow.activeEdge.source +
+                    " → " +
+                    flow.activeEdge.target
+                  : ""),
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          ),
+        ],
+      ),
       el(
         "div",
         [attr("class", "dsl-head")],
@@ -946,7 +1014,18 @@ const rankSheetView = (
     axes,
     {
       ...frame,
-      x: Math.max(1, frame.x - (f.cover ?? 0)),
+      x: Math.max(
+        1,
+        frame.x -
+          (f.cover ?? 0) -
+          (f.sheetInsets?.left ?? 0),
+      ),
+      y: Math.max(
+        1,
+        frame.y -
+          (f.sheetInsets?.top ?? 0) -
+          (f.sheetInsets?.bottom ?? 0),
+      ),
     },
     !!f.fixedRoles,
     f.markCleared ? [] : f.mark,
@@ -1002,7 +1081,24 @@ export const sheetToolbar = <Action>(
   ) =>
     el(
       "button",
-      [attr("type", "button"), onClick(action)],
+      [
+        attr("type", "button"),
+        attr("aria-label", label),
+        attr(
+          "data-icon",
+          new Map(
+            Object.entries({
+              リセット: "⟲",
+              見方: "◎",
+              正面: "▣",
+              上: "◩",
+              横: "◧",
+              立体: "⬡",
+            }),
+          ).get(label) ?? label,
+        ),
+        onClick(action),
+      ],
       [text(label)],
     );
   return el(

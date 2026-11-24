@@ -356,7 +356,7 @@ for (const sample of [
           ".md",
         "utf8",
       )
-        .split("plgg-flow fill dsl\n")[1]!
+        .split(/^```plgg-flow[^\n]*\n/m)[1]!
         .split("\n```")[0]!;
       const spec = parseSpec(source);
       if (spec.__tag === "Err")

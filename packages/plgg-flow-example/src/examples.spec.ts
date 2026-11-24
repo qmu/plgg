@@ -16,12 +16,50 @@ import {
   joinLine,
 } from "plgg-flow/dsl";
 import {
-  demoSheetTools,
-  examples,
-  resizeDemo,
   fitDemo,
+  resizeDemo,
   applyDemoSpec,
-} from "plgg-flow-example/examples";
+  roomsOpening,
+  sheetToolNames,
+} from "plgg-ir-diagram/flowSheet";
+import { specFlow } from "plgg-flow/dsl";
+import {
+  readdirSync,
+  readFileSync,
+} from "node:fs";
+import config from "../site.config.ts";
+const examples = config.sidebar[0]!.items.map(
+  ({ text: name, link }) => {
+    const page = readFileSync(
+      "markdown" + link + ".md",
+      "utf8",
+    );
+    const fence =
+      /```(plgg-flow[^\n]*)\n([\s\S]*?)\n```/.exec(
+        page,
+      );
+    if (!fence) throw Error(link);
+    const source = fence[2]!;
+    const parsed = parseSpec(source);
+    if (parsed.__tag === "Err")
+      throw Error(parsed.content);
+    const spec = () => parsed.content;
+    const initial = () => {
+      const flow = specFlow(spec());
+      return fitDemo(
+        flow.rooms ? roomsOpening(flow) : flow,
+      );
+    };
+    return {
+      name,
+      id: link.split("/").pop(),
+      source,
+      spec,
+      initial,
+      tools: sheetToolNames(fence[1]!),
+    };
+  },
+);
 test("all twenty-eight diagrams have unique identities and valid directed edges", () =>
   check(
     new Set(examples.map((e) => e.name)).size ===
@@ -349,7 +387,11 @@ test("each room face fills the open frame up to its 40 pixel margin", () => {
 
 test("the demo uses the shared sheet tool registry", () =>
   check(
-    demoSheetTools === sheetTools,
+    examples.every((e) =>
+      e.tools.every((name) =>
+        sheetTools.has(name),
+      ),
+    ),
     toBe(true),
   ));
 
@@ -405,6 +447,66 @@ test("Team sends to Design and Build inside its tray without looping", () => {
           )
         );
       }),
+    toBe(true),
+  );
+});
+
+test("each subject file has its own sheet and sidebar entry", () => {
+  const subjects = "../plgg-flow/subjects";
+  return check(
+    ["architectures", "subjects"].every(
+      (group, index) => {
+        const folder =
+          group === "subjects"
+            ? subjects
+            : subjects + "/architectures";
+        const files = readdirSync(folder).filter(
+          (name) => name.endsWith(".txt"),
+        );
+        const links = config.sidebar[
+          index + 1
+        ]!.items.map((item) => item.link);
+        return (
+          files.length === links.length &&
+          files.every((file) => {
+            const link =
+              "/" +
+              group +
+              "/" +
+              file.slice(0, -4);
+            const [title, description, ...dsl] =
+              readFileSync(
+                folder + "/" + file,
+                "utf8",
+              ).split("\n");
+            const page = readFileSync(
+              "markdown" + link + ".md",
+              "utf8",
+            );
+            const fence =
+              /^```plgg-flow[^\n]*\n([\s\S]*?)\n```/m.exec(
+                page,
+              );
+            return (
+              links.includes(link) &&
+              page.includes(
+                "\n" + title + "\n",
+              ) &&
+              page.includes(
+                "description: " +
+                  description?.replace(
+                    /^# 見えるはずのこと: /,
+                    "",
+                  ),
+              ) &&
+              fence?.[1] ===
+                dsl.join("\n").trim() &&
+              parseSpec(fence[1]).__tag === "Ok"
+            );
+          })
+        );
+      },
+    ),
     toBe(true),
   );
 });

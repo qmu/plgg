@@ -1,0 +1,28 @@
+---
+layout: sheet
+description: 大阪の利用者の通信は、いったん東京を通ってから大阪のサーバーに戻る。
+---
+
+# ネットワーク
+
+```plgg-flow fill dsl tools=hidden
+layout rooms
+axis 層 L7 L3 L2
+axis 拠点 東京 大阪
+view y=層 x=拠点
+node 東京LB 層=L7 拠点=東京
+node 東京API 層=L7 拠点=東京
+node 大阪API 層=L7 拠点=大阪
+node 東京ルータ 層=L3 拠点=東京
+node 大阪ルータ 層=L3 拠点=大阪
+node 東京SW 層=L2 拠点=東京
+node 大阪SW 層=L2 拠点=大阪
+node 大阪端末 層=L2 拠点=大阪
+大阪端末 -> 大阪SW
+大阪SW -> 大阪ルータ
+大阪ルータ -> 東京ルータ
+東京ルータ -> 東京LB
+東京LB -> 東京API
+東京LB -> 大阪API
+東京SW -> 東京ルータ
+```

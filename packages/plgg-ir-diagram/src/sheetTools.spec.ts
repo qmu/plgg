@@ -1,11 +1,16 @@
 // @plgg-test-environment dom
 import {
+  session,
+  apply,
+  type Action,
+} from "plgg-ir-diagram/sheetSession";
+import {
   parseSpec,
   specFlow,
   printSpec,
 } from "plgg-flow/dsl";
 import { test, check, toBe } from "plgg-test";
-import { renderToString } from "plgg-view";
+import { el, renderToString } from "plgg-view";
 import { makeRenderer } from "plgg-view/client";
 import {
   createFlow,
@@ -39,7 +44,7 @@ test("sheet tool buttons edit the current flow", () => {
   );
   const click = (name: string, label: string) => {
     const tool = sheetTools.get(name);
-    if (!tool) return false;
+    if (!tool || !("view" in tool)) return false;
     render(tool.view(flow));
     const button = Array.from(
       root.querySelectorAll("button"),
@@ -231,6 +236,52 @@ test("three suggested views cycle without changing the written sheet", () => {
     seen.size === 3 &&
       f.camera.yaw === initial.camera.yaw &&
       f.camera.pitch === initial.camera.pitch,
+    toBe(true),
+  );
+});
+
+test("the snapshots tool shares the edit history of its own sheet", () => {
+  const parsed = parseSpec("A -> B");
+  if (parsed.__tag === "Err")
+    throw Error(parsed.content);
+  const opening = specFlow(parsed.content);
+  let state = session(opening);
+  const other = session(opening);
+  const root = document.createElement("div");
+  const render = makeRenderer<Action>(
+    root,
+    (action) => {
+      state = action(state);
+    },
+  );
+  const click = (name: string, label: string) => {
+    const tool = sheetTools.get(name);
+    if (!tool || !("sessionView" in tool))
+      throw Error(name);
+    render(
+      el("div", [], tool.sessionView(state)),
+    );
+    const button = Array.from(
+      root.querySelectorAll("button"),
+    ).find(
+      (button) => button.textContent === label,
+    );
+    if (!button) throw Error(label);
+    button.dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+  };
+  click("snapshots", "現在の状態を保存");
+  state = apply(addSheetNode)(state);
+  const edited = state.flow;
+  click("snapshots", "保存状態を復元");
+  const restored = state.flow === opening;
+  click("history", "元に戻す");
+  render.dispose();
+  return check(
+    restored &&
+      state.flow === edited &&
+      other.saved.__tag === "None",
     toBe(true),
   );
 });

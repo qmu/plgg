@@ -1977,6 +1977,16 @@ export const drawFlow = (
       ),
       a("aria-label", "Diagram editor"),
       a("tabindex", 0),
+      onEvent<Change>("flow-hold", (e) =>
+        e instanceof CustomEvent &&
+        typeof e.detail === "string" &&
+        lookup.has(e.detail)
+          ? some((s) => ({
+              ...selectNodes([e.detail])(s),
+              drag: none(),
+            }))
+          : none(),
+      ),
       onEvent<Change>("pointerdown", (e) => {
         if (
           !(e instanceof PointerEvent) ||
@@ -2112,7 +2122,56 @@ export const drawFlow = (
               : next;
           });
         }
-        const node = pickedItem.node ?? "";
+        const picked = pickedItem.node ?? "";
+        const hold =
+          picked &&
+          e.pointerType === "touch" &&
+          !selectedNodes(state).includes(picked);
+        if (hold) {
+          const cancel = new AbortController();
+          const options = {
+            signal: cancel.signal,
+          };
+          const timer = window.setTimeout(() => {
+            cancel.abort();
+            if (svg.isConnected)
+              svg.dispatchEvent(
+                new CustomEvent("flow-hold", {
+                  detail: picked,
+                }),
+              );
+          }, 450);
+          const stop = () => {
+            clearTimeout(timer);
+            cancel.abort();
+          };
+          for (const type of [
+            "pointerup",
+            "pointercancel",
+            "pointerdown",
+            "lostpointercapture",
+          ]) {
+            svg.addEventListener(
+              type,
+              stop,
+              options,
+            );
+          }
+          svg.addEventListener(
+            "pointermove",
+            (move) => {
+              if (
+                Math.hypot(
+                  move.clientX - e.clientX,
+                  move.clientY - e.clientY,
+                ) > 6
+              )
+                stop();
+            },
+            options,
+          );
+        }
+        const node = hold ? "" : picked;
         const group = lookup.get(node);
         if (
           group &&

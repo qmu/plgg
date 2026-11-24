@@ -5,7 +5,7 @@ description: 通販サイトの3層です。軸を1つ足すと、ノードが�
 
 # レイヤーに分ける
 
-```plgg-flow fill dsl
+```plgg-flow fill dsl tools=hidden
 layout layered down
 axis 層 画面 処理 永続化
 node 商品ページ 層=画面

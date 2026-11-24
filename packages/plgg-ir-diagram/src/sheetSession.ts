@@ -1,36 +1,24 @@
-import { demoSheetStyle } from "plgg-flow-example/sheetStyle";
 import {
   history,
   record,
   travel,
   sheetEdited,
   type Travel,
-  sheetHint,
-  addButton,
-  removeButton,
-  addSheetNode,
-  sheetToolbar,
-  roomFrames,
-  observeFrame,
-  sheetHelp,
-  sheetStage,
-  createDslPanel,
-  readSheetSource,
-} from "plgg-ir-diagram/flowSheet";
+} from "plgg-ir-diagram/sheetHistory";
+import {
+  cmdNone,
+  cmdEffect,
+  type Cmd,
+} from "plgg-view/client";
 import { resizeNode, nodeSize } from "plgg-flow";
 import { diffGraph } from "plgg-flow/revisions";
-import { writeDrawing } from "plgg-flow/storage";
 import {
   filesView,
   initialFiles,
   perform,
   type Files,
   type FileEdit,
-} from "./files";
-import {
-  toolState,
-  type ToolState,
-} from "./workbench";
+} from "plgg-ir-diagram/files";
 import {
   arrangeHierarchy,
   radialLayout,
@@ -58,21 +46,10 @@ import {
   attr,
   text,
   onClick,
-  onEvent,
   onInput,
   mapHtml,
-  lazy,
   type Html,
 } from "plgg-view";
-import {
-  sandbox,
-  custom,
-  subBatch,
-  cmdNone,
-  cmdEffect,
-  cmdBatch,
-  type Cmd,
-} from "plgg-view/client";
 import {
   createFlow,
   selectNodes,
@@ -89,16 +66,7 @@ import {
   type FlowNode,
   type Graph,
 } from "plgg-flow";
-import {
-  demoSheetTools,
-  examples,
-  resizeDemo,
-  type DemoId,
-} from "./examples";
-import {
-  printSpec,
-  type Rule,
-} from "plgg-flow/dsl";
+import { type Rule } from "plgg-flow/dsl";
 
 type Visit = Readonly<{
   camera: Flow["camera"];
@@ -126,22 +94,15 @@ const revision = (s: Revision): Revision => ({
   rules: s.rules,
   fittedCamera: s.fittedCamera,
 });
-type Session = Readonly<{
+export type Session = Readonly<{
   fittedCamera: Flow["camera"];
+  help?: boolean;
   trackedCard?: string;
   outline?: { parent?: string };
   back: readonly Visit[];
   forward: readonly Visit[];
-  draft?: Readonly<{
-    name: string;
-    revision: number;
-    busy: boolean;
-    saved?: Flow;
-  }>;
   flow: Flow;
-  tools: ToolState;
   files: Files;
-  returning: boolean;
   opening: Revision;
   before: readonly Revision[];
   after: readonly Revision[];
@@ -158,7 +119,7 @@ type Session = Readonly<{
     error?: string;
   }>;
 }>;
-const session = (
+export const session = (
   flow: Flow,
   rules: readonly Rule[] = [],
 ): Session => ({
@@ -167,9 +128,7 @@ const session = (
   rules,
   back: [],
   forward: [],
-  tools: toolState(),
   files: initialFiles(),
-  returning: false,
   ...history({
     hidden: none(),
     flow,
@@ -182,35 +141,26 @@ const session = (
   hidden: none(),
   message: "",
 });
-type Model = Readonly<{
-  index: number;
-  help?: boolean;
-  boardHeight?: number;
-  boardCover?: number;
-  sessions: readonly Session[];
-}>;
-type Action = (model: Model) => Model;
-type Edit = (s: Session) => Session;
-const edit =
+export type Action = (
+  session: Session,
+) => Session;
+type Edit = Action;
+export const edit =
   (fn: Edit): Action =>
-  (m) => ({
-    ...m,
-    sessions: m.sessions.map((s, i) => {
-      if (i !== m.index) return s;
-      const next = fn(s);
-      // Some sample controls edit the graph and their own session state together.
-      return next.before === s.before &&
-        !isSome(next.flow.drag) &&
-        (sheetEdited(s.flow, next.flow) ||
-          s.rules !== next.rules)
-        ? {
-            ...next,
-            ...record<Revision>(s, revision(s)),
-          }
-        : next;
-    }),
-  });
-const travelSheet =
+  (s) => {
+    const next = fn(s);
+    // Some sample controls edit the graph and their own session state together.
+    return next.before === s.before &&
+      !isSome(next.flow.drag) &&
+      (sheetEdited(s.flow, next.flow) ||
+        s.rules !== next.rules)
+      ? {
+          ...next,
+          ...record<Revision>(s, revision(s)),
+        }
+      : next;
+  };
+export const travelSheet =
   (way: Travel): Edit =>
   (s) => {
     const next = travel<Revision>(
@@ -223,12 +173,11 @@ const travelSheet =
       ...next.history,
       ...next.current,
       start: none(),
-      returning: false,
     };
   };
 const historyEdit = (redo: boolean): Edit =>
   travelSheet(redo ? "next" : "back");
-const apply =
+export const apply =
   (fn: Change, force = false): Edit =>
   (s) => {
     const flow = fn(s.flow);
@@ -256,7 +205,6 @@ const apply =
             flow.edges === s.flow.edges)) && {
           dsl: { ...s.dsl, flow },
         }),
-      returning: false,
       start: dragging ? some(start) : none(),
       ...(!dragging && changed
         ? record<Revision>(
@@ -355,11 +303,17 @@ const center =
         origin: {
           x:
             f.camera.origin.x +
-            frameOf(f).x / 2 -
+            (frameOf(f).x -
+              (f.cover ?? 0) +
+              (f.sheetInsets?.left ?? 0)) /
+              2 -
             p.x,
           y:
             f.camera.origin.y +
-            frameOf(f).y / 2 -
+            (frameOf(f).y -
+              (f.sheetInsets?.bottom ?? 0) +
+              (f.sheetInsets?.top ?? 0)) /
+              2 -
             p.y,
         },
       },
@@ -369,7 +323,6 @@ const navigate =
   (fn: Change): Edit =>
   (s) => ({
     ...s,
-    returning: false,
     flow: fn(s.flow),
     back: [...s.back.slice(-49), visit(s.flow)],
     forward: [],
@@ -412,7 +365,6 @@ const revisit =
     return {
       ...s,
       flow,
-      returning: false,
       back: forward
         ? [...s.back.slice(-49), visit(s.flow)]
         : stack.slice(0, -1),
@@ -726,13 +678,8 @@ const connectionLinks = (flow: Flow) => {
       ]
     : [];
 };
-const angle = (radians: number) =>
-  Math.atan2(
-    Math.sin(radians),
-    Math.cos(radians),
-  );
-const controls = (
-  id: DemoId,
+export const sessionControls = (
+  id: string,
   s: Session,
 ): Html<Action>[] => {
   const f = s.flow,
@@ -1114,7 +1061,7 @@ const controls = (
           !selected(f),
         ),
       ];
-    case "checkpoint":
+    case "snapshots":
       return [
         btn("現在の状態を保存", (s) => ({
           ...s,
@@ -1139,7 +1086,7 @@ const controls = (
         ),
         el("output", [], [text(s.message)]),
       ];
-    case "compute":
+    case "computed":
       return ["A", "B"].map((id) =>
         input(
           id,
@@ -1155,7 +1102,7 @@ const controls = (
           [0, 20],
         ),
       );
-    case "overview":
+    case "minimap":
       return [
         el(
           "svg",
@@ -1193,7 +1140,10 @@ const controls = (
                           "y2",
                           String(b.position.y),
                         ),
-                        attr("stroke", "#6d9186"),
+                        attr(
+                          "stroke",
+                          "var(--graphite)",
+                        ),
                         attr("stroke-width", "5"),
                       ],
                       [],
@@ -1215,7 +1165,7 @@ const controls = (
                     String(n.position.y),
                   ),
                   attr("r", "24"),
-                  attr("fill", "#167b70"),
+                  attr("fill", "var(--ink)"),
                   onClick(edit(apply(center(n)))),
                 ],
                 [],
@@ -1248,9 +1198,7 @@ const controls = (
     case "dimensions":
     case "layered":
       return [];
-    case "space":
-    case "rooms":
-    case "layers":
+    case "hidden":
       return [
         change(
           s.flow.hidden === "none"
@@ -1275,13 +1223,8 @@ const controls = (
         )(filesView(s.files)),
       ];
   }
+  return [];
 };
-// One mapping function for the life of the page: the
-// renderer skips an unchanged lazy subtree only when the
-// functions mapped over it are the very same objects.
-export const boardAction = (fn: Change) =>
-  edit(apply(fn));
-const boardActions = mapHtml(boardAction);
 const labelText = (label: string) =>
   el(
     "text",
@@ -1291,10 +1234,13 @@ const labelText = (label: string) =>
     ],
     [text(label)],
   );
-const diagram = (id: DemoId, f: Flow) =>
+export const diagram = (
+  computed: boolean,
+  f: Flow,
+) =>
   flowView(
     f,
-    id !== "compute"
+    !computed
       ? undefined
       : (n) =>
           labelText(
@@ -1316,625 +1262,65 @@ const diagram = (id: DemoId, f: Flow) =>
                   )),
           ),
   );
-const toggleHelp: Action = (m) => ({
-  ...m,
-  help: !m.help,
-});
-const panel = createDslPanel<Action>(
-  (fn) => edit(apply(fn)),
-  toggleHelp,
-  (value, edited) =>
-    edit((cur) => {
-      const draft = readSheetSource(
-        value,
-        cur.flow,
-        cur.rules,
-        edited,
-      );
-      if (draft.error)
-        return {
-          ...cur,
-          dsl: {
-            text: value,
-            flow: cur.flow,
-            error: draft.error,
-          },
-        };
-      const next = apply(() => draft.flow)(cur);
-      return {
-        ...next,
-        rules: draft.rules,
-        fittedCamera:
-          next.flow.camera !== cur.flow.camera
-            ? next.flow.camera
-            : cur.fittedCamera,
-        dsl: {
-          text: value,
-          flow: next.flow,
-        },
-      };
-    }),
-);
-const dslPanel = (s: Session) => {
-  const typed =
-    s.dsl && s.dsl.flow === s.flow
-      ? s.dsl
-      : undefined;
-  const source =
-    typed?.text ?? printSpec(s.flow, s.rules);
-  return panel(
-    s.flow,
-    s.rules,
-    source,
-    typed?.error,
-  );
-};
-const helpToast = sheetHelp(toggleHelp);
-const sidebar = (index: number): Html<Action> =>
-  el(
-    "aside",
-    [],
-    [
-      el("h1", [], [text("plgg-flow")]),
-      el(
-        "a",
-        [attr("href", "./markdown/")],
-        [text("Markdown に埋め込む")],
-      ),
-      el(
-        "p",
-        [],
-        [
-          text(
-            "plgg-view のための空間ダイアグラム。ノードと線を、つかんで動かせる実例集。",
-          ),
-        ],
-      ),
-      el(
-        "nav",
-        [attr("aria-label", "Examples")],
-        examples.map((e, i) =>
-          el(
-            "button",
-            [
-              onClick((m: Model) => ({
-                ...m,
-                index: i,
-              })),
-              attr(
-                "aria-pressed",
-                String(i === index),
-              ),
-            ],
-            [text(e.name)],
-          ),
-        ),
-      ),
-    ],
-  );
-const header = (
-  e: (typeof examples)[number],
-): Html<Action> =>
-  el(
-    "header",
-    [],
-    [
-      el("h2", [], [text(e.name)]),
-      el(
-        "p",
-        [attr("class", "lede")],
-        [text(e.hint)],
-      ),
-    ],
-  );
-/**
- * Redraw what is there: every node and edge stays, the
- * nodes are placed again by the layered layout and the
- * sheet is fitted. A sheet that already flows one way
- * keeps its way; otherwise the frame's shape decides.
- */
-const toolbar = (
-  e: (typeof examples)[number],
+export const fileUpdate = (
   s: Session,
-): Html<Action> => {
-  const flow = s.flow;
-  const tool = demoSheetTools.get(
-    e.id === "space" ? "views" : e.id,
-  );
-  return sheetToolbar(
-    (way) => edit(travelSheet(way)),
-    !!s.before.length,
-    !!s.after.length,
-    (fn) =>
-      edit((s) => {
-        const next = apply(fn, true)(s);
-        return {
-          ...next,
-          fittedCamera: next.flow.camera,
-        };
-      }),
-    flow.layered?.options.layerAxis
-      ? "layer"
-      : !!flow.rooms,
-    tool ? [boardActions(tool.view(flow))] : [],
-  );
-};
-const renderPanel = (build: () => Html<Action>) =>
-  build();
-// Controls whose labels read board geometry must follow those edits.
-const featureInput = (
-  id: DemoId,
-  s: Session,
-): unknown => {
-  const f = s.flow;
-  switch (id) {
-    case "dimensions":
-    case "layered":
-      return id;
-    case "rooms":
-    case "layers":
-    case "space":
-      return f.hidden;
-    case "split":
-      return !!f.edges.length;
-    case "cycles":
-    case "limit":
-      return s.message;
-    case "routes":
-      return f.edges;
-    case "reconnect":
-    case "layout":
-      return id;
-    case "bypass":
-      return f.nodes.some(
-        (n) => n.id === "Process",
-      );
-    case "snap":
-      return f.snap;
-    case "resize":
-      return f.nodes.find(
-        (n) => n.id === "Process",
-      )?.width;
-    case "rename":
-      return f.nodes.find(
-        (n) => n.id === "Process",
-      )?.label;
-    case "motion":
-    case "labels":
-      return f.edges;
-    case "collapse":
-      return isSome(s.hidden);
-    case "files":
-      return s.files;
-    case "copy":
-      return JSON.stringify([
-        !!selected(f),
-        isSome(s.clipboard),
-      ]);
-    case "history":
-      return JSON.stringify([
-        !!selected(f),
-        !!s.before.length,
-        !!s.after.length,
-      ]);
-    case "checkpoint":
-      return JSON.stringify([
-        s.message,
-        isSome(s.saved),
-      ]);
-    case "compute":
-      return JSON.stringify(
-        ["A", "B"].map(
-          (id) =>
-            f.nodes.find((n) => n.id === id)
-              ?.value,
-        ),
-      );
-    case "overview":
-      return f;
-    case "trace":
-    case "group":
-    case "revisions":
-    case "outline":
-      return s;
-    default:
-      return id satisfies never;
-  }
-};
-const featureCache = new Map<
-  DemoId,
-  {
-    input: unknown;
-    back: boolean;
-    forward: boolean;
-    canRemove: boolean;
-    html: Html<Action>;
-  }
->();
-const boardControls = (
-  e: (typeof examples)[number],
-  s: Session,
-) => {
-  const id = e.id,
-    canRemove = !!(
-      selected(s.flow) || s.flow.activeEdge
-    );
-  const input = featureInput(id, s),
-    old = featureCache.get(id);
-  if (
-    old &&
-    old.input === input &&
-    old.back === !!s.before.length &&
-    old.forward === !!s.after.length &&
-    old.canRemove === canRemove
-  )
-    return old.html;
-  const html = lazy(renderPanel, () =>
-    el(
-      "div",
-      [attr("class", "board-controls")],
-      [
-        toolbar(e, s),
-        el(
-          "div",
-          [attr("class", "feature")],
-          controls(id, s),
-        ),
-        ...(canRemove
-          ? [
-              removeButton(
-                edit(apply(deleteSelected)),
-              ),
-            ]
-          : []),
-        addButton(edit(apply(addSheetNode))),
-      ],
-    ),
-  );
-  featureCache.set(id, {
-    input,
-    back: !!s.before.length,
-    forward: !!s.after.length,
-    canRemove,
-    html,
-  });
-  return html;
-};
-export const view = (m: Model): Html<Action> => {
-  const e = examples[m.index],
-    s = m.sessions[m.index];
-  if (!e || !s)
-    return text("Example unavailable");
-  return el(
-    "main",
-    [
-      onEvent<Action>("keydown", (e) => {
-        if (
-          !(e instanceof KeyboardEvent) ||
-          !(e.ctrlKey || e.metaKey) ||
-          e.isComposing
-        )
-          return none();
-        if (
-          e.key.toLowerCase() === "k" &&
-          e.currentTarget instanceof Element
-        ) {
-          const panel =
-              e.currentTarget.querySelector(
-                "details.editing-tools",
-              ),
-            input = panel?.querySelector(
-              'input[type="search"]',
-            );
-          if (
-            panel instanceof HTMLDetailsElement &&
-            input instanceof HTMLInputElement
-          ) {
-            e.preventDefault();
-            panel.open = true;
-            input.focus();
-            input.select();
-          }
-          return none();
-        }
-        if (
-          e.target instanceof Element &&
-          e.target.closest(
-            "input,textarea,[contenteditable=true]",
-          )
-        )
-          return none();
-        if (
-          e.key.toLowerCase() === "z" ||
-          e.key.toLowerCase() === "y"
-        ) {
-          e.preventDefault();
-          return some(
-            edit(
-              historyEdit(
-                e.shiftKey ||
-                  e.key.toLowerCase() === "y",
-              ),
-            ),
-          );
-        }
-        return none();
-      }),
-    ],
-    [
-      lazy(sidebar, m.index),
-      demoSheetStyle,
-      el(
-        "section",
-        [attr("class", "flow-sheet")],
-        [
-          ...(m.help ? [helpToast] : []),
-          lazy(header, e),
-          sheetStage(
-            boardActions(diagram(e.id, s.flow)),
-            boardControls(e, s),
-            [dslPanel(s)],
-          ),
-          sheetHint,
-        ],
-      ),
-    ],
-  );
-};
-const fileUpdate = (
-  next: Model,
-): [Model, Cmd<Action>] => {
-  const index = next.index,
-    s = next.sessions[index];
-  if (!s || !isSome(s.files.job))
-    return [next, cmdNone()];
+): [Session, Cmd<Action>] => {
+  if (!isSome(s.files.job)) return [s, cmdNone()];
   const job = s.files.job.content,
     source = s.flow,
     files = s.files;
   return [
-    edit((s) => ({
-      ...s,
-      files: { ...s.files, job: none() },
-    }))(next),
+    { ...s, files: { ...files, job: none() } },
     cmdEffect<Action>(async () => {
       const outcome = await perform(
         job,
         files,
         source,
       );
-      return (model) => ({
-        ...model,
-        sessions: model.sessions.map(
-          (current, i) => {
-            if (
-              i !== index ||
-              current.files.sequence !==
-                files.sequence
-            )
-              return current;
-            if (
-              outcome.drawing &&
-              current.flow !== source
-            )
-              return {
-                ...current,
-                files: {
-                  ...current.files,
-                  report:
-                    "読み込み中に図面が更新されました。もう一度開いてください",
-                },
-              };
-            const drawing = outcome.drawing;
-            const updated = drawing
-              ? apply(() => ({
-                  ...createFlow(drawing),
-                  ...drawing,
-                }))(current)
-              : current;
-            return {
-              ...updated,
-              files: {
-                ...updated.files,
-                report: outcome.report,
-                ...(outcome.available
-                  ? {
-                      available:
-                        outcome.available,
-                    }
-                  : {}),
-                ...(outcome.revision === undefined
-                  ? {}
-                  : {
-                      revision: outcome.revision,
-                      opened: files.name,
-                    }),
-              },
-            };
+      return (current) => {
+        if (
+          current.files.sequence !==
+          files.sequence
+        )
+          return current;
+        if (
+          outcome.drawing &&
+          current.flow !== source
+        )
+          return {
+            ...current,
+            files: {
+              ...current.files,
+              report:
+                "読み込み中に図面が更新されました。もう一度開いてください",
+            },
+          };
+        const drawing = outcome.drawing;
+        const updated = drawing
+          ? apply(() => ({
+              ...createFlow(drawing),
+              ...drawing,
+            }))(current)
+          : current;
+        return {
+          ...updated,
+          files: {
+            ...updated.files,
+            report: outcome.report,
+            ...(outcome.available
+              ? {
+                  available: outcome.available,
+                }
+              : {}),
+            ...(outcome.revision === undefined
+              ? {}
+              : {
+                  revision: outcome.revision,
+                  opened: files.name,
+                }),
           },
-        ),
-      });
+        };
+      };
     }),
   ];
 };
-const sizeBoard = (model: Model): Model => {
-  const height = model.boardHeight;
-  if (height === undefined) return model;
-  return edit((s) => {
-    const fitted =
-      s.flow.camera === s.fittedCamera;
-    const flow = resizeDemo(
-      s.flow,
-      height,
-      fitted,
-      model.boardCover ?? 0,
-    );
-    if (flow === s.flow) return s;
-    return {
-      ...s,
-      flow,
-      fittedCamera: fitted
-        ? flow.camera
-        : s.fittedCamera,
-      ...(s.dsl?.flow === s.flow
-        ? { dsl: { ...s.dsl, flow } }
-        : {}),
-    };
-  })(model);
-};
-export const update = (
-  fn: Action,
-  m: Model,
-): [Model, Cmd<Action>] => {
-  const next = sizeBoard(fn(m));
-  const [updated, fileCommand] = fileUpdate(next);
-  const commands = [fileCommand];
-  const sessions = updated.sessions.map(
-    (s, i) => {
-      const d = s.draft;
-      if (
-        !d ||
-        d.busy ||
-        d.saved === s.flow ||
-        isSome(s.flow.drag) ||
-        s.returning
-      )
-        return s;
-      const source = s.flow;
-      commands.push(
-        cmdEffect<Action>(async () => {
-          const result = await writeDrawing(
-            d.name,
-            source,
-            d.revision,
-          );
-          return (model) => ({
-            ...model,
-            sessions: model.sessions.map(
-              (current, index) => {
-                if (
-                  index !== i ||
-                  current.draft?.name !== d.name
-                )
-                  return current;
-                if (result.__tag === "Err") {
-                  const { draft, ...rest } =
-                    current;
-                  return {
-                    ...rest,
-                    files: {
-                      ...rest.files,
-                      report:
-                        "自動保存停止：" +
-                        result.content,
-                    },
-                  };
-                }
-                return {
-                  ...current,
-                  draft: {
-                    ...d,
-                    busy: false,
-                    revision: result.content,
-                    saved: source,
-                  },
-                };
-              },
-            ),
-          });
-        }),
-      );
-      return {
-        ...s,
-        draft: { ...d, busy: true },
-      };
-    },
-  );
-  return [
-    { ...updated, sessions },
-    cmdBatch(commands),
-  ];
-};
-export const init = (): Model => ({
-  index: 0,
-  sessions: examples.map((e) =>
-    session(e.initial(), e.spec().rules),
-  ),
-});
-export { examples };
-const root = document.getElementById("app");
-if (root)
-  sandbox<Model, Action>({
-    init: [init(), cmdNone()],
-    view,
-    subscriptions: (m) => {
-      const current = m.sessions[m.index];
-      const board = observeFrame<Action>(
-        root,
-        (boardHeight, boardCover) => (m) => ({
-          ...m,
-          boardHeight,
-          boardCover,
-        }),
-      );
-      if (current?.flow.roomMotion)
-        return subBatch([
-          board,
-          roomFrames<Action>(current.flow, (fn) =>
-            edit((s) => {
-              const flow = fn(s.flow);
-              return {
-                ...s,
-                flow,
-                ...(s.dsl?.flow === s.flow && {
-                  dsl: { ...s.dsl, flow },
-                }),
-              };
-            }),
-          ),
-        ]);
-      if (!current?.returning) return board;
-      const { yaw, pitch } = current.flow.camera;
-      return subBatch([
-        board,
-        custom<Action>(
-          "front-" + m.index,
-          (dispatch) => {
-            const started = performance.now();
-            const duration = window.matchMedia(
-              "(prefers-reduced-motion: reduce)",
-            ).matches
-              ? 0
-              : 320;
-            let frame = 0;
-            const tick = (now: number) => {
-              const t = duration
-                ? Math.min(
-                    1,
-                    (now - started) / duration,
-                  )
-                : 1;
-              const weight =
-                1 - t * t * (3 - 2 * t);
-              dispatch(
-                edit((s) => ({
-                  ...s,
-                  flow: viewAt(
-                    angle(yaw) * weight,
-                    angle(pitch) * weight,
-                  )(s.flow),
-                  returning: t < 1,
-                })),
-              );
-              if (t < 1)
-                frame =
-                  requestAnimationFrame(tick);
-            };
-            frame = requestAnimationFrame(tick);
-            return () =>
-              cancelAnimationFrame(frame);
-          },
-        ),
-      ]);
-    },
-    update,
-  })(root);

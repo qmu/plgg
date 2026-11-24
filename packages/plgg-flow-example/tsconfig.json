@@ -12,6 +12,7 @@
       "node"
     ],
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "plgg-flow-example*": [
         "./src/*"

@@ -5,7 +5,7 @@ description: 交差している2本の線の間を見てください。⌘（Ctr
 
 # 立体交差
 
-```plgg-flow fill dsl
+```plgg-flow fill dsl tools=views,hidden
 node North at -224 -112 160
 node South at -224 112 -150
 node Upper at 224 -112 -150

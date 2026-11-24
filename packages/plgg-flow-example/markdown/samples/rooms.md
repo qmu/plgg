@@ -5,7 +5,7 @@ description: 同じ通販サイトを、サービス・層・環境の3つの軸
 
 # 部屋に分ける
 
-```plgg-flow fill dsl
+```plgg-flow fill dsl tools=hidden
 layout rooms
 axis サービス 会員 注文 決済
 axis 層 画面 処理 永続化

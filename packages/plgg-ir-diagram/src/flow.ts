@@ -40,6 +40,7 @@ const board = (flow: Flow) =>
  */
 export const flowWidget = (
   source: string,
+  info = "",
 ): Html<never> => {
   const r = sourceFlow(source);
   const listing = el<never>(
@@ -60,11 +61,40 @@ export const flowWidget = (
         [attr("class", "plgg-flow-error")],
         [el("p", [], [text(r.content)]), listing],
       )
-    : el(
-        "figure",
-        [attr("class", "plgg-flow")],
-        [board(r.content), listing],
-      );
+    : info.split(/\s+/).includes("fill")
+      ? el(
+          "div",
+          [attr("class", "flow-sheet")],
+          [
+            el(
+              "div",
+              [attr("class", "stage")],
+              [
+                el(
+                  "div",
+                  [attr("class", "canvas-wrap")],
+                  [board(r.content)],
+                ),
+                ...(info
+                  .split(/\s+/)
+                  .includes("dsl")
+                  ? [
+                      el(
+                        "aside",
+                        [attr("class", "dsl")],
+                        [listing],
+                      ),
+                    ]
+                  : []),
+              ],
+            ),
+          ],
+        )
+      : el(
+          "figure",
+          [attr("class", "plgg-flow")],
+          [board(r.content), listing],
+        );
 };
 
 /** The 3D angle the "立体" control turns to. */

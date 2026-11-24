@@ -121,6 +121,8 @@ export const mobileBar = (
   config: SiteConfig,
   activePath: SoftStr,
   showMenu: boolean,
+  title = config.title,
+  description?: string,
 ): Html<never, "header"> => {
   const hrefOf = href(config.base);
   const sameAsActive = samePath(config.base);
@@ -154,7 +156,17 @@ export const mobileBar = (
     [class_("vp-mobilebar")],
     [
       ...menuBtn,
-      a(homeAttrs, [text(config.title)]),
+      a(homeAttrs, [
+        text(title),
+        ...(description
+          ? [
+              span(
+                [class_("vp-mobile-description")],
+                [span([], [text(description)])],
+              ),
+            ]
+          : []),
+      ]),
       // below lg the rail is hidden, so the mobile bar —
       // not the sections drawer — carries the same control
       // group. The sections column stays navigation only,

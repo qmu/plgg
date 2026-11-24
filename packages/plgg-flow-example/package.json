@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Interactive diagram gallery.",
   "scripts": {
-    "build": "plgg-bundle && cp index.html dist/ && plggpress build --config markdown/site.config.ts --contentDir markdown --outDir dist/markdown",
+    "build": "node build.ts",
     "test": "plgg-test src",
     "tsc": "tsc --noEmit",
     "tsc:watch": "tsc --noEmit --watch",

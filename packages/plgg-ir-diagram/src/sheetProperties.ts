@@ -41,7 +41,7 @@ const square = 16;
 const mixed = "複数の値";
 const common = (values: readonly string[]) =>
   values.every((v) => v === values[0])
-    ? (values[0] ?? "")
+    ? values[0] ?? ""
     : undefined;
 const rename =
   (old: string, id: string): Change =>
@@ -562,7 +562,7 @@ export const sheetProperties = <A>(
       flow.rooms && !options?.layerAxis
         ? "rooms"
         : options
-          ? (options.direction ?? "right")
+          ? options.direction ?? "right"
           : "none";
     const updateRule = (
       kind: Rule["kind"],
@@ -775,7 +775,7 @@ export const sheetProperties = <A>(
               ),
             flow.snap === 0
               ? 1
-              : (flow.snap ?? square),
+              : flow.snap ?? square,
             placed,
           ),
           ...(placed ? [hint("配置で指定")] : []),
@@ -1130,13 +1130,16 @@ export const sheetProperties = <A>(
         ? e.target.getAttribute("aria-label")
         : undefined;
     return label
-      ? (handlers.get(label)?.(e) ?? none())
+      ? handlers.get(label)?.(e) ?? none()
       : none();
   };
   return el(
     "section",
     [
       attr("class", "dsl-properties"),
+      ...(ids.length || edges.length
+        ? [attr("data-selected", "")]
+        : []),
       attr("aria-label", "プロパティ"),
       ...["click", "change", "keydown"].map(
         (type) => onEvent(type, dispatch),

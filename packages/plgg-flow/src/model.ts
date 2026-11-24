@@ -216,6 +216,11 @@ export type Flow = Graph &
      * panel laid over the board hides; fitting keeps
      * the diagram clear of it. */
     cover?: number;
+    sheetInsets?: Readonly<{
+      left: number;
+      top: number;
+      bottom: number;
+    }>;
     rooms?: RoomLayout;
     roomPins?: Readonly<Record<string, string>>;
     hoveredEdge?: Edge | undefined;

@@ -175,6 +175,7 @@ const sectionsColumn = (
   config: SiteConfig,
   activePath: SoftStr,
   base: SoftStr,
+  description?: Option<string>,
 ): Html<never> => {
   const hrefOf = href(config.base);
   const sameAsActive = samePath(config.base);
@@ -233,6 +234,14 @@ const sectionsColumn = (
             p(
               [class_("vp-tagline")],
               [text(config.tagline.content)],
+            ),
+          ]
+        : []),
+      ...(description?.__tag === "Some"
+        ? [
+            p(
+              [class_("vp-drawer-description")],
+              [text(description.content)],
             ),
           ]
         : []),
@@ -437,7 +446,19 @@ export const page = (
       // is the ONLY way to reach articles, so a sidebar-
       // less home is a navigation dead-end. The `☰` drawer
       // is enabled on every page for the same reason.
-      mobileBar(config, activePath, true),
+      mobileBar(
+        config,
+        activePath,
+        true,
+        contents[0]?.sheet
+          ? contents[0].title
+          : config.title,
+        contents[0]?.sheet &&
+          contents[0].description?.__tag ===
+            "Some"
+          ? contents[0].description.content
+          : undefined,
+      ),
       backdrop,
       strip(
         ["vp-app"],
@@ -446,6 +467,7 @@ export const page = (
             config,
             activePath,
             base,
+            contents[0]?.description,
           ),
           ...drilledColumn(
             config,

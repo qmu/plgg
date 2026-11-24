@@ -1,18 +1,29 @@
-import { isSome, some, none } from "plgg";
+import {
+  session,
+  edit,
+  apply,
+  diagram,
+  travelSheet,
+  fileUpdate,
+  type Action,
+  type Session,
+} from "plgg-ir-diagram/sheetSession";
+import { some, none } from "plgg";
 import {
   el,
   attr,
   mapHtml,
+  text,
   onEvent,
   type Html,
 } from "plgg-view";
 import {
+  custom,
   subBatch,
   sandbox,
   cmdNone,
 } from "plgg-view/client";
 import {
-  flowView,
   selectedNodes,
   deleteSelected,
   type Change,
@@ -22,14 +33,8 @@ import {
   parseSpec,
   printSpec,
   specFlow,
-  type Rule,
 } from "plgg-flow/dsl";
 import {
-  history,
-  record,
-  travel,
-  sheetEdited,
-  type History,
   type Travel,
   roomFrames,
   sheetHint,
@@ -48,151 +53,82 @@ import {
   readSheetSource,
 } from "plgg-ir-diagram/flowSheet";
 
-type Revision = Readonly<{
-  flow: Flow;
-  rules: readonly Rule[];
-  source: string;
-  fitted: boolean;
-  error: string;
-}>;
-type Model = Revision &
-  Readonly<{
-    help: boolean;
-    history: History<Revision>;
-    start?: Revision | undefined;
-  }>;
-const revision = ({
-  flow,
-  rules,
-  source,
-  fitted,
-  error,
-}: Revision): Revision => ({
-  flow,
-  rules,
-  source,
-  fitted,
-  error,
-});
-const remember = (
-  m: Model,
-  next: Model,
-  force = false,
-): Model => {
-  const previous = m.start ?? revision(m);
-  if (isSome(next.flow.drag))
-    return { ...next, start: previous };
-  return {
-    ...next,
-    start: undefined,
-    history:
-      force ||
-      sheetEdited(previous.flow, next.flow) ||
-      previous.rules !== next.rules
-        ? record(m.history, previous)
-        : m.history,
-  };
-};
-type Action = (model: Model) => Model;
-const change =
-  (fn: Change, fitted = false): Action =>
-  (m) => {
-    const flow = fn(m.flow);
-    return flow === m.flow
-      ? m
-      : remember(
-          m,
-          {
-            ...m,
-            flow,
-            source:
-              (flow.suggestions &&
-                flow.declaredAxes ===
-                  m.flow.declaredAxes &&
-                flow.suggestions !==
-                  m.flow.suggestions) ||
-              (flow.rooms &&
-                flow.nodes === m.flow.nodes &&
-                flow.edges === m.flow.edges)
-                ? m.source
-                : printSpec(flow, m.rules),
-            error: "",
-            fitted:
-              fitted ||
-              (m.fitted &&
-                flow.camera === m.flow.camera),
-          },
-          fitted,
-        );
-  };
-const retype =
-  (source: string, edited?: Flow): Action =>
-  (m) => {
-    const draft = readSheetSource(
-      source,
-      m.flow,
-      m.rules,
-      edited,
-    );
-    return remember(m, {
-      ...m,
-      ...draft,
-      source,
-      fitted:
-        m.fitted ||
-        draft.flow.camera !== m.flow.camera,
-    });
-  };
-const toggle: Action = (m) => ({
-  ...m,
-  help: !m.help,
-});
+let mountedSheets = 0;
 export const mountSheet = (
   root: Element,
   code: string,
   dsl: boolean,
   names: readonly string[] = [],
 ) => {
+  const sheetId = ++mountedSheets;
   const parsed = parseSpec(code);
   if (parsed.__tag === "Err") return;
   const flow = specFlow(parsed.content);
-  const opening: Revision = {
-    flow: fitDemo(
-      flow.rooms ? roomsOpening(flow) : flow,
-    ),
-    rules: parsed.content.rules,
-    source: code,
-    error: "",
-    fitted: true,
+  const opened = fitDemo(
+    flow.rooms ? roomsOpening(flow) : flow,
+  );
+  const initial: Session = {
+    ...session(opened, parsed.content.rules),
+    dsl: { text: code, flow: opened },
   };
-  const initial: Model = {
-    ...opening,
-    help: false,
-    history: history(opening),
-  };
-  const navigate =
-    (way: Travel): Action =>
-    (m) => {
-      const next = travel(
-        m.history,
-        revision(m),
-        way,
+  const navigate = (way: Travel) =>
+    edit((s) => {
+      const next = travelSheet(way)(s);
+      const fitted =
+        next.flow.camera === next.fittedCamera;
+      const flow = resizeDemo(
+        next.flow,
+        s.flow.frame?.y ?? 580,
+        fitted,
+        s.flow.cover,
+        s.flow.sheetInsets,
       );
-      const restored = next.current;
       return {
-        ...m,
-        ...restored,
-        flow: resizeDemo(
-          restored.flow,
-          m.flow.frame?.y ?? 580,
-          restored.fitted,
-          m.flow.cover ?? 0,
-        ),
-        history: next.history,
-        start: undefined,
+        ...next,
+        flow,
+        fittedCamera: fitted
+          ? flow.camera
+          : next.fittedCamera,
       };
-    };
-  const controls = (m: Model) => {
+    });
+  const change = (fn: Change, fit = false) =>
+    edit((s) => {
+      const next = apply(fn, fit)(s);
+      return fit
+        ? {
+            ...next,
+            fittedCamera: next.flow.camera,
+          }
+        : next;
+    });
+  const toggle: Action = (s) => ({
+    ...s,
+    help: !s.help,
+  });
+  const retype = (value: string, edited?: Flow) =>
+    edit((s) => {
+      const draft = readSheetSource(
+        value,
+        s.flow,
+        s.rules,
+        edited,
+      );
+      const next = apply(() => draft.flow)(s);
+      return {
+        ...next,
+        rules: draft.rules,
+        fittedCamera:
+          draft.flow.camera !== s.flow.camera
+            ? draft.flow.camera
+            : s.fittedCamera,
+        dsl: {
+          text: value,
+          flow: draft.flow,
+          error: draft.error,
+        },
+      };
+    });
+  const controls = (m: Session) => {
     const current = m.flow;
     return el<Action>(
       "div",
@@ -200,17 +136,79 @@ export const mountSheet = (
       [
         sheetToolbar(
           navigate,
-          !!m.history.before.length,
-          !!m.history.after.length,
+          !!m.before.length,
+          !!m.after.length,
           (fn) => change(fn, true),
           current.layered?.options.layerAxis
             ? "layer"
             : !!current.rooms,
           names.flatMap((name) => {
             const tool = sheetTools.get(name);
-            return tool
-              ? [board(tool.view(current))]
-              : [];
+            return !tool
+              ? []
+              : "view" in tool
+                ? [board(tool.view(current))]
+                : [
+                    el(
+                      "span",
+                      [
+                        attr(
+                          "class",
+                          "session-tool",
+                        ),
+                      ],
+                      [
+                        el(
+                          "button",
+                          [
+                            attr(
+                              "type",
+                              "button",
+                            ),
+                            attr(
+                              "class",
+                              "tool-trigger",
+                            ),
+                            attr(
+                              "title",
+                              tool.label,
+                            ),
+                            attr(
+                              "aria-label",
+                              tool.label,
+                            ),
+                            attr(
+                              "data-icon",
+                              tool.icon,
+                            ),
+                            attr(
+                              "popovertarget",
+                              `tool-${sheetId}-${name}`,
+                            ),
+                          ],
+                          [text(tool.label)],
+                        ),
+                        el(
+                          "div",
+                          [
+                            attr(
+                              "id",
+                              `tool-${sheetId}-${name}`,
+                            ),
+                            attr(
+                              "class",
+                              "tool-content",
+                            ),
+                            attr(
+                              "popover",
+                              "auto",
+                            ),
+                          ],
+                          tool.sessionView(m),
+                        ),
+                      ],
+                    ),
+                  ];
           }),
         ),
         ...(selectedNodes(current).length ||
@@ -223,25 +221,212 @@ export const mountSheet = (
   };
   const frame = observeFrame<Action>(
     root,
-    (height, cover) => (m) => ({
-      ...m,
-      flow: resizeDemo(
+    (height, cover, insets) => (m) => {
+      const fitted =
+        m.flow.camera === m.fittedCamera ||
+        m.flow.cover !== cover ||
+        JSON.stringify(m.flow.sheetInsets) !==
+          JSON.stringify(insets);
+      const flow = resizeDemo(
         m.flow,
         height,
-        m.fitted,
+        fitted,
         cover,
-      ),
-    }),
+        insets,
+      );
+      return {
+        ...m,
+        flow,
+        fittedCamera: fitted
+          ? flow.camera
+          : m.fittedCamera,
+        ...(m.dsl?.flow === m.flow
+          ? { dsl: { ...m.dsl, flow } }
+          : {}),
+      };
+    },
   );
-  const board = mapHtml((fn: Change) =>
-    change(fn),
+  const compact = window.matchMedia(
+    "(max-width:759px),(orientation:landscape) and (max-height:499px)",
+  );
+  const board = mapHtml(
+    (fn: Change): Action =>
+      (m) => {
+        const next = change(fn)(m);
+        if (
+          compact.matches &&
+          (selectedNodes(next.flow).some(
+            (id) =>
+              !selectedNodes(m.flow).includes(id),
+          ) ||
+            (next.flow.activeEdge &&
+              m.flow.activeEdge !==
+                next.flow.activeEdge))
+        ) {
+          root
+            .querySelector(".flow-sheet")
+            ?.setAttribute("data-level", "half");
+        }
+        return next;
+      },
   );
   const panel = createDslPanel(
     change,
     toggle,
     retype,
   );
-  const view = (m: Model): Html<Action> =>
+  const interactions = custom<Action>(
+    "sheet-input",
+    () => {
+      const stop = new AbortController();
+      const options = { signal: stop.signal };
+      const handle = root.querySelector(
+        ".dsl-handle",
+      );
+      const landscape = () =>
+        matchMedia(
+          "(orientation:landscape) and (max-height:499px)",
+        ).matches;
+      const step = (direction: number) => {
+        if (!compact.matches) {
+          root
+            .querySelector(".flow-sheet")
+            ?.setAttribute(
+              "data-folded",
+              String(
+                getComputedStyle(
+                  root.querySelector(".dsl")!,
+                ).width !== "28px",
+              ),
+            );
+          return;
+        }
+        const levels = ["closed", "half", "full"];
+        const index = levels.indexOf(
+          root
+            .querySelector(".flow-sheet")
+            ?.getAttribute("data-level") ??
+            "closed",
+        );
+        root
+          .querySelector(".flow-sheet")
+          ?.setAttribute(
+            "data-level",
+            levels[
+              direction === 0
+                ? (index + 1) % 3
+                : Math.max(
+                    0,
+                    Math.min(
+                      2,
+                      index + direction,
+                    ),
+                  )
+            ]!,
+          );
+      };
+      let start = 0,
+        dragged = false;
+      if (handle instanceof HTMLElement) {
+        handle.addEventListener(
+          "pointerdown",
+          (e) => {
+            start = landscape()
+              ? e.clientX
+              : e.clientY;
+            dragged = false;
+            handle.setPointerCapture(e.pointerId);
+          },
+          options,
+        );
+        handle.addEventListener(
+          "pointerup",
+          (e) => {
+            const delta =
+              start -
+              (landscape()
+                ? e.clientX
+                : e.clientY);
+            if (Math.abs(delta) > 18) {
+              dragged = true;
+              step(Math.sign(delta));
+            }
+          },
+          options,
+        );
+        handle.addEventListener(
+          "click",
+          () => {
+            if (!dragged) step(0);
+            dragged = false;
+          },
+          options,
+        );
+      }
+      const subtitle = root
+        .closest(".vp-shell")
+        ?.querySelector(".vp-mobile-description");
+      const subtitleObserver = new ResizeObserver(
+        () => {
+          if (!(subtitle instanceof HTMLElement))
+            return;
+          const range = document.createRange();
+          range.selectNodeContents(subtitle);
+          subtitle.toggleAttribute(
+            "data-overflow",
+            range.getBoundingClientRect().width >
+              (subtitle.parentElement
+                ?.clientWidth ?? 0),
+          );
+        },
+      );
+      if (subtitle?.parentElement)
+        subtitleObserver.observe(
+          subtitle.parentElement,
+        );
+      const hint = root.querySelector(
+        ".flow-sheet > small",
+      );
+      let hintTimer = 0;
+      const showHint = () => {
+        if (!(hint instanceof HTMLElement))
+          return;
+        clearTimeout(hintTimer);
+        if (!compact.matches) {
+          hint.hidden = false;
+          return;
+        }
+        let seen = false;
+        try {
+          seen =
+            sessionStorage.getItem(
+              "flow-touch-hint",
+            ) === "seen";
+          sessionStorage.setItem(
+            "flow-touch-hint",
+            "seen",
+          );
+        } catch {}
+        hint.hidden = seen;
+        hintTimer = window.setTimeout(
+          () => (hint.hidden = true),
+          4000,
+        );
+      };
+      showHint();
+      compact.addEventListener(
+        "change",
+        showHint,
+        options,
+      );
+      return () => {
+        subtitleObserver.disconnect();
+        stop.abort();
+        clearTimeout(hintTimer);
+      };
+    },
+  );
+  const view = (m: Session): Html<Action> =>
     el(
       "div",
       [
@@ -251,7 +436,9 @@ export const mountSheet = (
             !(event instanceof KeyboardEvent) ||
             event.isComposing ||
             !(event.metaKey || event.ctrlKey) ||
-            event.key.toLowerCase() !== "z" ||
+            !["y", "z"].includes(
+              event.key.toLowerCase(),
+            ) ||
             (event.target instanceof Element &&
               event.target.closest(
                 "input,textarea,[contenteditable=true]",
@@ -261,14 +448,22 @@ export const mountSheet = (
           event.preventDefault();
           return some(
             navigate(
-              event.shiftKey ? "next" : "back",
+              event.shiftKey ||
+                event.key.toLowerCase() === "y"
+                ? "next"
+                : "back",
             ),
           );
         }),
       ],
       [
         sheetStage(
-          board(flowView(m.flow)),
+          board(
+            diagram(
+              names.includes("computed"),
+              m.flow,
+            ),
+          ),
           controls(m),
           [
             ...(dsl
@@ -276,8 +471,15 @@ export const mountSheet = (
                   panel(
                     m.flow,
                     m.rules,
-                    m.source,
-                    m.error,
+                    m.dsl?.flow === m.flow
+                      ? m.dsl.text
+                      : printSpec(
+                          m.flow,
+                          m.rules,
+                        ),
+                    m.dsl?.flow === m.flow
+                      ? m.dsl.error
+                      : undefined,
                   ),
                 ]
               : []),
@@ -290,22 +492,35 @@ export const mountSheet = (
       ],
     );
   root.replaceChildren();
-  return sandbox<Model, Action>({
+  return sandbox<Session, Action>({
     init: [initial, cmdNone()],
     view,
-    update: (action, m) => [action(m), cmdNone()],
+    update: (action, m) => fileUpdate(action(m)),
     subscriptions: (m) =>
       m.flow.roomMotion
         ? subBatch([
             frame,
+            interactions,
             roomFrames<Action>(
               m.flow,
-              (fn) => (model) => ({
-                ...model,
-                flow: fn(model.flow),
-              }),
+              (fn) => (model) => {
+                const flow = fn(model.flow);
+                return {
+                  ...model,
+                  flow,
+                  ...(model.dsl?.flow ===
+                  model.flow
+                    ? {
+                        dsl: {
+                          ...model.dsl,
+                          flow,
+                        },
+                      }
+                    : {}),
+                };
+              },
             ),
           ])
-        : frame,
+        : subBatch([frame, interactions]),
   })(root);
 };

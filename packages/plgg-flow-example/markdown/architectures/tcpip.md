@@ -1,0 +1,29 @@
+---
+layout: sheet
+description: Web も名前解決も、最後は同じ IP を通って、別々の回線に出ていく。
+---
+
+# TCP/IP の4層
+
+```plgg-flow fill dsl tools=hidden
+layout layered down
+axis 層 アプリケーション トランスポート インターネット リンク
+node HTTP 層=アプリケーション
+node TLS 層=アプリケーション
+node DNS 層=アプリケーション
+node TCP 層=トランスポート
+node UDP 層=トランスポート
+node IP 層=インターネット
+node ICMP 層=インターネット
+node Ethernet 層=リンク
+node Wi-Fi 層=リンク
+HTTP -> TLS
+TLS -> TCP
+DNS -> UDP
+DNS -> TCP
+TCP -> IP
+UDP -> IP
+ICMP -> IP
+IP -> Ethernet
+IP -> Wi-Fi
+```

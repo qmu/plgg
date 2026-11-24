@@ -1,4 +1,9 @@
 import {
+  sessionControls,
+  type Session,
+  type Action,
+} from "plgg-ir-diagram/sheetSession";
+import {
   insertOnEdge,
   viewAt,
   type Flow,
@@ -12,10 +17,18 @@ import {
   type Html,
 } from "plgg-view";
 
-export type SheetTool = Readonly<{
+type FlowTool = Readonly<{
   name: string;
   view: (flow: Flow) => Html<Change>;
 }>;
+export type SheetTool =
+  | FlowTool
+  | Readonly<{
+      name: string;
+      label: string;
+      icon: string;
+      sessionView: (s: Session) => Html<Action>[];
+    }>;
 const button = (
   label: string,
   fn: Change,
@@ -26,11 +39,25 @@ const button = (
     [
       attr("type", "button"),
       attr("aria-pressed", String(pressed)),
+      attr("title", label),
+      attr("aria-label", label),
+      attr(
+        "data-icon",
+        new Map([
+          ["straight", "╱"],
+          ["step", "⌜"],
+          ["curve", "∿"],
+          ["正面", "▣"],
+          ["立体", "⬡"],
+          ["snap off", "⊘"],
+        ]).get(label) ??
+          label.replace("snap ", "⌗"),
+      ),
       onClick(fn),
     ],
     [text(label)],
   );
-const tools: readonly SheetTool[] = [
+const tools: readonly FlowTool[] = [
   {
     name: "routes",
     view: (flow) =>
@@ -86,6 +113,9 @@ const tools: readonly SheetTool[] = [
         "button",
         [
           attr("type", "button"),
+          attr("title", "接続の途中に挿入"),
+          attr("aria-label", "接続の途中に挿入"),
+          attr("data-icon", "⊕"),
           ...(!flow.edges.length
             ? [attr("disabled", "")]
             : []),
@@ -122,11 +152,45 @@ const tools: readonly SheetTool[] = [
           ),
   },
 ];
+const sessionTools = [
+  ["reconnect", "接続先を変更", "⇄"],
+  ["cycles", "循環の防止", "⟳"],
+  ["limit", "出力数の制限", "⊣"],
+  ["bypass", "中間ノードを削除", "⇥"],
+  ["resize", "サイズ変更", "↔"],
+  ["rename", "名前を編集", "✎"],
+  ["motion", "アニメーション", "▷"],
+  ["labels", "ラベル", "◇"],
+  ["collapse", "分岐の折りたたみ", "⊟"],
+  ["group", "グループ", "▣"],
+  ["layout", "配置", "▦"],
+  ["copy", "コピーと貼り付け", "▢"],
+  ["history", "履歴", "↶"],
+  ["snapshots", "スナップショット", "◉"],
+  ["computed", "入力値", "Σ"],
+  ["minimap", "ミニマップ", "⊙"],
+  ["trace", "配線をたどる", "↝"],
+  ["revisions", "編集履歴", "≡"],
+  ["outline", "グループ一覧", "☷"],
+  ["hidden", "隠線", "◌"],
+  ["files", "保存と読み込み", "▤"],
+] satisfies [string, string, string][];
 export const sheetTools: ReadonlyMap<
   string,
   SheetTool
 > = new Map(
-  tools.map((tool) => [tool.name, tool]),
+  [
+    ...tools,
+    ...sessionTools.map(
+      ([name, label, icon]) => ({
+        label,
+        icon,
+        name,
+        sessionView: (s: Session) =>
+          sessionControls(name, s),
+      }),
+    ),
+  ].map((tool) => [tool.name, tool]),
 );
 export const sheetToolNames = (info: string) =>
   info
