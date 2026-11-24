@@ -41,5 +41,6 @@ export const build = (
       opts.config,
       opts.contentDir,
       opts.base,
+      opts.parts,
     ),
   );

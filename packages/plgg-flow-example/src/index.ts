@@ -1,3 +1,13 @@
+import {
+  sheetHint,
+  addButton,
+  addSheetNode,
+  sheetToolbar,
+  observeFrame,
+  sheetHelp,
+  sheetStage,
+  sheetDsl,
+} from "plgg-ir-diagram/flowSheet";
 import { resizeNode, nodeSize } from "plgg-flow";
 import { diffGraph } from "plgg-flow/revisions";
 import { writeDrawing } from "plgg-flow/storage";
@@ -28,10 +38,6 @@ import {
   prune,
 } from "plgg-flow/hierarchy";
 import {
-  planLayers,
-  planRooms,
-} from "plgg-flow/autoLayout";
-import {
   isSome,
   none,
   some,
@@ -60,12 +66,10 @@ import {
 } from "plgg-view/client";
 import {
   createFlow,
-  addNode,
   selectNodes,
   selectedNodes,
   fitFlow,
   frameOf,
-  viewport,
   flowView,
   viewAt,
   deleteSelected,
@@ -79,9 +83,7 @@ import {
 } from "plgg-flow";
 import {
   examples,
-  fitDemo,
   resizeDemo,
-  roomsOpening,
   applyDemoSpec,
   type DemoId,
 } from "./examples";
@@ -1344,162 +1346,43 @@ const dslPanel = (s: {
       : undefined;
   const source =
     typed?.text ?? printSpec(s.flow, s.rules);
-  return el(
-    "aside",
-    [
-      attr("class", "dsl"),
-      attr("aria-label", "DSL"),
-    ],
-    [
-      el(
-        "div",
-        [attr("class", "dsl-head")],
-        [
-          el("strong", [], [text("DSL")]),
-          ...(typed?.error
-            ? [el("span", [], [text("エラー")])]
-            : []),
-          el(
-            "button",
-            [
-              attr("type", "button"),
-              attr("class", "dsl-help"),
-              attr("aria-label", "DSL の書き方"),
-              onClick(toggleHelp),
-            ],
-            [text("?")],
-          ),
-        ],
-      ),
-      el(
-        "textarea",
-        [
-          attr("spellcheck", "false"),
-          attr("aria-label", "図の DSL"),
-          attr("value", source),
-          onInput((value) =>
-            edit((cur) => {
-              const r = parseSpec(value);
-              if (r.__tag === "Err")
-                return {
-                  ...cur,
-                  dsl: {
-                    text: value,
-                    flow: cur.flow,
-                    error: r.content,
-                  },
-                };
-              const next = apply(
-                applyDemoSpec(r.content),
-              )({
-                ...cur,
-                rules: r.content.rules,
-              });
-              return {
-                ...next,
-                fittedCamera:
-                  next.flow.camera !==
-                  cur.flow.camera
-                    ? next.flow.camera
-                    : cur.fittedCamera,
-                dsl: {
-                  text: value,
-                  flow: next.flow,
-                },
-              };
-            }),
-          ),
-        ],
-        [text(source)],
-      ),
-      ...(typed?.error
-        ? [
-            el(
-              "output",
-              [
-                attr("class", "dsl-status"),
-                attr("aria-live", "polite"),
-                attr("data-error", ""),
-              ],
-              [text(typed.error)],
-            ),
-          ]
-        : []),
-    ],
+  return sheetDsl(
+    source,
+    typed?.error,
+    toggleHelp,
+    (value) =>
+      edit((cur) => {
+        const r = parseSpec(value);
+        if (r.__tag === "Err")
+          return {
+            ...cur,
+            dsl: {
+              text: value,
+              flow: cur.flow,
+              error: r.content,
+            },
+          };
+        const next = apply(
+          applyDemoSpec(r.content),
+        )({
+          ...cur,
+          rules: r.content.rules,
+        });
+        return {
+          ...next,
+          fittedCamera:
+            next.flow.camera !== cur.flow.camera
+              ? next.flow.camera
+              : cur.fittedCamera,
+          dsl: {
+            text: value,
+            flow: next.flow,
+          },
+        };
+      }),
   );
 };
-const helpRows: readonly (readonly [
-  string,
-  string,
-])[] = [
-  [
-    "A -> B",
-    "接続。ノードは書かなくても、名前が出てきた時点で作られます。",
-  ],
-  [
-    'A -> B "ラベル" step animated',
-    "線にラベルを付け、経路（straight / step / curve）や流れのアニメーションを指定します。",
-  ],
-  [
-    "node 名前 at x y [z]",
-    "ノードを置く位置。z を書くと高さが付きます。at を省くと自動配置の対象になります。",
-  ],
-  [
-    'node 名前 label "表示名" width 150',
-    '表示名と幅。空白を含む名前は " で囲みます。',
-  ],
-  [
-    "node 枠 group / node 子 in 枠",
-    "グループと、その中に入るノード。collapsed で折りたたみます。",
-  ],
-  [
-    "layout layered down depth",
-    "at のないノードを自動で並べます。right は左から右、down は上から下。depth を付けると層ごとに高さが上がります。",
-  ],
-  [
-    "rule acyclic / rule max-outputs 1",
-    "循環する接続や、出力の本数を制限します。",
-  ],
-  ["snap 32", "ドラッグ時に吸着する格子の間隔。"],
-  [
-    "# コメント",
-    "# から行末までは無視されます。",
-  ],
-];
-const helpToast: Html<Action> = el(
-  "button",
-  [
-    attr("type", "button"),
-    attr("class", "help-toast"),
-    attr("aria-label", "DSL の書き方を閉じる"),
-    onClick(toggleHelp),
-  ],
-  [
-    el("strong", [], [text("DSL の書き方")]),
-    el(
-      "span",
-      [attr("class", "help-lead")],
-      [
-        text(
-          "1 行に 1 つ書きます。図を動かすと、ここも書き換わります。",
-        ),
-      ],
-    ),
-    el(
-      "span",
-      [attr("class", "help-rows")],
-      helpRows.flatMap(([code, note]) => [
-        el("code", [], [text(code)]),
-        el("span", [], [text(note)]),
-      ]),
-    ),
-    el(
-      "span",
-      [attr("class", "help-close")],
-      [text("クリックで閉じる")],
-    ),
-  ],
-);
+const helpToast = sheetHelp(toggleHelp);
 const sidebar = (index: number): Html<Action> =>
   el(
     "aside",
@@ -1563,94 +1446,15 @@ const header = (
  * sheet is fitted. A sheet that already flows one way
  * keeps its way; otherwise the frame's shape decides.
  */
-const optimize: Change = (f) => {
-  if (f.rooms) {
-    const { axes, rooms, graph } = planRooms(
-      f,
-      f.rooms.axes,
-    );
-    return fitDemo({
-      ...f,
-      ...graph,
-      rooms: { axes, rooms },
-    });
-  }
-  // a sheet with groups keeps each group whole: the
-  // groups and loose nodes are arranged as units
-  if (f.nodes.some((n) => n.group))
-    return fitDemo({
-      ...f,
-      ...arrangeHierarchy(f),
-    });
-  const frame = frameOf(f),
-    wide = frame.x - (f.cover ?? 0) >= frame.y;
-  // heights the author gave are theirs: depth is only
-  // recomputed where the sheet asked for it
-  const options = f.layered?.options ?? {
-    direction: wide ? "right" : "down",
-  };
-  // routes drawn for the old places no longer apply
-  const plain = f.edges.map((e) => {
-    const { waypoints, via, lift, ...rest } = e;
-    return rest;
-  });
-  const plan = planLayers(
-    { nodes: f.nodes, edges: plain },
-    options,
-  );
-  const placed = new Map(
-    plan.graph.nodes.map((n) => [
-      n.id,
-      n.position,
-    ]),
-  );
-  const laid: Flow = {
-    ...f,
-    nodes: f.nodes.map((n) => {
-      const p = placed.get(n.id);
-      return p
-        ? {
-            ...n,
-            position: options.depth
-              ? p
-              : { ...p, z: n.position.z },
-          }
-        : n;
-    }),
-    edges: plan.graph.edges,
-    ...(f.layered
-      ? {
-          layered: {
-            options: f.layered.options,
-            computed: placed,
-          },
-        }
-      : {}),
-  };
-  return fitDemo(laid);
-};
 const toolbar = (
   e: (typeof examples)[number],
 ): Html<Action> =>
-  el(
-    "div",
-    [attr("class", "toolbar")],
-    [
-      btn("リセット", () =>
-        session(e.initial(), e.spec().rules),
-      ),
-      ...(e.id === "rooms"
-        ? [
-            change("正面", (f) =>
-              fitDemo(viewAt(0, 0)(f)),
-            ),
-            change("立体", (f) =>
-              fitDemo(roomsOpening(f)),
-            ),
-          ]
-        : []),
-      change("最適化", optimize),
-    ],
+  sheetToolbar(
+    edit(() =>
+      session(e.initial(), e.spec().rules),
+    ),
+    (fn) => edit(apply(fn)),
+    e.id === "rooms",
   );
 const dslCache = new WeakMap<
   Flow,
@@ -1821,31 +1625,7 @@ const boardControls = (
               ),
             ]
           : []),
-        el(
-          "button",
-          [
-            attr("class", "add-node"),
-            attr("aria-label", "ノードを追加"),
-            attr("title", "ノードを追加"),
-            onClick(
-              edit(
-                apply((f) => {
-                  const id = unique("Node ", f);
-                  return addNode({
-                    id,
-                    label: id,
-                    position: {
-                      x: 0,
-                      y: 90,
-                      z: 0,
-                    },
-                  })(f);
-                }),
-              ),
-            ),
-          ],
-          [text("+")],
-        ),
+        addButton(edit(apply(addSheetNode))),
       ],
     ),
   );
@@ -1925,49 +1705,12 @@ const view = (m: Model): Html<Action> => {
         [],
         [
           lazy(header, e),
-          el(
-            "div",
-            [attr("class", "stage")],
-            [
-              el(
-                "div",
-                [attr("class", "canvas-wrap")],
-                [
-                  boardActions(
-                    diagram(e.id, s.flow),
-                  ),
-                  boardControls(e, s),
-                ],
-              ),
-              lazyDsl(s),
-            ],
+          sheetStage(
+            boardActions(diagram(e.id, s.flow)),
+            boardControls(e, s),
+            [lazyDsl(s)],
           ),
-          el(
-            "small",
-            [],
-            [
-              // one line per kind of pointer; the
-              // stylesheet shows the one in use
-              el(
-                "span",
-                [attr("class", "hint-mouse")],
-                [
-                  text(
-                    "Shift＋ドラッグで範囲選択 · ⌘（Ctrl）＋ドラッグで回転 · ⌘（Ctrl）＋スクロールでズーム",
-                  ),
-                ],
-              ),
-              el(
-                "span",
-                [attr("class", "hint-touch")],
-                [
-                  text(
-                    "1本指で移動 · 2本指で回転とズーム",
-                  ),
-                ],
-              ),
-            ],
-          ),
+          sheetHint,
         ],
       ),
     ],
@@ -2048,65 +1791,6 @@ const fileUpdate = (
     }),
   ];
 };
-const observeBoard = (root: Element) =>
-  custom<Action>("board-frame", (dispatch) => {
-    const host = root.querySelector(
-      ".canvas-wrap",
-    );
-    if (!host) return () => {};
-    let lastHeight = 0,
-      lastCover = -1;
-    const measure = ({
-      width,
-      height,
-    }: DOMRectReadOnly) => {
-      if (width <= 0 || height <= 0) return;
-      const y = Math.round(
-        (viewport.x * height) / width,
-      );
-      // the DSL panel, when it lies over the board
-      const panel =
-        host.parentElement?.querySelector(".dsl");
-      const cover =
-        panel &&
-        getComputedStyle(panel).position ===
-          "absolute"
-          ? Math.round(
-              (viewport.x *
-                panel.getBoundingClientRect()
-                  .width) /
-                width,
-            )
-          : 0;
-      if (
-        (y === lastHeight &&
-          cover === lastCover) ||
-        y <= 0
-      )
-        return;
-      lastHeight = y;
-      lastCover = cover;
-      dispatch((m) => ({
-        ...m,
-        boardHeight: y,
-        boardCover: cover,
-      }));
-    };
-    const observer = new ResizeObserver(
-      (entries) => {
-        for (const entry of entries)
-          measure(entry.contentRect);
-      },
-    );
-    observer.observe(host);
-    const initial = requestAnimationFrame(() =>
-      measure(host.getBoundingClientRect()),
-    );
-    return () => {
-      cancelAnimationFrame(initial);
-      observer.disconnect();
-    };
-  });
 const sizeBoard = (model: Model): Model => {
   const height = model.boardHeight;
   if (height === undefined) return model;
@@ -2147,7 +1831,14 @@ if (root)
     view,
     subscriptions: (m) => {
       const current = m.sessions[m.index];
-      const board = observeBoard(root);
+      const board = observeFrame<Action>(
+        root,
+        (boardHeight, boardCover) => (m) => ({
+          ...m,
+          boardHeight,
+          boardCover,
+        }),
+      );
       if (!current?.returning) return board;
       const { yaw, pitch } = current.flow.camera;
       return subBatch([

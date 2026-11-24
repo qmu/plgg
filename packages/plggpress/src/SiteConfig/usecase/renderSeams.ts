@@ -1,6 +1,7 @@
 import {
-  diagramFence,
-  flowFence,
+  builtins,
+  islandFence,
+  type Part,
 } from "plggpress/SiteConfig/usecase/diagramFence";
 import { pipe, getOr, matchOption } from "plgg";
 import {
@@ -67,12 +68,46 @@ export const pressRenderOptions = (
   config: SiteConfig,
   highlighter: Highlighter,
   resolveLink: LinkResolver,
+  parts: readonly Part[] = builtins,
+  warn?: (message: string) => void,
+  used?: Set<Part>,
 ): RenderOptions => ({
+  selectBlocks: (blocks, frontmatter) => {
+    if (
+      frontmatter.layout.__tag !== "Some" ||
+      frontmatter.layout.content !== "sheet"
+    )
+      return blocks;
+    const index = blocks.findIndex((block) => {
+      if (
+        block.__tag !== "CodeFence" ||
+        block.content.lang.__tag !== "Some"
+      )
+        return false;
+      const [name, ...options] =
+        block.content.lang.content.split(/\s+/);
+      return (
+        options.includes("fill") &&
+        parts.some((part) => part.name === name)
+      );
+    });
+    if (index < 0 || index === blocks.length - 1)
+      return blocks;
+    warn?.(
+      "Ignoring Markdown after the first fill island",
+    );
+    return blocks.slice(0, index + 1);
+  },
   highlighter,
-  fences: new Map([
-    ["plgg-diagram", diagramFence],
-    ["plgg-flow", flowFence],
-  ]),
+  fences: new Map(
+    parts.map((part) => [
+      part.name,
+      (code: string, info?: string) => {
+        used?.add(part);
+        return islandFence(part)(code, info);
+      },
+    ]),
+  ),
   resolveLink,
   rawHtml: rawHtmlOf(config),
   slug: sluggerOf(config),

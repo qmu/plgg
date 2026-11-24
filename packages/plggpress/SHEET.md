@@ -122,3 +122,30 @@ record in the flow sheet.
 - No-JavaScript: every page still reads; boards are static drawings.
 - Tests: fence markup, loader presence only on island pages, asset
   emitted once, part override, sheet layout markup, sidebar options.
+
+## Round P1 review — adopted
+
+Sections 1–5 are in and the three sample sheets exist in
+plgg-flow-example/markdown (`/samples/space/`, `/samples/layered/`,
+`/samples/rooms/`). Checked by the reviewer: every touched package's
+tsc and tests (plgg-md 138, plggmatic 349, plgg-ir-diagram 4,
+plggpress 343, plgg-flow-example 9, plgg-flow 223), both sites built
+with no iframe, one island module emitted once, and on screen the
+sample sheet in plggpress is the demo's sheet: numbered sidebar, title
+and description on one line, board filling the rest, DSL beside it,
+リセット / 最適化 / ＋.
+
+Differences still visible side by side (for P2):
+- the demo's own stylesheet (plgg-flow-example/index.html) still
+  carries rules the shared board stylesheet lacks, so the plggpress
+  sheet differs: the rooms lattice is all ink (no faint inner lines,
+  no floor wash), the ＋ sign is a text glyph off-centre, the − button
+  likewise, the hint line touches the bottom edge. **One stylesheet**:
+  everything the board, its controls, the DSL panel, the lattice, the
+  marquee, cursors and hints need lives in the shared module; the
+  demo's index.html keeps only its page chrome (sidebar, title).
+- the DSL panel on the plggpress sheet must lie over the board with
+  the same translucency as the demo (and the fit must stay clear of
+  it).
+- dark mode: check the sheet on a dark page — board, grid, nodes,
+  wires, lattice and panel must all follow the theme tokens.

@@ -81,6 +81,7 @@ export type DevDefinition<Config> = Readonly<{
   ) => ReadonlyArray<SoftStr>;
   run: (
     settings: DevSettings,
+    config: Config,
   ) => PromisedResult<DevHandle, SoftStr>;
 }>;
 
@@ -116,8 +117,12 @@ export type AppDefinition<Config, E> = Readonly<{
   description: SoftStr;
   /** default config filename (e.g. `site.config.ts`). */
   configFile: SoftStr;
+  extraOptions?: readonly ReturnType<
+    typeof option
+  >[];
   loadConfig: (
     path: SoftStr,
+    invocation: Invocation,
   ) => PromisedResult<Config, ConfigLoadError>;
   context: (config: Config) => AppRunContext;
   buildSpec: (
@@ -190,6 +195,7 @@ const runBuild =
     def
       .loadConfig(
         configPathOf(invocation, def.configFile),
+        invocation,
       )
       .then(
         matchResult(
@@ -251,6 +257,7 @@ const runServe =
     def
       .loadConfig(
         configPathOf(invocation, def.configFile),
+        invocation,
       )
       .then(
         matchResult(
@@ -375,6 +382,7 @@ const runDev =
     def
       .loadConfig(
         configPathOf(invocation, def.configFile),
+        invocation,
       )
       .then(
         matchResult(
@@ -415,7 +423,8 @@ const runDev =
             }
             return startDev(
               settings.content,
-              dev.run,
+              (settings) =>
+                dev.run(settings, config),
             );
           },
         ),
@@ -532,7 +541,10 @@ export const runApp = <Config, E>(
     command(
       "build",
       "build the site into static files",
-      configOptions,
+      [
+        ...configOptions,
+        ...(def.extraOptions ?? []),
+      ],
     ),
     ...(serveWeb === undefined
       ? []
@@ -549,7 +561,10 @@ export const runApp = <Config, E>(
           command(
             "dev",
             "serve the site with hot reload while authoring",
-            devOptions,
+            [
+              ...devOptions,
+              ...(def.extraOptions ?? []),
+            ],
           ),
         ]),
   ];

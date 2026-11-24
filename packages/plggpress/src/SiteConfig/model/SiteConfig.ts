@@ -93,6 +93,9 @@ export type SiteConfig = Readonly<{
   base: SoftStr;
   nav: ReadonlyArray<NavItem>;
   sidebar: ReadonlyArray<SidebarGroup>;
+  sidebarStyle?: Option<"plain" | "numbered">;
+  tagline?: Option<string>;
+  footerLink?: Option<NavItem>;
   social: ReadonlyArray<SocialLink>;
   dev: DevConfig;
   // Optional content models (D8) — `None` ⇒ no
@@ -209,7 +212,9 @@ export const asSluggerKind = (
     ? ok(value)
     : err(
         invalidError({
-          message: `slugger must be 'vitepress' | 'github', got ${JSON.stringify(value)}`,
+          message: `slugger must be 'vitepress' | 'github', got ${JSON.stringify(
+            value,
+          )}`,
         }),
       );
 
@@ -281,6 +286,9 @@ export type SiteConfigInput = Readonly<{
   base: string;
   nav: ReadonlyArray<NavItemInput>;
   sidebar: ReadonlyArray<SidebarGroupInput>;
+  sidebarStyle?: "plain" | "numbered";
+  tagline?: string;
+  footerLink?: NavItemInput;
   social: ReadonlyArray<SocialLinkInput>;
   dev: DevConfigInput;
   models?: ReadonlyArray<ContentModelBinding>;
@@ -320,6 +328,25 @@ export const asSiteConfig = (
       asReadonlyArray(asSocialLink),
     ),
     forProp("dev", asDevConfig),
+    forOptionProp(
+      "sidebarStyle",
+      (
+        value: unknown,
+      ): Result<
+        "plain" | "numbered",
+        InvalidError
+      > =>
+        value === "plain" || value === "numbered"
+          ? ok(value)
+          : err(
+              invalidError({
+                message:
+                  "sidebarStyle must be plain or numbered",
+              }),
+            ),
+    ),
+    forOptionProp("tagline", asSoftStr),
+    forOptionProp("footerLink", asNavItem),
     forOptionProp("models", asBindings),
     forOptionProp("rawHtml", asBool),
     forOptionProp("slugger", asSluggerKind),

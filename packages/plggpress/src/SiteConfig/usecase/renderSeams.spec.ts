@@ -96,7 +96,7 @@ test("pressRenderOptions folds the config knobs plus the supplied seams", () => 
   ]);
 });
 
-test("the plgg-diagram fence embeds the source and a sandboxed interactive viewport", () => {
+test("the plgg-diagram fence embeds the source and an island with static content", () => {
   const view = pressRenderOptions(
     config({}),
     plainHighlighter,
@@ -106,9 +106,8 @@ test("the plgg-diagram fence embeds the source and a sandboxed interactive viewp
   );
   const html = view ? renderToString(view) : "";
   return check(
-    html.includes("<iframe") &&
-      html.includes('sandbox="allow-scripts"') &&
-      html.includes("data-diagram-root") &&
+    html.includes('data-island="plgg-diagram"') &&
+      html.includes('type="application/json"') &&
       html.includes("カート"),
     toBe(true),
   );

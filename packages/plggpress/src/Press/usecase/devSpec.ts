@@ -1,3 +1,7 @@
+import {
+  type Part,
+  builtins,
+} from "plggpress/SiteConfig/usecase/diagramFence";
 import { join } from "node:path";
 import {
   type SoftStr,
@@ -81,6 +85,9 @@ const startupMessageOf = (
  */
 const runPressDev = (
   settings: DevSettings,
+  config: SiteConfig & {
+    parts?: readonly Part[];
+  },
 ): PromisedResult<DevHandle, SoftStr> =>
   startDevServer({
     contentDir: settings.contentDir,
@@ -88,6 +95,7 @@ const runPressDev = (
     base: settings.base,
     watch: watchPathsOf(settings),
     port: settings.port,
+    parts: config.parts ?? builtins,
     // The ONE place the real process environment is read for
     // the assistant: no key here means the whole voice surface
     // stays dark and `plggpress dev` behaves as it always has.

@@ -1,3 +1,7 @@
+import {
+  builtins,
+  type Part,
+} from "plggpress/SiteConfig/usecase/diagramFence";
 import { readFile } from "node:fs/promises";
 import {
   type SoftStr,
@@ -85,6 +89,7 @@ const collectOne =
     contentDir: SoftStr,
     base: SoftStr,
     config: SiteConfig,
+    parts: readonly Part[] = builtins,
   ) =>
   (
     route: SoftStr,
@@ -102,10 +107,12 @@ const collectOne =
                 config,
                 plainHighlighter,
                 href(base),
+                parts,
               ),
             )(source),
-            mapErr((e: InvalidError): Defect =>
-              defect(e.content.message),
+            mapErr(
+              (e: InvalidError): Defect =>
+                defect(e.content.message),
             ),
             mapResult(
               (doc: MarkdownDoc): PageLinks =>
@@ -133,6 +140,7 @@ export const collectPageLinks =
     contentDir: SoftStr,
     base: SoftStr,
     config: SiteConfig,
+    parts: readonly Part[] = builtins,
   ) =>
   (
     paths: ReadonlyArray<SoftStr>,
@@ -166,6 +174,7 @@ export const collectPageLinks =
                   contentDir,
                   base,
                   config,
+                  parts,
                 )(route).then(
                   mapResult(
                     (

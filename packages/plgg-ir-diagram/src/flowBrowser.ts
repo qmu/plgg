@@ -1,8 +1,17 @@
+import { mountSheet } from "plgg-ir-diagram/mountSheet";
 import { mountFlow } from "plgg-ir-diagram/flowEditor";
-const root = document.querySelector(
-  "[data-flow-root]",
-);
-const source =
-  root?.querySelector("code")?.textContent;
-if (root && typeof source === "string")
-  mountFlow(root, source);
+// plgg-bundle exposes the entry module.exports as its ESM default.
+module.exports = (
+  root: Element,
+  props: Readonly<{ code: string; info: string }>,
+) => {
+  const options = props.info.split(/\s+/);
+  return options.includes("fill") ||
+    options.includes("dsl")
+    ? mountSheet(
+        root,
+        props.code,
+        options.includes("dsl"),
+      )
+    : mountFlow(root, props.code);
+};

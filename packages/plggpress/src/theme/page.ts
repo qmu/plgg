@@ -168,6 +168,9 @@ const groupHasActive = (
  * right. Below lg this column becomes the CSS-only
  * off-canvas drawer.
  */
+const numbered = (config: SiteConfig) =>
+  config.sidebarStyle?.__tag === "Some" &&
+  config.sidebarStyle.content === "numbered";
 const sectionsColumn = (
   config: SiteConfig,
   activePath: SoftStr,
@@ -218,20 +221,57 @@ const sectionsColumn = (
     )(firstLeafLink(group.items));
   };
   return column(
-    ["vp-sidebar"],
+    numbered(config)
+      ? ["vp-sidebar", "vp-numbered"]
+      : ["vp-sidebar"],
     [
       colHead([
         a(wordmarkAttrs, [text(config.title)]),
       ]),
+      ...(config.tagline?.__tag === "Some"
+        ? [
+            p(
+              [class_("vp-tagline")],
+              [text(config.tagline.content)],
+            ),
+          ]
+        : []),
       colBody([
-        nav(
-          [
-            class_("vp-sidebar-nav"),
-            attr("aria-label", "Sections"),
-          ],
-          config.sidebar.map(groupEntry),
-        ),
+        numbered(config)
+          ? sidebarTree(
+              config.sidebar,
+              activePath,
+              base,
+            )
+          : nav(
+              [
+                class_("vp-sidebar-nav"),
+                attr("aria-label", "Sections"),
+              ],
+              config.sidebar.map(groupEntry),
+            ),
       ]),
+      ...(config.footerLink?.__tag === "Some"
+        ? [
+            a(
+              [
+                class_("vp-footer-link"),
+                attr(
+                  "href",
+                  hrefOf(
+                    config.footerLink.content
+                      .link,
+                  ),
+                ),
+              ],
+              [
+                text(
+                  config.footerLink.content.text,
+                ),
+              ],
+            ),
+          ]
+        : []),
     ],
   );
 };
@@ -251,6 +291,7 @@ const drilledColumn = (
   activePath: SoftStr,
   base: SoftStr,
 ): ReadonlyArray<Html<never>> => {
+  if (numbered(config)) return [];
   return matchOption<
     SidebarGroup,
     ReadonlyArray<Html<never>>
@@ -288,6 +329,8 @@ const drilledColumn = (
  * and its rendered body.
  */
 export type PageColumn = Readonly<{
+  sheet?: boolean;
+  description?: Option<string>;
   route: SoftStr;
   span: Option<SoftStr>;
   /** What the column's head bar calls it. */
@@ -312,18 +355,43 @@ const contentColumn = (
   documentColumn(
     content.route,
     content.span,
-    ["vp-content"],
+    content.sheet
+      ? ["vp-content", "vp-sheet"]
+      : ["vp-content"],
     [
-      colHead([colTitle(content.title)]),
+      colHead([
+        colTitle(content.title),
+        ...(content.sheet &&
+        content.description?.__tag === "Some"
+          ? [
+              span(
+                [class_("vp-description")],
+                [
+                  text(
+                    content.description.content,
+                  ),
+                ],
+              ),
+            ]
+          : []),
+      ]),
       colBody([
         main_(
           [class_("vp-main")],
           [
             div(
-              [class_("vp-doc")],
+              [
+                class_(
+                  content.sheet
+                    ? "vp-sheet-body"
+                    : "vp-doc",
+                ),
+              ],
               [slot([], [content.body])],
             ),
-            siteFooter(config),
+            ...(content.sheet
+              ? []
+              : [siteFooter(config)]),
           ],
         ),
       ]),

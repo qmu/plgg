@@ -228,16 +228,14 @@ const fenceMarker: Parser<SoftStr, null> = or<
   null
 >(fenceRun("`"), fenceRun("~"));
 
-/**
- * The info string's `[^\s`~]*`, where `\s` is
- * **JavaScript's** Unicode whitespace — strictly wider
- * than plgg-parser's `whitespace`, so an exact predicate
- * is required to keep exotic info strings identical.
- */
+/** Preserve horizontal whitespace between a fence language and its options. */
 const infoChar: Parser<SoftStr, null> = satisfy(
   "info string character",
   (ch: SoftStr): boolean =>
-    ch !== "`" && ch !== "~" && !/\s/.test(ch),
+    ch !== "`" &&
+    ch !== "~" &&
+    ch !== "\r" &&
+    ch !== "\n",
 );
 
 const fenceOpenLine: Parser<FenceOpen, null> =
@@ -248,7 +246,7 @@ const fenceOpenLine: Parser<FenceOpen, null> =
         map<SoftStr, FenceOpen>(
           (lang: SoftStr): FenceOpen => ({
             marker,
-            lang,
+            lang: lang.trim(),
           }),
         )(
           left(
@@ -473,9 +471,9 @@ const fenceTail = (
         null
       >(() =>
         map<SoftStr, ReadonlyArray<SoftStr>>(
-          (raw: SoftStr): ReadonlyArray<SoftStr> => [
-            raw,
-          ],
+          (
+            raw: SoftStr,
+          ): ReadonlyArray<SoftStr> => [raw],
         )(rawLine),
       ),
     ),
@@ -522,10 +520,7 @@ const fencedRegion: Parser<ScanLine, null> = pipe(
         rawLine,
         andThen<SoftStr, ScanLine, null>(
           (openRaw: SoftStr) =>
-            map<
-              ReadonlyArray<SoftStr>,
-              ScanLine
-            >(
+            map<ReadonlyArray<SoftStr>, ScanLine>(
               (
                 rest: ReadonlyArray<SoftStr>,
               ): ScanLine => ({
@@ -593,9 +588,11 @@ const containerScan = (
   body: ReadonlyArray<SoftStr>,
 ): Parser<Scan, null> =>
   or<Scan, null>(
-    map<true, Scan>((): Scan => ({
-      tag: "unterminated",
-    }))(eof),
+    map<true, Scan>(
+      (): Scan => ({
+        tag: "unterminated",
+      }),
+    )(eof),
     pipe(
       scanLine,
       andThen<ScanLine, Scan, null>(
@@ -771,8 +768,9 @@ const headingBlock: Parser<BlockResult, null> =
     (head: HeadingLine): BlockResult =>
       pipe(
         asHeadingLevel(head.level),
-        mapResult((level: HeadingLevel): Block =>
-          heading(level, head.text),
+        mapResult(
+          (level: HeadingLevel): Block =>
+            heading(level, head.text),
         ),
       ),
   )(headingLine);
@@ -1466,8 +1464,8 @@ const blockSpan = (
     single(containerBlock(rawHtml)),
     single(headingBlock),
     single(
-      map<true, BlockResult>((): BlockResult =>
-        ok(thematicBreak()),
+      map<true, BlockResult>(
+        (): BlockResult => ok(thematicBreak()),
       )(thematicBreakLine),
     ),
     single(quoteBlock(rawHtml)),

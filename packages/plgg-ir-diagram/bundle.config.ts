@@ -7,7 +7,11 @@ export default {
     { name: "widget", input: "widget.ts" },
     { name: "editor", input: "editor.ts" },
     { name: "flow", input: "flow.ts" },
-    { name: "flowEditor", input: "flowEditor.ts" },
+    { name: "flowSheet", input: "flowSheet.ts" },
+    {
+      name: "flowEditor",
+      input: "flowEditor.ts",
+    },
   ],
   formats: ["es", "cjs"],
   fileNamePattern: "[name].[format].js",

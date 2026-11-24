@@ -59,7 +59,17 @@
         "default": "./dist/flowEditor.cjs.js"
       }
     },
-    "./flow-interactive": "./dist/browser/flow.js"
+    "./flow-interactive": "./dist/browser/flow.js",
+    "./flowSheet": {
+      "import": {
+        "types": "./dist/flowSheet.d.ts",
+        "default": "./dist/flowSheet.es.js"
+      },
+      "require": {
+        "types": "./dist/flowSheet.d.ts",
+        "default": "./dist/flowSheet.cjs.js"
+      }
+    }
   },
   "types": "dist/index.d.ts",
   "scripts": {
@@ -87,7 +97,8 @@
     "plgg-ir-language": "file:../plgg-ir-language",
     "plgg-parser": "file:../plgg-parser",
     "plgg-view": "file:../plgg-view",
-    "plgg-flow": "file:../plgg-flow"
+    "plgg-flow": "file:../plgg-flow",
+    "plgg-board": "file:../plgg-board"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

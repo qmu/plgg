@@ -15,7 +15,11 @@ import {
   h5,
   h6,
 } from "plgg-view";
-import { HeadingLevel } from "plgg-md/Block/model/Block";
+import { type Frontmatter } from "plgg-md/Frontmatter/model/Frontmatter";
+import {
+  type Block,
+  HeadingLevel,
+} from "plgg-md/Block/model/Block";
 
 /**
  * The code-fence highlighting seam: given the raw fence
@@ -173,10 +177,17 @@ export const defaultHeading: HeadingDecorator = ({
  * in through {@link renderMarkdownWithOptions}.
  */
 export type RenderOptions = Readonly<{
+  selectBlocks?: (
+    blocks: readonly Block[],
+    frontmatter: Frontmatter,
+  ) => readonly Block[];
   highlighter: Highlighter;
   fences?: ReadonlyMap<
     string,
-    (source: SoftStr) => Html<never>
+    (
+      source: SoftStr,
+      info?: string,
+    ) => Html<never>
   >;
   resolveLink: LinkResolver;
   rawHtml: boolean;

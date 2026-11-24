@@ -1,3 +1,13 @@
+import {
+  get,
+  javascriptResponse,
+} from "plgg-server";
+import {
+  builtins,
+  islandPage,
+  islandAsset,
+  type Part,
+} from "plggpress/SiteConfig/usecase/diagramFence";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
 import {
@@ -72,6 +82,7 @@ type RenderedColumn = Readonly<{
   span: Option<SoftStr>;
   body: Html<never>;
   doc: MarkdownDoc;
+  parts: readonly Part[];
 }>;
 
 /**
@@ -182,6 +193,13 @@ const pageView = (
             column.doc.firstHeading,
             getOr(column.route),
           ),
+          sheet:
+            column.doc.frontmatter.layout
+              .__tag === "Some" &&
+            column.doc.frontmatter.layout
+              .content === "sheet",
+          description:
+            column.doc.frontmatter.description,
           body: column.body,
         }),
       ),
@@ -203,6 +221,7 @@ const renderColumn =
     contentDir: SoftStr,
     config: SiteConfig,
     base: SoftStr,
+    parts: readonly Part[],
   ) =>
   (
     column: Column,
@@ -216,13 +235,20 @@ const renderColumn =
       chainResult(
         (
           source: SoftStr,
-        ): Result<RenderedColumn, HttpError> =>
-          pipe(
+        ): Result<RenderedColumn, HttpError> => {
+          const used = new Set<Part>();
+          return pipe(
             renderMarkdownWithOptions(
               pressRenderOptions(
                 config,
                 asHighlighter(),
                 href(base),
+                parts,
+                (message) =>
+                  console.warn(
+                    column.route + ": " + message,
+                  ),
+                used,
               ),
             )(source),
             mapErr(
@@ -240,9 +266,11 @@ const renderColumn =
                   column.span,
                 ),
                 doc,
+                parts: [...used],
               }),
             ),
-          ),
+          );
+        },
       ),
     );
 
@@ -298,6 +326,8 @@ const pageHandler =
     contentDir: SoftStr,
     config: SiteConfig,
     base: SoftStr,
+    parts: readonly Part[],
+    url: (part: Part) => string,
   ): Handler =>
   (
     c: Context,
@@ -319,6 +349,7 @@ const pageHandler =
             contentDir,
             config,
             base,
+            parts,
           )(composition.head),
           Promise.all(
             composition.rest.map(
@@ -326,6 +357,7 @@ const pageHandler =
                 contentDir,
                 config,
                 base,
+                parts,
               ),
             ),
           ).then(rendered),
@@ -343,14 +375,23 @@ const pageHandler =
                   htmlResponse(
                     injectNavigationScript(
                       injectAppearanceScripts(
-                        renderToString(
-                          pageView(
-                            config,
-                            base,
-                            column,
-                            rest,
-                            c.req.path,
+                        islandPage(
+                          renderToString(
+                            pageView(
+                              config,
+                              base,
+                              column,
+                              rest,
+                              c.req.path,
+                            ),
                           ),
+                          [
+                            ...column.parts,
+                            ...rest.flatMap(
+                              (c) => c.parts,
+                            ),
+                          ],
+                          url,
                         ),
                       ),
                     ),
@@ -376,9 +417,45 @@ export const pressRouter = (
   contentDir: SoftStr,
   config: SiteConfig,
   base: SoftStr,
-  paths: ReadonlyArray<SoftStr>,
-): Web =>
-  buildRouter(
-    paths,
-    pageHandler(contentDir, config, base),
+  paths: readonly string[],
+  parts: readonly Part[] = builtins,
+  emit?: (part: Part) => string,
+): Web => {
+  const router = (url: (part: Part) => string) =>
+    buildRouter(
+      paths,
+      pageHandler(
+        contentDir,
+        config,
+        base,
+        parts,
+        url,
+      ),
+    );
+  if (emit) return router(emit);
+  const assets = new Map(
+    parts.map((part) => [
+      part,
+      islandAsset(part),
+    ]),
   );
+  const url = (part: Part) =>
+    href(base)(
+      "/" +
+        (assets.get(part) ?? islandAsset(part))
+          .file,
+    );
+  return Array.from(assets).reduce(
+    (app, [part, asset]) =>
+      get(url(part), () =>
+        Promise.resolve(
+          ok(
+            javascriptResponse(
+              asset.bytes.toString("utf8"),
+            ),
+          ),
+        ),
+      )(app),
+    router(url),
+  );
+};

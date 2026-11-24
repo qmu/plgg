@@ -119,3 +119,5 @@ export {
   pressDevEntry,
 } from "plggpress/devEntry";
 export { loadConfig } from "plggpress/Config/usecase/loadConfig";
+
+export type { Part } from "plggpress/SiteConfig/usecase/diagramFence";

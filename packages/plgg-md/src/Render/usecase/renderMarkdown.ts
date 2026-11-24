@@ -239,12 +239,14 @@ const collectHeadings = (
   return headingEntries(
     blocks,
     options.rawHtml,
-  ).map((entry): MdHeading => ({
-    level: entry.level,
-    text: entry.text,
-    slug: slug.next(entry.text),
-    ordinal: ordinal.next(entry.level),
-  }));
+  ).map(
+    (entry): MdHeading => ({
+      level: entry.level,
+      text: entry.text,
+      slug: slug.next(entry.text),
+      ordinal: ordinal.next(entry.level),
+    }),
+  );
 };
 
 /** Raw link/image targets reachable from inline nodes. */
@@ -422,7 +424,12 @@ export const renderMarkdownWithOptions =
             parsed.body,
             options.rawHtml,
           ),
-          mapResult((blocks): MarkdownDoc => {
+          mapResult((allBlocks): MarkdownDoc => {
+            const blocks =
+              options.selectBlocks?.(
+                allBlocks,
+                parsed.frontmatter,
+              ) ?? allBlocks;
             const headings = collectHeadings(
               blocks,
               options,

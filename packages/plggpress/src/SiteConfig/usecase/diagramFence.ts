@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
   diagramWidget,
@@ -10,83 +11,130 @@ import {
 import {
   el,
   attr,
-  renderToString,
+  raw,
   type Html,
 } from "plgg-view";
 
-const runtimes = new Map<string, string>();
-/** The browser bundle, escaped so it can sit inside an inline script. */
-const runtime = (specifier: string) => {
-  const known = runtimes.get(specifier);
-  if (known !== undefined) return known;
-  const code = readFileSync(
-    new URL(import.meta.resolve(specifier)),
-    "utf8",
-  ).replace(/<\/script/gi, "<\\/script");
-  runtimes.set(specifier, code);
-  return code;
+export type Part = Readonly<{
+  name: string;
+  render: (
+    code: string,
+    info: string,
+  ) => Html<never>;
+  css: string;
+  runtime: string;
+}>;
+
+export const builtins: readonly Part[] = [
+  {
+    name: "plgg-flow",
+    render: flowWidget,
+    css: flowCss,
+    runtime: "plgg-ir-diagram/flow-interactive",
+  },
+  {
+    name: "plgg-diagram",
+    render: diagramWidget,
+    css: diagramCss,
+    runtime: "plgg-ir-diagram/interactive",
+  },
+];
+
+const json = (value: unknown) =>
+  JSON.stringify(value).replace(/</g, "\\u003c");
+
+export const islandFence =
+  (part: Part) =>
+  (code: string, info = part.name): Html<never> =>
+    el(
+      "div",
+      [
+        attr("data-island", part.name),
+        ...(info.split(/\s+/).includes("fill")
+          ? [attr("data-fill", "")]
+          : []),
+      ],
+      [
+        part.render(code, info),
+        el(
+          "script",
+          [attr("type", "application/json")],
+          [raw(json({ code, info }))],
+        ),
+      ],
+    );
+
+export const islandAsset = (part: Part) => {
+  const bytes = readFileSync(
+    new URL(import.meta.resolve(part.runtime)),
+  );
+  const hash = createHash("sha256")
+    .update(bytes)
+    .digest("hex")
+    .slice(0, 16);
+  return {
+    file:
+      "assets/islands/" +
+      part.name +
+      "." +
+      hash +
+      ".js",
+    bytes,
+  };
 };
 
-/**
- * A self-contained frame: the static fallback reads without
- * script, and the inlined runtime makes it interactive. It
- * also works in exported HTML and client-inserted columns.
- */
-const frame = (
-  o: Readonly<{
-    title: string;
-    css: string;
-    root: string;
-    fallback: Html<never>;
-    specifier: string;
-    style: string;
-  }>,
-): Html<never> =>
-  el(
-    "iframe",
-    [
-      attr("title", o.title),
-      attr("sandbox", "allow-scripts"),
-      attr("loading", "lazy"),
-      attr("style", o.style),
-      attr(
-        "srcdoc",
-        '<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' +
-          o.css +
-          "</style><body><main " +
-          o.root +
-          ">" +
-          renderToString(o.fallback) +
-          '</main><script type="module">' +
-          runtime(o.specifier) +
-          "</script></body></html>",
-      ),
-    ],
-    [],
+const loader = `const modules=new Map(),mounted=new Map();
+function scan(){
+ for(const [root,dispose] of mounted){
+  if(!root.isConnected){mounted.delete(root);dispose?.();}
+ }
+ for(const map of document.querySelectorAll('script[data-island-map]')){
+  for(const [name,url] of Object.entries(JSON.parse(map.textContent)))modules.set(name,url);
+ }
+ for(const root of document.querySelectorAll('[data-island]')){
+  const url=modules.get(root.dataset.island), data=root.querySelector(':scope > script[type="application/json"]');
+  if(!url||!data||mounted.has(root))continue;
+  mounted.set(root,null);
+  import(url).then(({default:mount})=>{
+   if(root.isConnected && mounted.has(root))mounted.set(root,mount(root,JSON.parse(data.textContent)));
+  }).catch(error=>{mounted.delete(root);console.error(error);});
+ }
+}
+document.addEventListener('plgg:columns',scan);scan();`;
+
+export const islandPage = (
+  html: string,
+  parts: readonly Part[],
+  url: (part: Part) => string,
+) => {
+  const used = [...new Set(parts)];
+  if (!used.length) return html;
+  const styles = used
+    .map(
+      (part) =>
+        '<style data-island-style="' +
+        part.name +
+        '" data-column-style="' +
+        part.name +
+        '">' +
+        part.css +
+        "</style>",
+    )
+    .join("");
+  const map = json(
+    Object.fromEntries(
+      used.map((part) => [part.name, url(part)]),
+    ),
   );
-
-export const diagramFence = (
-  code: string,
-): Html<never> =>
-  frame({
-    title: "ダイアグラム",
-    css: diagramCss,
-    root: "data-diagram-root",
-    fallback: diagramWidget(code),
-    specifier: "plgg-ir-diagram/interactive",
-    style: "width:100%;height:26rem;border:0",
-  });
-
-/** A `plgg-flow` block: the flow DSL drawn as a board. */
-export const flowFence = (
-  code: string,
-): Html<never> =>
-  frame({
-    title: "フロー図",
-    css: flowCss,
-    root: "data-flow-root",
-    fallback: flowWidget(code),
-    specifier: "plgg-ir-diagram/flow-interactive",
-    style:
-      "display:block;width:100%;aspect-ratio:900/636;border:0",
-  });
+  return html
+    .replace("</head>", () => styles + "</head>")
+    .replace(
+      "</body>",
+      () =>
+        '<script type="application/json" data-island-map data-column-data>' +
+        map +
+        '</script><script type="module" data-island-loader data-column-init>' +
+        loader +
+        "</script></body>",
+    );
+};

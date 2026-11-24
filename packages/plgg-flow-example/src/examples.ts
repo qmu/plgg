@@ -1,22 +1,19 @@
-import { project } from "plgg-board";
 import {
-  viewAt,
-  roomLabels,
-  nodeSize,
-  bodyDepth,
-  bridgePoints,
-  frameOf,
-  viewport,
-  type Flow,
-} from "plgg-flow";
-import { wireGraph } from "plgg-flow/wiring";
+  fitDemo,
+  roomsOpening,
+} from "plgg-ir-diagram/flowSheet";
+export {
+  fitDemo,
+  resizeDemo,
+  applyDemoSpec,
+  roomsOpening,
+} from "plgg-ir-diagram/flowSheet";
+import { type Flow } from "plgg-flow";
 import {
+  type Spec,
   parseSpec,
   specFlow,
-  applySpec,
-  type Spec,
 } from "plgg-flow/dsl";
-
 export type DemoId =
   | "rooms"
   | "layered"
@@ -57,202 +54,6 @@ const empty: Spec = {
   graph: { nodes: [], edges: [] },
   rules: [],
 };
-// Initial and reset sessions both open on the front of the board.
-export const fitDemo = (flow: Flow): Flow => {
-  if (!flow.nodes.length) return flow;
-  const camera = {
-    ...flow.camera,
-    origin: { x: 0, y: 0 },
-    scale: 1,
-  };
-  const at = project(camera);
-  const bounds = [
-    ...(flow.rooms?.rooms.flatMap((r) =>
-      [r.min.x, r.max.x].flatMap((x) =>
-        [r.min.y, r.max.y].flatMap((y) =>
-          [r.min.z, r.max.z].map((z) =>
-            at({ x, y, z }),
-          ),
-        ),
-      ),
-    ) ?? []),
-    ...flow.nodes.flatMap((n) => {
-      const { width, height } = nodeSize(n);
-      return [-1, 1].flatMap((x) =>
-        [-1, 1].flatMap((y) =>
-          [-1, 1].map((z) =>
-            at({
-              x: n.position.x + (x * width) / 2,
-              y: n.position.y + (y * height) / 2,
-              z: n.position.z + z * bodyDepth(n),
-            }),
-          ),
-        ),
-      );
-    }),
-    ...wireGraph(flow).flatMap((w) =>
-      bridgePoints(
-        w.points,
-        w.lift,
-        flow.camera.pitch === 0 &&
-          flow.camera.yaw === 0,
-      ).map(at),
-    ),
-  ].reduce(
-    (box, p) => ({
-      left: Math.min(box.left, p.x),
-      right: Math.max(box.right, p.x),
-      top: Math.min(box.top, p.y),
-      bottom: Math.max(box.bottom, p.y),
-    }),
-    {
-      left: Infinity,
-      right: -Infinity,
-      top: Infinity,
-      bottom: -Infinity,
-    },
-  );
-  const frame = frameOf(flow),
-    open = frame.x - (flow.cover ?? 0);
-  // A projected label scales with its edge, while its clearance and
-  // glyphs stay in screen pixels. Fit both parts inside the open frame.
-  const labels = flow.rooms
-    ? roomLabels(flow.rooms, camera)
-    : [];
-  const fitAxis = (
-    low: number,
-    high: number,
-    available: number,
-    axis: "x" | "y",
-  ) => {
-    const spans = [
-      { at: low, lo: 0, hi: 0 },
-      { at: high, lo: 0, hi: 0 },
-      ...labels.map((l) => {
-        const width = l.value.length * 13;
-        const left =
-          l.dx -
-          (l.anchor === "end"
-            ? width
-            : l.anchor === "middle"
-              ? width / 2
-              : 0);
-        return axis === "x"
-          ? {
-              at: l.x,
-              lo: left,
-              hi: left + width,
-            }
-          : {
-              at: l.y,
-              lo: l.dy - 7,
-              hi: l.dy + 7,
-            };
-      }),
-    ];
-    let scale = 1;
-    for (const a of spans)
-      for (const b of spans)
-        if (b.at > a.at)
-          scale = Math.min(
-            scale,
-            Math.max(
-              1,
-              available - 96 - b.hi + a.lo,
-            ) /
-              (b.at - a.at),
-          );
-    const origin = (zoom: number) =>
-      (available -
-        Math.min(
-          ...spans.map((s) => zoom * s.at + s.lo),
-        ) -
-        Math.max(
-          ...spans.map((s) => zoom * s.at + s.hi),
-        )) /
-      2;
-    return { scale, origin };
-  };
-  const x = fitAxis(
-      bounds.left,
-      bounds.right,
-      open,
-      "x",
-    ),
-    y = fitAxis(
-      bounds.top,
-      bounds.bottom,
-      frame.y,
-      "y",
-    );
-  const scale = Math.min(x.scale, y.scale);
-  return {
-    ...flow,
-    camera: {
-      ...flow.camera,
-      scale,
-      origin: {
-        x: x.origin(scale),
-        y: y.origin(scale),
-      },
-    },
-  };
-};
-export const resizeDemo = (
-  flow: Flow,
-  height: number,
-  fitted: boolean,
-  cover = 0,
-): Flow => {
-  const previous = frameOf(flow);
-  if (
-    flow.frame &&
-    previous.y === height &&
-    previous.x === viewport.x &&
-    (flow.cover ?? 0) === cover
-  )
-    return flow;
-  const frame = { x: viewport.x, y: height };
-  const next = { ...flow, frame, cover };
-  if (fitted) return fitDemo(next);
-  return {
-    ...next,
-    camera: {
-      ...flow.camera,
-      origin: {
-        x:
-          flow.camera.origin.x +
-          (frame.x - previous.x) / 2,
-        y:
-          flow.camera.origin.y +
-          (frame.y - previous.y) / 2,
-      },
-    },
-  };
-};
-const layoutKey = (flow: Flow) =>
-  JSON.stringify([
-    flow.nodes.map((n) => [
-      n.id,
-      n.position,
-      nodeSize(n),
-    ]),
-    flow.edges.map((e) => [
-      e.source,
-      e.target,
-      e.route,
-      e.via,
-      e.lift,
-    ]),
-  ]);
-export const applyDemoSpec =
-  (spec: Spec) => (flow: Flow) => {
-    const next = applySpec(spec)(flow);
-    return layoutKey(next) === layoutKey(flow)
-      ? next
-      : fitDemo(next);
-  };
-export const roomsOpening = viewAt(-0.32, 0.26);
 const demo = (
   id: DemoId,
   name: string,

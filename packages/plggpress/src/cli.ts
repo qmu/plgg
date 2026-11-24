@@ -1,4 +1,11 @@
-import { type SoftStr, type Defect } from "plgg";
+import { optionOf, option } from "plgg-cli";
+import { loadParts } from "plggpress/Config/usecase/loadParts";
+import { type Part } from "plggpress/SiteConfig/usecase/diagramFence";
+import {
+  mapResult,
+  type SoftStr,
+  type Defect,
+} from "plgg";
 import { type SsgError } from "plggpress/framework/ssg";
 import {
   type AppOptions,
@@ -30,14 +37,18 @@ const formatBuildError = (
   e.__tag === "Defect"
     ? e.content.message
     : e.__tag === "BrokenLinks"
-      ? `${e.content.broken.length} broken link(s): ${e.content.broken
+      ? `${
+          e.content.broken.length
+        } broken link(s): ${e.content.broken
           .map(
             (b: BrokenLink): SoftStr =>
               `${b.source} -> ${b.href} (${b.reason})`,
           )
           .join("; ")}`
       : e.__tag === "ModelViolations"
-        ? `${e.content.length} content-model violation(s): ${e.content
+        ? `${
+            e.content.length
+          } content-model violation(s): ${e.content
             .map(
               (v): SoftStr =>
                 `${v.path}: ${v.reason}`,
@@ -87,25 +98,46 @@ const formatBuildError = (
 // folds every typed failure to an exit code; the `.catch` is
 // the single UNEXPECTED-throw edge (mirrors plgg-bundle's
 // `main().catch`).
+type Site = SiteConfig &
+  Readonly<{ parts: readonly Part[] }>;
 runApp<
-  SiteConfig,
+  Site,
   Defect | BrokenLinks | ModelViolations
 >({
   name: "plggpress",
   description: "static site generator",
   configFile: "site.config.ts",
-  loadConfig,
+  extraOptions: [
+    option(
+      "parts",
+      "path",
+      "part registration module",
+    ),
+  ],
+  loadConfig: async (path, invocation) => {
+    const config = await loadConfig(path);
+    if (config.__tag === "Err") return config;
+    return mapResult(
+      (parts: readonly Part[]): Site => ({
+        ...config.content,
+        parts,
+      }),
+    )(
+      await loadParts(
+        path,
+        optionOf("parts")(invocation),
+      ),
+    );
+  },
   context: (
     config: SiteConfig,
   ): AppRunContext => ({ base: config.base }),
-  buildSpec: (
-    config: SiteConfig,
-    opts: AppOptions,
-  ) =>
+  buildSpec: (config: Site, opts: AppOptions) =>
     buildSpecOf(
       config,
       opts.contentDir,
       opts.base,
+      config.parts,
     ),
   dev: pressDevOf(),
   formatError: formatBuildError,

@@ -1,4 +1,6 @@
-import { none } from "plgg";
+import { none, some } from "plgg";
+import { loadParts } from "plggpress/Config/usecase/loadParts";
+import { rm, readdir } from "node:fs/promises";
 import {
   mkdtemp,
   mkdir,
@@ -293,3 +295,160 @@ test("PRODUCTION emit ships the theme toggle on every page and never leaks the d
       check(page, not(toContain("EventSource"))),
     ]),
   ));
+
+test("sheet builds keep the static part, load one runtime, and honor the site override", async () => {
+  const root = await mkdtemp(
+    join(tmpdir(), "press-parts-"),
+  );
+  try {
+    const outDir = join(root, "out");
+    await mkdir(join(root, "public"));
+    await writeFile(
+      join(root, "index.md"),
+      "# Plain",
+    );
+    const runtime =
+      "export default root => root.setAttribute('data-ready','');";
+    await writeFile(
+      join(root, "counter.mjs"),
+      runtime,
+    );
+    await writeFile(
+      join(root, "site.parts.ts"),
+      `import {text} from ${JSON.stringify(
+        import.meta.resolve("plgg-view"),
+      )};
+export default {parts:[{name:"plgg-flow",runtime:"./counter.mjs",css:'[data-island="plgg-flow"]{color:inherit}',render:()=>text('counter fallback')}]};`,
+    );
+    const parts = await loadParts(
+      join(root, "site.config.ts"),
+      none(),
+    );
+    if (parts.__tag === "Err")
+      return check(
+        parts.content.content.message,
+        toBe("valid parts"),
+      );
+    const source = [
+      "# Board",
+      "",
+      "```plgg-flow fill dsl",
+      "</script>&",
+      "```",
+    ].join("\n");
+    await writeFile(
+      join(root, "sheet.md"),
+      "---\nlayout: sheet\ndescription: Board description\n---\n\n" +
+        source +
+        "\n\nIgnored tail",
+    );
+    await writeFile(
+      join(root, "boards.md"),
+      source + "\n\n" + source,
+    );
+    const report = await build({
+      contentDir: root,
+      outDir,
+      assetsDir: join(root, "public"),
+      base: "/docs/",
+      config: {
+        ...config,
+        base: "/docs/",
+        sidebarStyle: some("numbered"),
+        tagline: some("Tagline"),
+        footerLink: some({
+          text: "Footer link",
+          link: "/sheet/",
+        }),
+      },
+      parts: parts.content,
+    });
+    if (report.__tag === "Err")
+      return check(report.__tag, toBe("Ok"));
+    const read = (route: string) =>
+      readFile(
+        join(outDir, route, "index.html"),
+        "utf8",
+      );
+    const [plain, sheet, boards, assets] =
+      await Promise.all([
+        read(""),
+        read("sheet"),
+        read("boards"),
+        readdir(join(outDir, "assets/islands")),
+      ]);
+    return all([
+      check(assets.length, toBe(1)),
+      check(
+        await readFile(
+          join(
+            outDir,
+            "assets/islands",
+            assets[0] ?? "",
+          ),
+          "utf8",
+        ),
+        toBe(runtime),
+      ),
+      check(
+        plain,
+        not(
+          toContain(
+            '<script type="module" data-island-loader',
+          ),
+        ),
+      ),
+      check(
+        sheet,
+        toContain("vp-content vp-sheet"),
+      ),
+      check(
+        sheet,
+        toContain("Board description"),
+      ),
+      check(
+        sheet,
+        not(toContain("Ignored tail")),
+      ),
+      check(
+        sheet,
+        toContain(
+          'data-island="plgg-flow" data-fill',
+        ),
+      ),
+      check(sheet, toContain("counter fallback")),
+      check(sheet, toContain("\\u003c/script>&")),
+      check(
+        sheet,
+        toContain("/docs/assets/islands/"),
+      ),
+      check(
+        sheet,
+        toContain("vp-sidebar vp-numbered"),
+      ),
+      check(sheet, toContain(">Tagline<")),
+      check(sheet, toContain(">Footer link<")),
+      check(
+        boards.match(
+          /<script type="module" data-island-loader/g,
+        )?.length,
+        toBe(1),
+      ),
+      check(
+        boards.match(/<style data-island-style/g)
+          ?.length,
+        toBe(1),
+      ),
+      check(
+        boards.match(/<div data-island=/g)
+          ?.length,
+        toBe(2),
+      ),
+    ]);
+  } finally {
+    await rm(root, {
+      recursive: true,
+      force: true,
+    });
+  }
+});

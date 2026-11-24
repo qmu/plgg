@@ -1,4 +1,8 @@
 import {
+  type Part,
+  builtins,
+} from "plggpress/SiteConfig/usecase/diagramFence";
+import {
   type SoftStr,
   type Option,
   type Dict,
@@ -137,9 +141,16 @@ export const devWeb = (
   paths: ReadonlyArray<SoftStr>,
   hub: ReloadHub,
   voice: boolean,
+  parts: readonly Part[] = builtins,
 ): Web =>
   pipe(
-    pressRouter(contentDir, config, base, paths),
+    pressRouter(
+      contentDir,
+      config,
+      base,
+      paths,
+      parts,
+    ),
     use(injectDevClients(voice)),
     get(RELOAD_PATH, reloadHandler(hub)),
   );

@@ -31,11 +31,13 @@ import {
  */
 export type Frontmatter = Readonly<{
   layout: Option<SoftStr>;
+  description: Option<SoftStr>;
   data: Option<YamlMap>;
 }>;
 
 /** The `layout` string of a map, when present as a string. */
-const layoutOf = (
+const stringField = (
+  key: string,
   data: Option<YamlMap>,
 ): Option<SoftStr> =>
   matchOption<YamlMap, Option<SoftStr>>(
@@ -76,7 +78,7 @@ const layoutOf = (
           ),
       )(
         fromNullable(
-          map.find(([k]) => k === "layout"),
+          map.find(([k]) => k === key),
         ),
       ),
   )(data);
@@ -89,5 +91,6 @@ export const frontmatter = (
   data: Option<YamlMap>,
 ): Frontmatter => ({
   data,
-  layout: layoutOf(data),
+  layout: stringField("layout", data),
+  description: stringField("description", data),
 });

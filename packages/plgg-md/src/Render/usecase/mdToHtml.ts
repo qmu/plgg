@@ -245,7 +245,9 @@ const calloutTitle = (
 ): SoftStr =>
   isSome(title)
     ? title.content
-    : `${kind.charAt(0).toUpperCase()}${kind.slice(1)}`;
+    : `${kind
+        .charAt(0)
+        .toUpperCase()}${kind.slice(1)}`;
 
 /**
  * Folds one {@link Block} into a `plgg-view` tree under
@@ -301,15 +303,20 @@ export const blockToHtml =
       [
         codeFence$(),
         ({ content }): Html<never> => {
-          const widget = isSome(content.lang)
-            ? options.fences?.get(
-                content.lang.content,
-              )
-            : undefined;
+          const info = pipe(
+            content.lang,
+            getOr(""),
+          );
+          const language =
+            info.split(/\s+/)[0] ?? "";
+          const widget =
+            options.fences?.get(language);
           return widget
-            ? widget(content.code)
+            ? widget(content.code, info)
             : options.highlighter(
-                content.lang,
+                language
+                  ? fromNullable(language)
+                  : content.lang,
                 content.code,
               );
         },

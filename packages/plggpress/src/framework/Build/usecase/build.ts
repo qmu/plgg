@@ -1,4 +1,9 @@
-import { rm } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import {
+  mkdir,
+  writeFile,
+  rm,
+} from "node:fs/promises";
 import {
   type SoftStr,
   type Result,
@@ -41,9 +46,11 @@ import {
  *   the build as data; `none()` skips it.
  */
 export type BuildSpec<E> = Readonly<{
-  router: (
-    paths: ReadonlyArray<SoftStr>,
-  ) => Web;
+  router: (paths: ReadonlyArray<SoftStr>) => Web;
+  generatedAssets?: ReadonlyMap<
+    string,
+    Uint8Array
+  >;
   notFoundHtml: SoftStr;
   linkCheck: Option<
     (
@@ -55,9 +62,7 @@ export type BuildSpec<E> = Readonly<{
   //   is neither built nor link-checked (the app's
   //   `srcExclude` for drafts, fixtures, redirect stubs).
   //   `none()` builds every discovered route.
-  excludePath: Option<
-    (path: SoftStr) => boolean
-  >;
+  excludePath: Option<(path: SoftStr) => boolean>;
 }>;
 
 /**
@@ -194,6 +199,35 @@ export const build = <E>(
           ],
         ),
       ),
+    (
+      files: ReadonlyArray<string>,
+    ): PromisedResult<
+      ReadonlyArray<string>,
+      SsgError
+    > =>
+      tryCatch(
+        async () => {
+          const added = await Promise.all(
+            Array.from(
+              spec.generatedAssets ?? [],
+              async ([file, bytes]) => {
+                const dest = join(
+                  opts.outDir,
+                  file,
+                );
+                await mkdir(dirname(dest), {
+                  recursive: true,
+                });
+                await writeFile(dest, bytes);
+                return dest;
+              },
+            ),
+          );
+          return [...files, ...added];
+        },
+        (e: unknown) =>
+          writeFailed(opts.outDir, String(e)),
+      )(undefined),
     (
       files: ReadonlyArray<SoftStr>,
     ): PromisedResult<

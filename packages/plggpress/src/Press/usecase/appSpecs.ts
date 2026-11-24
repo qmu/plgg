@@ -1,4 +1,10 @@
 import {
+  builtins,
+  islandAsset,
+  type Part,
+} from "plggpress/SiteConfig/usecase/diagramFence";
+import { href } from "plggpress/Href/usecase/href";
+import {
   type SoftStr,
   type Option,
   type Defect,
@@ -90,87 +96,115 @@ export const buildSpecOf = (
   config: SiteConfig,
   contentDir: SoftStr,
   base: SoftStr,
+  parts: readonly Part[] = builtins,
 ): BuildSpec<
   Defect | BrokenLinks | ModelViolations
-> => ({
-  router: (paths: ReadonlyArray<SoftStr>): Web =>
-    pressRouter(contentDir, config, base, paths),
-  notFoundHtml: injectAppearanceScripts(
-    renderToString(notFound(config)),
-  ),
-  excludePath: pipe(
-    config.srcExclude,
-    matchOption(
-      (): Option<
-        (path: SoftStr) => boolean
-      > => none(),
-      (
-        patterns: ReadonlyArray<SoftStr>,
-      ): Option<(path: SoftStr) => boolean> =>
-        some(matchesAnyGlob(patterns)),
-    ),
-  ),
-  linkCheck: some(
-    (
+> => {
+  const generatedAssets = new Map<
+    string,
+    Uint8Array
+  >();
+  const urls = new Map<Part, string>();
+  const url = (part: Part) => {
+    const found = urls.get(part);
+    if (found) return found;
+    const { file, bytes } = islandAsset(part);
+    generatedAssets.set(file, bytes);
+    const path = href(base)("/" + file);
+    urls.set(part, path);
+    return path;
+  };
+  return {
+    generatedAssets,
+    router: (
       paths: ReadonlyArray<SoftStr>,
-    ): PromisedResult<
-      unknown,
-      Defect | BrokenLinks | ModelViolations
-    > =>
-      collectPageLinks(
+    ): Web =>
+      pressRouter(
         contentDir,
-        base,
         config,
-      )(paths)
-        .then(
-          chainResult(
-            (
-              pages: ReadonlyArray<PageLinks>,
-            ): Result<
-              void,
-              Defect | BrokenLinks
-            > =>
-              checkLinks(
-                base,
-                pipe(
-                  config.linkIgnore,
-                  matchOption(
-                    (): ((
-                      href: SoftStr,
-                    ) => boolean) =>
+        base,
+        paths,
+        parts,
+        url,
+      ),
+    notFoundHtml: injectAppearanceScripts(
+      renderToString(notFound(config)),
+    ),
+    excludePath: pipe(
+      config.srcExclude,
+      matchOption(
+        (): Option<(path: SoftStr) => boolean> =>
+          none(),
+        (
+          patterns: ReadonlyArray<SoftStr>,
+        ): Option<(path: SoftStr) => boolean> =>
+          some(matchesAnyGlob(patterns)),
+      ),
+    ),
+    linkCheck: some(
+      (
+        paths: ReadonlyArray<SoftStr>,
+      ): PromisedResult<
+        unknown,
+        Defect | BrokenLinks | ModelViolations
+      > =>
+        collectPageLinks(
+          contentDir,
+          base,
+          config,
+          parts,
+        )(paths)
+          .then(
+            chainResult(
+              (
+                pages: ReadonlyArray<PageLinks>,
+              ): Result<
+                void,
+                Defect | BrokenLinks
+              > =>
+                checkLinks(
+                  base,
+                  pipe(
+                    config.linkIgnore,
+                    matchOption(
+                      (): ((
+                        href: SoftStr,
+                      ) => boolean) =>
+                        (
+                          _href: SoftStr,
+                        ): boolean =>
+                          false,
                       (
-                        _href: SoftStr,
-                      ): boolean => false,
-                    (
-                      patterns: ReadonlyArray<SoftStr>,
-                    ): ((
-                      href: SoftStr,
-                    ) => boolean) =>
-                      matchesAnyGlob(patterns),
+                        patterns: ReadonlyArray<SoftStr>,
+                      ): ((
+                        href: SoftStr,
+                      ) => boolean) =>
+                        matchesAnyGlob(patterns),
+                    ),
                   ),
-                ),
-              )(pages),
+                )(pages),
+            ),
+          )
+          .then(
+            matchResult<
+              void,
+              Defect | BrokenLinks,
+              PromisedResult<
+                unknown,
+                | Defect
+                | BrokenLinks
+                | ModelViolations
+              >
+            >(
+              (e: Defect | BrokenLinks) =>
+                Promise.resolve(err(e)),
+              () =>
+                modelCheckOf(
+                  config,
+                  contentDir,
+                )(paths),
+            ),
           ),
-        )
-        .then(
-          matchResult<
-            void,
-            Defect | BrokenLinks,
-            PromisedResult<
-              unknown,
-              | Defect
-              | BrokenLinks
-              | ModelViolations
-            >
-          >(
-            (e: Defect | BrokenLinks) =>
-              Promise.resolve(err(e)),
-            () =>
-              modelCheckOf(
-                config,
-                contentDir,
-              )(paths),
-          ),
-        ),
-  ),
-});
+    ),
+  };
+};

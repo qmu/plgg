@@ -23,7 +23,9 @@ export { type BuildReport } from "plggpress/framework";
  * - `base` — the deploy base path (e.g. `/plgg/`); the
  *   value `href` is curried with.
  */
+import { type Part } from "plggpress/SiteConfig/usecase/diagramFence";
 export type PressOptions = Readonly<{
+  parts?: readonly Part[];
   contentDir: SoftStr;
   outDir: SoftStr;
   assetsDir: SoftStr;

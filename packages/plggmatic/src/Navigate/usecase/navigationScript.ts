@@ -58,13 +58,17 @@ const q = (value: SoftStr): SoftStr =>
  */
 export const navigationInitScript: SoftStr =
   "(function(){" +
-  `var S=${q(stripAttr)},C=${q(columnAttr)},P=${q(spanAttr)};` +
+  `var S=${q(stripAttr)},C=${q(columnAttr)},P=${q(
+    spanAttr,
+  )};` +
   `var FC=${q(foldClass)},TC=${q(trailClass)};` +
   // an opened column glides into view unless the reader
   // asked for less motion
   "var R0=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;" +
   `var R=${q(restParam)},Q=${q(spanParam)};` +
-  `var E=${q(escapeChar)},N=${q(entrySeparator)},F=${q(fieldSeparator)};` +
+  `var E=${q(escapeChar)},N=${q(
+    entrySeparator,
+  )},F=${q(fieldSeparator)};` +
   // escape one field so a route or a quoted passage can
   // carry the separators themselves
   "function esc(v){return v.split(E).join(E+'t')" +
@@ -103,15 +107,16 @@ export const navigationInitScript: SoftStr =
   // what you are reading now, not a log of everywhere you
   // have been: opening from a middle column closes what
   // stood beyond it.
+  "function changed(){if(document.dispatchEvent){document.dispatchEvent(new Event('plgg:columns'));}}" +
   "function truncate(at){var c=cols();" +
-  "for(var i=c.length-1;i>at;i--){c[i].remove();}sync();}" +
+  "for(var i=c.length-1;i>at;i--){c[i].remove();}sync();changed();}" +
   // place a fetched column immediately after the one it
   // was opened from, so whatever else the strip holds (a
   // chrome rail, a nav column) keeps its position
   "function place(node,at){var c=cols();var prev=c[at];" +
   "prev.parentNode.insertBefore(node,prev.nextSibling);" +
   "node.scrollIntoView({inline:'nearest',block:'nearest',behavior:R0?'auto':'smooth'});" +
-  "showMark(node);sync();}" +
+  "showMark(node);sync();changed();}" +
   // put a column's highlighted passage under the reader's
   // eyes. The mark is server-rendered — it exists only
   // because the quotation located in the document exactly
@@ -129,12 +134,20 @@ export const navigationInitScript: SoftStr =
   // execute, so a placed column can never re-run this
   // runtime.
   "function fetchCol(route,span){" +
-  "return fetch(colUrl(route,span),{credentials:'same-origin'})" +
+  "return fetch(colUrl(route,span),{credentials:'same-origin',mode:'same-origin'})" +
   ".then(function(r){if(!r.ok){throw new Error('nav');}return r.text();})" +
   ".then(function(t){" +
   "var d=new DOMParser().parseFromString(t,'text/html');" +
   "var col=d.querySelector('['+C+']');" +
   "if(!col||!strip()||!cols().length){throw new Error('nav');}" +
+  // A fetched page can declare styles, inert data and a single initializer
+  // for its column. Ordinary content scripts stay inert.
+  "const init=d.querySelector('body > script[data-column-init]');if(init){" +
+  "for(const style of d.querySelectorAll('head > style[data-column-style]')){" +
+  "if(!Array.from(document.querySelectorAll('style[data-column-style]')).some(s=>s.dataset.columnStyle===style.dataset.columnStyle))document.head.appendChild(document.importNode(style,true));}" +
+  "const data=d.querySelector('body > script[type=\"application/json\"][data-column-data]');if(data)col.appendChild(document.importNode(data,true));" +
+  "if(!document.querySelector('script[data-column-init]')){" +
+  "const script=document.createElement('script');script.type='module';script.dataset.columnInit='';script.textContent=init.textContent;document.head.appendChild(script);}}" +
   "return document.importNode(col,true);});}" +
   // OPEN a route as the column after index `at`. The
   // originating column's DOM node is never touched, so its
@@ -257,7 +270,9 @@ export const navigationInitScript: SoftStr =
   "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
   "var at=columnOf(a);if(at<0){return;}" +
   "ev.preventDefault();openFrom(at,a.pathname);});" +
-  `window[${q(navHookName)}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims,current:current,target:target,reconcile:reconcile,fold:fold};` +
+  `window[${q(
+    navHookName,
+  )}]={open:open,openFrom:openFrom,urlFor:urlFor,entries:entries,entryOf:entryOf,columnOf:columnOf,claims:claims,current:current,target:target,reconcile:reconcile,fold:fold};` +
   "})();";
 
 /**

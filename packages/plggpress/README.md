@@ -181,3 +181,28 @@ diagram orders {
 ````
 
 plggpress が図を HTML に埋め込みます。各図は独立してパン、回転、ソース編集ができ、JavaScript を無効にしても初期図と原文を読めます。ページ上の編集はその閲覧中だけ有効です。保存するには Markdown のコードフェンスを編集して再ビルドしてください。
+
+### Registering a fence part
+
+Place an optional `site.parts.ts` beside `site.config.ts`, or pass
+`--parts <path>` to build or dev. A matching name replaces the built-in
+`plgg-flow` or `plgg-diagram` part.
+
+```ts
+import type { Part } from "plggpress";
+import { el, text } from "plgg-view";
+
+export default {
+  parts: [{
+    name: "counter",
+    render: (code) => el("pre", [], [text(code)]),
+    css: '[data-island="counter"] { color: var(--pm-text) }',
+    runtime: "./dist/counter.js",
+  }] satisfies readonly Part[],
+};
+```
+
+Build the browser ES module ahead of time. Its default export takes
+the mount element and `{ code, info }` and may return a disposal
+function. Runtime paths and package specifiers resolve from the site
+directory. The static render remains readable with JavaScript disabled.

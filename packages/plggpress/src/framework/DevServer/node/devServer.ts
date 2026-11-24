@@ -65,7 +65,9 @@ import {
 // `build` path entirely, so the reload client never ships.
 
 /** What `plggpress dev`'s persistent surface needs to run. */
+import { type Part } from "plggpress/SiteConfig/usecase/diagramFence";
 export type DevServerOptions = Readonly<{
+  parts?: readonly Part[];
   /** The content root the router reads pages from. */
   contentDir: SoftStr;
   /** The `site.config` path, loaded once at startup. */
@@ -236,6 +238,7 @@ export const startDevServer = (
                 paths,
                 hub,
                 isSome(opts.voice),
+                opts.parts,
               ),
               post(
                 PATCH_PATH,
