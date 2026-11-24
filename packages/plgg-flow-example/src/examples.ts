@@ -1,6 +1,7 @@
 import { project } from "plgg-board";
 import {
   viewAt,
+  roomLabels,
   nodeSize,
   bodyDepth,
   bridgePoints,
@@ -59,11 +60,12 @@ const empty: Spec = {
 // Initial and reset sessions both open on the front of the board.
 export const fitDemo = (flow: Flow): Flow => {
   if (!flow.nodes.length) return flow;
-  const at = project({
+  const camera = {
     ...flow.camera,
     origin: { x: 0, y: 0 },
     scale: 1,
-  });
+  };
+  const at = project(camera);
   const bounds = [
     ...(flow.rooms?.rooms.flatMap((r) =>
       [r.min.x, r.max.x].flatMap((x) =>
@@ -112,29 +114,86 @@ export const fitDemo = (flow: Flow): Flow => {
   );
   const frame = frameOf(flow),
     open = frame.x - (flow.cover ?? 0);
-  const scale = Math.min(
-    1,
-    Math.max(1, open - 96) /
-      (bounds.right - bounds.left),
-    Math.max(1, frame.y - 96) /
-      (bounds.bottom - bounds.top),
-  );
+  // A projected label scales with its edge, while its clearance and
+  // glyphs stay in screen pixels. Fit both parts inside the open frame.
+  const labels = flow.rooms
+    ? roomLabels(flow.rooms, camera)
+    : [];
+  const fitAxis = (
+    low: number,
+    high: number,
+    available: number,
+    axis: "x" | "y",
+  ) => {
+    const spans = [
+      { at: low, lo: 0, hi: 0 },
+      { at: high, lo: 0, hi: 0 },
+      ...labels.map((l) => {
+        const width = l.value.length * 13;
+        const left =
+          l.dx -
+          (l.anchor === "end"
+            ? width
+            : l.anchor === "middle"
+              ? width / 2
+              : 0);
+        return axis === "x"
+          ? {
+              at: l.x,
+              lo: left,
+              hi: left + width,
+            }
+          : {
+              at: l.y,
+              lo: l.dy - 7,
+              hi: l.dy + 7,
+            };
+      }),
+    ];
+    let scale = 1;
+    for (const a of spans)
+      for (const b of spans)
+        if (b.at > a.at)
+          scale = Math.min(
+            scale,
+            Math.max(
+              1,
+              available - 96 - b.hi + a.lo,
+            ) /
+              (b.at - a.at),
+          );
+    const origin = (zoom: number) =>
+      (available -
+        Math.min(
+          ...spans.map((s) => zoom * s.at + s.lo),
+        ) -
+        Math.max(
+          ...spans.map((s) => zoom * s.at + s.hi),
+        )) /
+      2;
+    return { scale, origin };
+  };
+  const x = fitAxis(
+      bounds.left,
+      bounds.right,
+      open,
+      "x",
+    ),
+    y = fitAxis(
+      bounds.top,
+      bounds.bottom,
+      frame.y,
+      "y",
+    );
+  const scale = Math.min(x.scale, y.scale);
   return {
     ...flow,
     camera: {
       ...flow.camera,
       scale,
       origin: {
-        x:
-          (open -
-            scale *
-              (bounds.left + bounds.right)) /
-          2,
-        y:
-          (frame.y -
-            scale *
-              (bounds.top + bounds.bottom)) /
-          2,
+        x: x.origin(scale),
+        y: y.origin(scale),
       },
     },
   };
@@ -193,6 +252,7 @@ export const applyDemoSpec =
       ? next
       : fitDemo(next);
   };
+export const roomsOpening = viewAt(-0.32, 0.26);
 const demo = (
   id: DemoId,
   name: string,
@@ -213,7 +273,7 @@ const demo = (
       const flow = specFlow(spec());
       return fitDemo(
         id === "rooms"
-          ? viewAt(-0.5, 0.45)(flow)
+          ? roomsOpening(flow)
           : flow,
       );
     },
@@ -299,9 +359,9 @@ Sandbox -> Trace`,
     "split",
     "エッジに挿入",
     "挿入ボタンで先頭の接続を分割し、中間ノードを追加します。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -313,7 +373,7 @@ Process -> Result
     `node Input at -224 16
 node Route at 0 16
 node Live at 224 -80
-node Backup at 208 80
+node Backup at 216 80
 Input -> Route
 Route -> Live
 `,
@@ -323,9 +383,9 @@ Route -> Live
     "循環の防止",
     "Result → Source を接続してみてください。循環する接続を拒否し、Source → Result は許可します。",
     `rule acyclic
-node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -338,7 +398,7 @@ Process -> Result
 node Input at -224 16
 node Route at 0 16
 node Live at 224 -80
-node Backup at 208 80
+node Backup at 216 80
 Input -> Route
 Route -> Live
 `,
@@ -347,9 +407,9 @@ Route -> Live
     "bypass",
     "中間ノードの削除",
     "Process を取り除くと、その入出力を直接つなぎ直します。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -357,11 +417,11 @@ Process -> Result
   demo(
     "snap",
     "グリッド吸着",
-    "ノードをドラッグすると、格子ひとつ分ずつ吸着しながら動きます。snap 16 で間隔を変え、snap off で自由に動かせます。",
+    "ノードをドラッグすると、格子ひとつ分ずつ吸着しながら動きます。snap 8 で半分の間隔に切り替え、snap off で自由に動かせます。",
     `snap 16
-node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -370,9 +430,9 @@ Process -> Result
     "resize",
     "ノードのリサイズ",
     "幅スライダーで Process のカードを伸縮します。左右のポートと接続端も追従します。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -381,9 +441,9 @@ Process -> Result
     "rename",
     "ノード内容の編集",
     "名前を入力すると中央のノードに即時反映されます。接続は ID で維持されます。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -392,9 +452,9 @@ Process -> Result
     "routes",
     "エッジの経路",
     "直線、直角、ベジェ曲線を切り替え、ノードを動かして経路の違いを確認できます。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -403,9 +463,9 @@ Process -> Result
     "motion",
     "フローのアニメーション",
     "再生と停止で、接続に沿った流れの向きを確認できます。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -417,7 +477,7 @@ Process -> Result
     `node Input at -224 16
 node Route at 0 16
 node Live at 224 -80
-node Backup at 208 80
+node Backup at 216 80
 Input -> Route
 Route -> Live
 `,
@@ -429,7 +489,7 @@ Route -> Live
     `node Input at -224 16
 node Route at 0 16
 node Live at 224 -80
-node Backup at 208 80
+node Backup at 216 80
 Input -> Route
 Route -> Live
 Route -> Backup
@@ -440,9 +500,9 @@ Route -> Backup
     "グループとネスト",
     "Team を動かすと孫まで一緒に移動します。Shift＋クリックで複数選択し、グループ化・収納・親の変更を試せます。",
     `node Team at -256 -112 group
-node Design at -48 -48 55 group in Team
+node Design at -40 -48 55 group in Team
 node Build at 32 48 -40 in Team
-node Review at 112 16 100 in Design
+node Review at 120 16 100 in Design
 node External at 304 16
 Team -> Design
 Team -> Build
@@ -457,7 +517,7 @@ Review -> External
     `node Input at -160 -80
 node Route at 160 -80
 node Live at -160 80
-node Backup at 144 80
+node Backup at 152 80
 Input -> Route
 Route -> Live
 `,
@@ -466,9 +526,9 @@ Route -> Live
     "copy",
     "コピーと貼り付け",
     "ノードを選んでコピーし、貼り付けると位置をずらした独立の複製を作ります。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -477,9 +537,9 @@ Process -> Result
     "history",
     "元に戻す・やり直す",
     "ノードの移動、接続、削除を操作単位で取り消し、やり直せます。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -488,9 +548,9 @@ Process -> Result
     "checkpoint",
     "スナップショット",
     "現在の図と視点を保存し、編集後に復元します。保存先はこのページのメモリです。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,
@@ -513,7 +573,7 @@ B -> Sum
     `node Input at -224 16
 node Route at 0 16
 node Live at 224 -80
-node Backup at 208 80
+node Backup at 216 80
 Input -> Route
 Route -> Live
 `,
@@ -524,9 +584,9 @@ Route -> Live
     "ノードを選ぶと、つながっている相手が入力・出力の一覧に出ます。押すとその相手へ移動し、移動の履歴を戻る・進むで行き来できます。",
     `node Order at -256 16
 node Stock at -32 -80
-node Payment at -48 80
+node Payment at -40 80
 node Ship at 192 16
-node Notify at 368 16
+node Notify at 376 16
 Order -> Stock "在庫確認"
 Order -> Payment "決済"
 Stock -> Ship
@@ -539,8 +599,8 @@ Ship -> Notify
     "編集履歴",
     "ノードを選んで「履歴を追う」を押し、動かしたり名前を変えたりすると、そのノードに起きた変更が順に並びます。",
     `node Draft at -224 16
-node Review at 16 16
-node Publish at 208 16
+node Review at 24 16
+node Publish at 216 16
 Draft -> Review
 Review -> Publish
 `,
@@ -549,7 +609,7 @@ Review -> Publish
     "outline",
     "グループ一覧",
     "入れ子になったグループを一覧でたどれます。グループを開くと中身が並び、選ぶと図の上でそのノードへ移動します。",
-    `node Company at -304 -112 group
+    `node Company at -296 -112 group
 node Sales at -160 -48 group in Company
 node Dev at 64 -48 group in Company
 node Alice at -192 48 in Sales
@@ -564,9 +624,9 @@ Bob -> Dave
     "files",
     "保存と読み込み",
     "図をファイルに書き出して読み込み直したり、ブラウザの中に保存して後から再開したりできます。",
-    `node Source at -208 -48
-node Process at 16 16
-node Result at 208 -48
+    `node Source at -200 -48
+node Process at 24 16
+node Result at 216 -48
 Source -> Process
 Process -> Result
 `,

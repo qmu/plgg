@@ -244,7 +244,7 @@ const placeRow = (
       };
     }
     blocks.push(block);
-    offset += v.size / 2 + grid;
+    offset += v.size / 2 + 2 * grid;
   }
   for (const b of blocks)
     for (let i = b.start; i <= b.end; i++)
@@ -262,7 +262,7 @@ const reserve = (
       (occupied.get(v.layer) ?? []).map(
         (other) => {
           const gap =
-            (v.size + other.size) / 2 + grid;
+            (v.size + other.size) / 2 + 2 * grid;
           return [
             other.cross - gap,
             other.cross + gap,
@@ -317,7 +317,7 @@ const placeTree = (group: Vertex[]) => {
           (2 * grid)
       )
         child.cross += grid;
-      end = child.cross + box.right + grid;
+      end = child.cross + box.right + 2 * grid;
     }
     const centre =
       ((v.outgoing[0]?.cross ?? 0) +
@@ -330,7 +330,7 @@ const placeTree = (group: Vertex[]) => {
       left: Math.min(-v.size / 2, -centre),
       right: Math.max(
         v.size / 2,
-        end - grid - centre,
+        end - 2 * grid - centre,
       ),
     });
   }
@@ -405,7 +405,7 @@ const placeComponent = (
           JSON.stringify([v.id, target.id, l]),
           0,
           cyclic
-            ? 0
+            ? 2 * grid
             : Math.min(v.size, target.size),
         );
         dummy.layer = l;
@@ -427,12 +427,12 @@ const placeComponent = (
   for (const row of ordered) {
     let x =
       -row.reduce(
-        (s, v) => s + v.size + grid,
-        -grid,
+        (s, v) => s + v.size + 2 * grid,
+        -2 * grid,
       ) / 2;
     for (const v of row) {
       v.cross = x + v.size / 2;
-      x += v.size + grid;
+      x += v.size + 2 * grid;
     }
   }
   for (let pass = 0; pass < 8; pass++) {
@@ -487,13 +487,13 @@ const placeComponent = (
     let x =
       parent.cross -
       row.reduce(
-        (sum, v) => sum + v.size + grid,
-        -grid,
+        (sum, v) => sum + v.size + 2 * grid,
+        -2 * grid,
       ) /
         2;
     for (const v of row) {
       reserve([v], x + v.size / 2, occupied);
-      x += v.size + grid;
+      x += v.size + 2 * grid;
     }
   }
   for (const { chain } of routes)
@@ -519,8 +519,8 @@ const wrappedPositions = (
   }
   const span = (row: Vertex[]) =>
     row.reduce(
-      (sum, v) => sum + v.size + grid,
-      -grid,
+      (sum, v) => sum + v.size + 2 * grid,
+      -2 * grid,
     );
   const core = [...rows.values()]
     .map((row) =>
@@ -602,7 +602,7 @@ const wrappedPositions = (
             Number((half === far) !== inputs),
           cross: cross + v.size / 2,
         });
-        cross += v.size + grid;
+        cross += v.size + 2 * grid;
       }
     }
     inserted++;
@@ -725,7 +725,7 @@ export const planLayers = (
     leaf.layer = leaf.incoming[0]!.layer + 1;
   let cross = 0;
   const virtual = new Map<number, Vertex[]>();
-  const gap = 3 * grid;
+  let gap = 6 * grid;
   for (const ids of groups.sort(
     (a, b) =>
       b.length - a.length ||
@@ -752,6 +752,9 @@ export const planLayers = (
     const returns = group.filter((v) =>
       cycles.has(v.id),
     ).length;
+    const tree = group.every(
+      (v) => v.incoming.length <= 1,
+    );
     const routes = placeComponent(
       group,
       returns > 0,
@@ -805,6 +808,29 @@ export const planLayers = (
           reserve([v], v.cross, occupied);
         }
     }
+    if (returns)
+      gap = Math.max(
+        gap,
+        ...group.map(
+          (v) => 2 * Math.max(v.main, v.size),
+        ),
+      );
+    if (tree || wrapped) {
+      for (const v of group)
+        for (const peer of neighbours.get(v)!) {
+          const slope =
+            Math.abs(v.cross - peer.cross) /
+            Math.abs(v.layer - peer.layer);
+          gap = Math.max(
+            gap,
+            squareUp(
+              wrapped
+                ? 0.6 * slope + v.main
+                : 0.4 * slope,
+            ),
+          );
+        }
+    }
     const low = Math.min(
       ...group.map((v) => v.cross - v.size / 2),
     );
@@ -816,7 +842,7 @@ export const planLayers = (
         v.cross += cross - low;
     }
     for (const v of group) v.cross += cross - low;
-    cross += high - low + grid;
+    cross += high - low + 2 * grid;
   }
   const widths: number[] = [];
   for (const v of order)
@@ -835,7 +861,8 @@ export const planLayers = (
     if (!chain.length) continue;
     const via = chain.map((v) => {
       const main = centres[v.layer]! - length / 2;
-      const side = v.cross - (cross - grid) / 2;
+      const side =
+        v.cross - (cross - 2 * grid) / 2;
       return down
         ? { x: side, y: main }
         : { x: main, y: side };
@@ -866,7 +893,7 @@ export const planLayers = (
       nodes: graph.nodes.map((n) => {
         const v = by.get(n.id)!,
           a = centres[v.layer]! - length / 2,
-          b = v.cross - (cross - grid) / 2;
+          b = v.cross - (cross - 2 * grid) / 2;
         const size = nodeSize(n);
         const aligned = (
           centre: number,
@@ -916,6 +943,7 @@ export type RoomAxes = Readonly<
   >
 >;
 export type Room = {
+  occupied: boolean;
   index: [number, number, number];
   values: [string, string, string];
   min: Point3;
@@ -1011,10 +1039,12 @@ export const planRooms = (
   }
   const widths = xs.map(() => 160),
     depths = ys.map(() => squareUp(110));
+  const bandHeights = ys.map(() =>
+    zs.map(() => 0),
+  );
   const local = new Map<string, Point3>();
   for (const [i] of xs.entries())
     for (const [j] of ys.entries()) {
-      let band = grid;
       for (const [k] of zs.entries()) {
         const key = [i, j, k].join(",");
         const nodes = buckets.get(key);
@@ -1032,7 +1062,8 @@ export const planRooms = (
                 y: bottom + s.height / 2,
                 z: 0,
               };
-              bottom += squareUp(s.height) + grid;
+              bottom +=
+                squareUp(s.height) + 2 * grid;
               return { ...n, position };
             });
         const left = Math.min(
@@ -1052,25 +1083,27 @@ export const planRooms = (
         bottom = 0;
         for (const n of placed) {
           const s = nodeSize(n),
-            x = n.position.x - left + grid,
+            x = n.position.x - left + 2 * grid,
             y = n.position.y - top;
           local.set(n.id, {
             x,
-            y: band + y,
+            y,
             z: k * 140,
           });
           widths[i] = Math.max(
             widths[i]!,
-            squareUp(x + s.width / 2 + grid),
+            squareUp(x + s.width / 2 + 2 * grid),
           );
           bottom = Math.max(
             bottom,
             y + s.height / 2,
           );
         }
-        band += squareUp(bottom) + grid;
+        bandHeights[j]![k] = Math.max(
+          bandHeights[j]![k]!,
+          squareUp(bottom),
+        );
       }
-      depths[j] = Math.max(depths[j]!, band);
     }
   const boundaries = (sizes: number[]) => {
     const ends = [0];
@@ -1078,6 +1111,39 @@ export const planRooms = (
       ends.push(ends[ends.length - 1]! + size);
     return ends;
   };
+  // At the opening angle a higher floor projects toward the preceding
+  // row. Reserve its projected displacement before the next occupied band.
+  const bandStarts = bandHeights.map(
+    (heights, j) => {
+      let top = 2 * grid;
+      let previous = -1;
+      const starts = heights.map(
+        (height, floor) => {
+          if (!height) return top;
+          if (previous >= 0)
+            top += squareUp(
+              ((floor - previous) *
+                140 *
+                Math.tan(0.5)) /
+                Math.cos(0.6),
+            );
+          const start = top;
+          top += height + 2 * grid;
+          previous = floor;
+          return start;
+        },
+      );
+      depths[j] = Math.max(depths[j]!, top);
+      return starts;
+    },
+  );
+  for (const [id, p] of local) {
+    const [, j, k] = indices.get(id)!;
+    local.set(id, {
+      ...p,
+      y: p.y + bandStarts[j]![k]!,
+    });
+  }
   const x = boundaries(widths),
     y = boundaries(depths),
     rooms: Room[] = [];
@@ -1118,13 +1184,16 @@ export const planRooms = (
         ...local.get(n.id)!,
         y: top + height / 2,
       });
-      top += squareUp(height) + grid;
+      top += squareUp(height) + 2 * grid;
     }
   }
   for (const [i, v] of xs.entries())
     for (const [j, w] of ys.entries())
       for (const [k, u] of zs.entries())
         rooms.push({
+          occupied: buckets.has(
+            [i, j, k].join(","),
+          ),
           index: [i, j, k],
           values: [v, w, u],
           min: { x: x[i]!, y: y[j]!, z: k * 140 },

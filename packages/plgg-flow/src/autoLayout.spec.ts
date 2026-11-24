@@ -341,3 +341,54 @@ test("a turned bridge rises vertically past the projected top of its higher node
     toBe(true),
   );
 });
+
+test("a hub with incoming and outgoing fans wraps both sides", () => {
+  const inputs = Array.from(
+      { length: 12 },
+      (_, i) => "in" + i,
+    ),
+    outputs = Array.from(
+      { length: 8 },
+      (_, i) => "out" + i,
+    );
+  const graph = {
+    nodes: [...inputs, "hub", ...outputs].map(
+      (id) => ({
+        id,
+        label: id,
+        position: { x: 0, y: 0, z: 0 },
+      }),
+    ),
+    edges: [
+      ...inputs.map((source) => ({
+        source,
+        target: "hub",
+      })),
+      ...outputs.map((target) => ({
+        source: "hub",
+        target,
+      })),
+    ],
+  };
+  return check(
+    (
+      ["right", "down"] satisfies (
+        | "right"
+        | "down"
+      )[]
+    ).every((direction) => {
+      const { layers } = planLayers(graph, {
+        direction,
+      });
+      return (
+        [inputs, outputs].every(
+          (fan) =>
+            new Set(
+              fan.map((id) => layers.get(id)),
+            ).size === 2,
+        ) && new Set(layers.values()).size === 5
+      );
+    }),
+    toBe(true),
+  );
+});

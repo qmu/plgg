@@ -397,3 +397,18 @@ For round G2:
      of this sample has 「正面」 and 「立体」 buttons (front view / the
      opening angle), because the front view is the table the brief
      asks for.
+
+## Round G2 review — adopted
+
+G = 16 with the grid in fours; the layout audit is back to 0 / 0; the
+rooms sample reads as a ruled table from the front (層 across, 担当
+down) and as a cuboid with lifted floors when turned.
+
+The opening angle the reviewer prescribed (yaw −0.6, pitch 0.5) was
+wrong: perspective grows with tilt and the cuboid became a wedge with
+tiny nodes. It is now −0.32 / 0.26, chosen by looking.
+
+Open: at that angle the z values and the two attribute names at the
+front-right bottom corner (環境, 本番, 検証, 担当) overlap; labels need
+collision avoidance at the corners. Shift-drag, ⌘-drag and the
+marquee are still unverified by real input.

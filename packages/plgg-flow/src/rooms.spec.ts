@@ -1,3 +1,5 @@
+import { project } from "plgg-board";
+import { wireGraph } from "plgg-flow/wiring";
 import { viewAt } from "plgg-flow/model";
 import { roomView } from "plgg-flow/roomView";
 import { renderToString } from "plgg-view";
@@ -27,7 +29,7 @@ const read = (source: string) => {
   if (r.__tag === "Err") throw Error(r.content);
   return specFlow(r.content);
 };
-const aligned = (n: FlowNode, step = 32) => {
+const aligned = (n: FlowNode, step = 16) => {
   const s = nodeSize(n);
   return (
     (n.position.x - s.width / 2) % step === 0 &&
@@ -207,8 +209,10 @@ test("drag aligns box corners, snap off moves freely, and resizing and layered p
   const free = dragged("snap off"),
     sized = resizeNode(free, 101, 59);
   return check(
-    aligned(dragged("")) &&
-      aligned(dragged("snap 16"), 16) &&
+    read("").snap === 16 &&
+      aligned(dragged("")) &&
+      aligned(dragged("snap 8"), 8) &&
+      aligned(dragged("snap 32"), 32) &&
       free.position.x === 50 &&
       free.position.y === 28 &&
       aligned(sized) &&
@@ -220,7 +224,7 @@ test("drag aligns box corners, snap off moves freely, and resizing and layered p
       ["snap off", "snap 16", "snap 32"].every(
         (d) =>
           printSpec(read(d), []) ===
-          (d === "snap 32" ? "" : d),
+          (d === "snap 16" ? "" : d),
       ),
     toBe(true),
   );
@@ -262,7 +266,7 @@ test("multi-selection drags align authored boxes and carry the whole selection t
   );
 });
 
-test("successive layers leave three squares between default boxes", () => {
+test("successive layers leave six squares between default boxes", () => {
   const graph = read("A -> B");
   return check(
     (
@@ -316,6 +320,106 @@ test("the viewport draws each lattice edge once and reveals floor labels on rota
       !front.includes(">live<") &&
       turned.includes(">live<") &&
       turned.includes(">env<"),
+    toBe(true),
+  );
+});
+
+test("lattice partitions have three strengths and anchors clear the projected cuboid by twelve pixels", () => {
+  const flow = read(sheet),
+    layout = flow.rooms!;
+  return check(
+    [
+      [0, 0],
+      [-0.6, 0.5],
+      [0.6, -0.5],
+    ].every(([yaw, pitch]) => {
+      const camera = viewAt(
+        yaw!,
+        pitch!,
+      )(flow).camera;
+      const html = renderToString(
+        roomView(layout, camera),
+      );
+      const limits =
+        layout.rooms[layout.rooms.length - 1]!
+          .max;
+      const corners = [0, limits.x].flatMap((x) =>
+        [0, limits.y].flatMap((y) =>
+          [0, limits.z].map((z) =>
+            project(camera)({ x, y, z }),
+          ),
+        ),
+      );
+      const anchors = [
+        ...html.matchAll(
+          /<text x="([^"]+)" y="([^"]+)"/g,
+        ),
+      ];
+      return (
+        anchors.length === (yaw ? 10 : 6) &&
+        anchors.every(([, x, y]) =>
+          corners.some((p) =>
+            corners.some((q) => {
+              const dx = q.x - p.x,
+                dy = q.y - p.y,
+                length = Math.hypot(dx, dy);
+              if (!length) return false;
+              const side = (
+                u: number,
+                v: number,
+              ) =>
+                ((u - p.x) * dy -
+                  (v - p.y) * dx) /
+                length;
+              return (
+                corners.every(
+                  (r) => side(r.x, r.y) <= 1e-6,
+                ) &&
+                side(Number(x), Number(y)) >=
+                  11.99
+              );
+            }),
+          ),
+        ) &&
+        ["outer", "inner", "empty"].every(
+          (kind) =>
+            html.includes(
+              'class="room-' + kind + '" d="M',
+            ),
+        ) &&
+        html.includes('class="room-floor"')
+      );
+    }),
+    toBe(true),
+  );
+});
+
+test("only room wires changing floor have vertical end segments", () => {
+  const f = read(sheet + "\nA -> C\nC -> A");
+  const regular = wireGraph({
+    nodes: f.nodes,
+    edges: f.edges,
+  });
+  return check(
+    wireGraph(f).every((w, i) => {
+      if (w.source.z === w.target.z)
+        return (
+          JSON.stringify(w.points) ===
+          JSON.stringify(regular[i]!.points)
+        );
+      const start = w.points[1]!,
+        end = w.points[w.points.length - 2]!;
+      const rise =
+        Math.sign(w.target.z - w.source.z) * 16;
+      return (
+        start.x === w.source.x &&
+        start.y === w.source.y &&
+        start.z === w.source.z + rise &&
+        end.x === w.target.x &&
+        end.y === w.target.y &&
+        end.z === w.target.z - rise
+      );
+    }),
     toBe(true),
   );
 });

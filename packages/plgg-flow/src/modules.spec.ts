@@ -352,10 +352,10 @@ test("fit container includes nested card extents and leaves child world coordina
   const result = fitContainer(g, "root", 10),
     root = result.nodes[0];
   return check(
-    root?.width === 224 &&
-      root.height === 160 &&
-      root.position.x === 48 &&
-      root.position.y === 48 &&
+    root?.width === 208 &&
+      root.height === 144 &&
+      root.position.x === 56 &&
+      root.position.y === 40 &&
       root.position.z === 7 &&
       result.nodes[2] === child &&
       result.nodes[3] === g.nodes[3] &&

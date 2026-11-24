@@ -81,6 +81,7 @@ import {
   examples,
   fitDemo,
   resizeDemo,
+  roomsOpening,
   applyDemoSpec,
   type DemoId,
 } from "./examples";
@@ -790,7 +791,7 @@ const controls = (
         ),
       ];
     case "snap":
-      return [16, 32, 0].map((step) =>
+      return [8, 16, 32, 0].map((step) =>
         change(
           step ? `snap ${step}` : "snap off",
           (f) => ({ ...f, snap: step }),
@@ -1638,6 +1639,16 @@ const toolbar = (
       btn("リセット", () =>
         session(e.initial(), e.spec().rules),
       ),
+      ...(e.id === "rooms"
+        ? [
+            change("正面", (f) =>
+              fitDemo(viewAt(0, 0)(f)),
+            ),
+            change("立体", (f) =>
+              fitDemo(roomsOpening(f)),
+            ),
+          ]
+        : []),
       change("最適化", optimize),
     ],
   );

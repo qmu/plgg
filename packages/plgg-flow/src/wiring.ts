@@ -8,6 +8,7 @@ import {
   fillet,
 } from "plgg-flow/wireCurve";
 import { search } from "plgg-flow/wireSearch";
+import { bridgePoints } from "plgg-flow/polyline";
 import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
@@ -24,7 +25,11 @@ import {
   portPosition,
   type Side,
 } from "plgg-flow/nodeBody";
-import { type Edge, type Graph } from "./model";
+import {
+  type Edge,
+  type Graph,
+  type Flow,
+} from "./model";
 import {
   required,
   distance,
@@ -168,7 +173,7 @@ const previousWire = new WeakMap<Edge, Wire>();
 const samePoint = (a: Point3, b: Point3) =>
   a.x === b.x && a.y === b.y && a.z === b.z;
 export const wireGraph = (
-  graph: Graph,
+  graph: Graph & Pick<Flow, "rooms">,
   options: WiringOptions = {},
 ): readonly Wire[] => {
   const clearance = Math.max(
@@ -180,6 +185,7 @@ export const wireGraph = (
     clearance,
     radius,
     options.draggedNode,
+    Boolean(graph.rooms),
     graph.nodes.length,
     graph.edges.length,
   ];
@@ -1016,6 +1022,60 @@ export const wireGraph = (
   const routed = wires.map((w, i) => {
     const edge = required(visible[i]),
       old = previousWire.get(edge);
+    if (
+      graph.rooms &&
+      w.source.z !== w.target.z
+    ) {
+      const dz = w.target.z - w.source.z;
+      const rise = Math.sign(dz) * 16;
+      const start = {
+          ...w.source,
+          z: w.source.z + rise,
+        },
+        end = {
+          ...w.target,
+          z: w.target.z - rise,
+        };
+      const points = [
+        start,
+        ...w.points.slice(1, -1).map((p) =>
+          edge.waypoints?.length
+            ? p
+            : {
+                ...p,
+                z:
+                  p.z +
+                  rise *
+                    (1 -
+                      (2 * (p.z - w.source.z)) /
+                        dz),
+              },
+        ),
+        end,
+      ];
+      const { controls, ...body } = w;
+      return {
+        ...body,
+        edge,
+        points: [
+          w.source,
+          ...bridgePoints(
+            points,
+            edge.lift,
+            false,
+          ),
+          w.target,
+        ],
+        corners: w.corners + 2,
+        arrow: {
+          at: w.target,
+          toward: {
+            ...w.target,
+            z: w.target.z + Math.sign(dz),
+          },
+        },
+      };
+    }
     if (
       !edge.waypoints?.length &&
       old &&

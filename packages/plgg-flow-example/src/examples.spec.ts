@@ -1,4 +1,11 @@
-import { frameOf, nodeSize } from "plgg-flow";
+import { project } from "plgg-board";
+import {
+  frameOf,
+  roomLabels,
+  nodeSize,
+  bodyDepth,
+  viewAt,
+} from "plgg-flow";
 import { test, check, toBe } from "plgg-test";
 import {
   parseSpec,
@@ -158,21 +165,116 @@ test("every gallery box sits on grid lines and Rooms opens on its two floors", (
     examples[index - 1]?.id === "layered" &&
       flow.rooms?.rooms.length === 18 &&
       flow.nodes.length === 14 &&
-      flow.camera.yaw === -0.5 &&
-      flow.camera.pitch === 0.45 &&
+      flow.camera.yaw === -0.32 &&
+      flow.camera.pitch === 0.26 &&
       examples.every((d) =>
         d.initial().nodes.every((n) => {
           const size = nodeSize(n);
           return (
             (n.position.x - size.width / 2) %
-              32 ===
+              16 ===
               0 &&
             (n.position.y - size.height / 2) %
-              32 ===
+              16 ===
               0
           );
         }),
       ),
+    toBe(true),
+  );
+});
+
+test("room services cover at most a quarter of either projected box at front and opening angles", () => {
+  const flow = examples
+    .find((d) => d.id === "rooms")!
+    .initial();
+  return check(
+    [flow, viewAt(0, 0)(flow)].every((f) => {
+      const at = project(f.camera);
+      const boxes = f.nodes.map((n) => {
+        const { width, height } = nodeSize(n),
+          depth = bodyDepth(n);
+        const points = [-1, 1].flatMap((i) =>
+          [-1, 1].flatMap((j) =>
+            [-1, 1].map((k) =>
+              at({
+                x: n.position.x + (i * width) / 2,
+                y:
+                  n.position.y + (j * height) / 2,
+                z: n.position.z + k * depth,
+              }),
+            ),
+          ),
+        );
+        const left = Math.min(
+            ...points.map((p) => p.x),
+          ),
+          right = Math.max(
+            ...points.map((p) => p.x),
+          ),
+          top = Math.min(
+            ...points.map((p) => p.y),
+          ),
+          bottom = Math.max(
+            ...points.map((p) => p.y),
+          );
+        return {
+          left,
+          right,
+          top,
+          bottom,
+          area: (right - left) * (bottom - top),
+        };
+      });
+      return boxes.every((a, i) =>
+        boxes
+          .slice(i + 1)
+          .every(
+            (b) =>
+              Math.max(
+                0,
+                Math.min(a.right, b.right) -
+                  Math.max(a.left, b.left),
+              ) *
+                Math.max(
+                  0,
+                  Math.min(a.bottom, b.bottom) -
+                    Math.max(a.top, b.top),
+                ) <=
+              Math.min(a.area, b.area) / 4,
+          ),
+      );
+    }),
+    toBe(true),
+  );
+});
+
+test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
+  const flow = examples
+    .find((d) => d.id === "rooms")!
+    .initial();
+  const f = resizeDemo(flow, 580, true, 320),
+    open = frameOf(f).x - 320;
+  const labels = roomLabels(f.rooms!, f.camera);
+  return check(
+    labels.length === 11 &&
+      labels.every((l) => {
+        const width = l.value.length * 13;
+        const left =
+          l.x +
+          l.dx -
+          (l.anchor === "end"
+            ? width
+            : l.anchor === "middle"
+              ? width / 2
+              : 0);
+        return (
+          left >= 47.99 &&
+          left + width <= open - 47.99 &&
+          l.y + l.dy - 7 >= 47.99 &&
+          l.y + l.dy + 7 <= 580 - 47.99
+        );
+      }),
     toBe(true),
   );
 });

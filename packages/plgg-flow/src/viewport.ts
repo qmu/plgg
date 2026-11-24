@@ -216,43 +216,57 @@ const worldGrid = (flow: Flow): Html<Change> => {
   const side = groundSide(camera);
   const line = (u: Point, v: Point) =>
     `M${u.x} ${u.y}L${v.x} ${v.y}`;
-  const ticks = (low: number, high: number) => {
-    const step =
-      32 *
-      Math.max(
-        1,
-        Math.ceil((high - low) / (128 * 32)),
+  const lines = (major: boolean) => {
+    const step = major ? 4 * grid : grid;
+    const ticks = (low: number, high: number) =>
+      Array.from(
+        {
+          length: Math.max(
+            0,
+            Math.floor(high / step) -
+              Math.ceil(low / step) +
+              1,
+          ),
+        },
+        (_, i) =>
+          (Math.ceil(low / step) + i) * step,
+      ).filter(
+        (n) => major || n % (4 * grid) !== 0,
       );
-    const first = Math.ceil(low / step);
-    return Array.from(
-      {
-        length:
-          Math.floor(high / step) - first + 1,
-      },
-      (_, i) => (first + i) * step,
+    const d = [
+      ...ticks(left, right).map((x) =>
+        line(at(x, top), at(x, bottom)),
+      ),
+      ...ticks(top, bottom).map((y) =>
+        line(at(left, y), at(right, y)),
+      ),
+    ].join("");
+    return el<Change>(
+      "path",
+      [
+        a("class", "world-grid"),
+        a("d", d),
+        a("fill", "none"),
+        a(
+          "stroke",
+          side === "below"
+            ? "#c3a48f"
+            : "#b5c8b1",
+        ),
+        a("stroke-opacity", major ? 1 : 0.4),
+      ],
+      [],
     );
   };
-  const path = [
-    ...ticks(left, right).map((x) =>
-      line(at(x, top), at(x, bottom)),
-    ),
-    ...ticks(top, bottom).map((y) =>
-      line(at(left, y), at(right, y)),
-    ),
-  ].join("");
   return el(
-    "path",
+    "g",
+    [a("pointer-events", "none")],
     [
-      a("class", "world-grid"),
-      a("d", path),
-      a("fill", "none"),
-      a(
-        "stroke",
-        side === "below" ? "#c3a48f" : "#b5c8b1",
-      ),
-      a("pointer-events", "none"),
+      ...(grid * camera.scale >= 6
+        ? [lines(false)]
+        : []),
+      lines(true),
     ],
-    [],
   );
 };
 const surfaceLayer = lazyLayer();
@@ -376,14 +390,10 @@ const routedScene = (state: Flow) => {
     ),
   };
   const wires = wireGraph(
-    clipped.nodes === state.nodes &&
-      clipped.edges.length ===
-        state.edges.length &&
-      clipped.edges.every(
-        (e, i) => e === state.edges[i],
-      )
-      ? { nodes: state.nodes, edges: state.edges }
-      : clipped,
+    {
+      ...clipped,
+      ...(state.rooms && { rooms: state.rooms }),
+    },
     isSome(state.drag) &&
       state.drag.content.mode === "node" &&
       state.drag.content.node !== undefined
@@ -396,6 +406,7 @@ const sceneCache = new WeakMap<
   Flow["nodes"],
   {
     edges: Flow["edges"];
+    rooms: Flow["rooms"];
     branch: Flow["isolatedBranch"];
     overview: boolean;
     draggedNode: string | undefined;
@@ -420,6 +431,7 @@ const viewportLayout = (state: Flow) => {
   if (
     known &&
     known.draggedNode === draggedNode &&
+    known.rooms === state.rooms &&
     known.edges === state.edges &&
     known.section === section &&
     known.branch === branch &&
@@ -428,6 +440,7 @@ const viewportLayout = (state: Flow) => {
     return known.layout;
   const layout = routedScene(state);
   sceneCache.set(state.nodes, {
+    rooms: state.rooms,
     edges: state.edges,
     draggedNode,
     section,

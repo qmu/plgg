@@ -1,4 +1,4 @@
-export const grid = 32;
+export const grid = 16;
 export const alignBox = (
   centre: number,
   size: number,
@@ -22,10 +22,10 @@ export const nodeSize = (node: Card) => {
     width:
       node.width ??
       Math.max(
-        2 * grid,
+        4 * grid,
         grid * Math.ceil((text + 24) / grid),
       ),
-    height: node.height ?? grid,
+    height: node.height ?? 2 * grid,
   };
 };
 
