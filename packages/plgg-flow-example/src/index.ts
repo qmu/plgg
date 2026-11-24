@@ -26,6 +26,7 @@ import {
   foldGroup,
   prune,
 } from "plgg-flow/hierarchy";
+import { planLayers } from "plgg-flow/autoLayout";
 import {
   isSome,
   none,
@@ -74,6 +75,7 @@ import {
 } from "plgg-flow";
 import {
   examples,
+  fitDemo,
   resizeDemo,
   applyDemoSpec,
   type DemoId,
@@ -1545,6 +1547,65 @@ const header = (
       ),
     ],
   );
+/**
+ * Redraw what is there: every node and edge stays, the
+ * nodes are placed again by the layered layout and the
+ * sheet is fitted. A sheet that already flows one way
+ * keeps its way; otherwise the frame's shape decides.
+ */
+const optimize: Change = (f) => {
+  // a sheet with groups keeps each group whole: the
+  // groups and loose nodes are arranged as units
+  if (f.nodes.some((n) => n.group))
+    return fitDemo({ ...f, ...arrangeHierarchy(f) });
+  const frame = frameOf(f),
+    wide =
+      frame.x - (f.cover ?? 0) >= frame.y;
+  // heights the author gave are theirs: depth is only
+  // recomputed where the sheet asked for it
+  const options = f.layered?.options ?? {
+    direction: wide ? "right" : "down",
+  };
+  // routes drawn for the old places no longer apply
+  const plain = f.edges.map((e) => {
+    const { waypoints, via, lift, ...rest } = e;
+    return rest;
+  });
+  const plan = planLayers(
+    { nodes: f.nodes, edges: plain },
+    options,
+  );
+  const placed = new Map(
+      plan.graph.nodes.map((n) => [
+        n.id,
+        n.position,
+      ]),
+    );
+  const laid: Flow = {
+    ...f,
+    nodes: f.nodes.map((n) => {
+      const p = placed.get(n.id);
+      return p
+        ? {
+            ...n,
+            position: options.depth
+              ? p
+              : { ...p, z: n.position.z },
+          }
+        : n;
+    }),
+    edges: plan.graph.edges,
+    ...(f.layered
+      ? {
+          layered: {
+            options: f.layered.options,
+            computed: placed,
+          },
+        }
+      : {}),
+  };
+  return fitDemo(laid);
+};
 const toolbar = (
   e: (typeof examples)[number],
 ): Html<Action> =>
@@ -1555,6 +1616,7 @@ const toolbar = (
       btn("リセット", () =>
         session(e.initial(), e.spec().rules),
       ),
+      change("最適化", optimize),
     ],
   );
 const dslCache = new WeakMap<
