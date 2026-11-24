@@ -12,6 +12,7 @@ export type End = {
   book?: { page: number; depth: number };
   depth?: number;
   bundleBranch?: boolean;
+  pairedFan?: boolean;
   rank: number;
   count: number;
 };
@@ -254,7 +255,7 @@ export const planPorts = (
 
   // A skip spans a nearer aligned sibling. Its page depends on
   // the continuations visible at its two ends.
-  for (const { a, b } of plans) {
+  for (const { a, b, edge } of plans) {
     const p = a.node.position,
       q = b.node.position;
     const qa = box(a.node),
@@ -405,15 +406,20 @@ export const planPorts = (
               (b) => b > pitch,
             );
           if (
+            (edge.route === "step" ||
+              pitch < 0.3) &&
             inner.length &&
             outer.length &&
             2 * (pitch - Math.max(...inner)) <
               Math.min(...outer) - pitch
-          )
+          ) {
+            const flank =
+              edge.route === "step" ? -dy : dy;
             side =
               across === "x"
-                ? facing(-dy, 0)
-                : facing(0, -dy);
+                ? facing(flank, 0)
+                : facing(0, flank);
+          }
         }
         Object.assign(tip, { side });
       }
@@ -440,6 +446,20 @@ export const planPorts = (
           : rect.b - rect.t;
       }),
     );
+    const between = peers.some(
+      (peer) =>
+        peer[along] > lo &&
+        peer[along] < hi &&
+        Math.abs(peer[across] - p[across]) <= 8 &&
+        Math.abs(peer[across] - q[across]) <= 8,
+    );
+    if (!between) {
+      if (a.node !== b.node) {
+        a.side = facing(q.x - p.x, q.y - p.y);
+        b.side = facing(p.x - q.x, p.y - q.y);
+      }
+      continue;
+    }
     const span = hi - lo;
     const skipSpan =
       size * (along === "x" ? 2.7 : 5.8);
@@ -858,6 +878,34 @@ export const planPorts = (
       sums = [0];
     const count = new Map<FlowNode, number>(),
       seen = new Map<FlowNode, number>();
+    if (group.length === 2) {
+      const [first, second] = group;
+      if (
+        first &&
+        second &&
+        incident.get(first.node.id)?.length ===
+          2 &&
+        first.peer !== second.peer
+      ) {
+        const axis = vertical(first.side)
+          ? "y"
+          : "x";
+        const offset = Math.abs(
+          first.peer.position[axis] -
+            second.peer.position[axis],
+        );
+        const reach = Math.min(
+          ...group.map((e) =>
+            Math.abs(
+              e.node.position[axis] -
+                e.peer.position[axis],
+            ),
+          ),
+        );
+        first.pairedFan = second.pairedFan =
+          offset < reach * 0.55;
+      }
+    }
     for (const [i, e] of group.entries()) {
       sums.push(
         required(sums[i]) + required(angles[i]),

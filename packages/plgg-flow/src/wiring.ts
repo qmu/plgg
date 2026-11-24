@@ -4,6 +4,7 @@ import {
 } from "plgg-flow/wireCurvePairs";
 import {
   curvePath,
+  nearlyLevel,
   fillet,
 } from "plgg-flow/wireCurve";
 import { search } from "plgg-flow/wireSearch";
@@ -29,6 +30,7 @@ import {
   distance,
   vertical,
   simplify,
+  rounded,
   normal,
   obstacles,
   gap,
@@ -304,6 +306,7 @@ export const wireGraph = (
           clearance,
           radius,
           a.depth,
+          a.pairedFan && b.pairedFan,
           Boolean(a.bundleBranch),
           Boolean(b.bundleBranch),
           rank,
@@ -312,8 +315,89 @@ export const wireGraph = (
           walls.map(boxId),
         ]);
         const build = () => {
-          let arch;
+          const axis = vertical(s.side)
+            ? "x"
+            : "y";
+          const offset = Math.abs(
+            s[axis] - t[axis],
+          );
+          const direct =
+            edge.route === "step" &&
+            nearlyLevel(s, t) &&
+            pair.length === 1 &&
+            !edge.waypoints?.length &&
+            !a.book &&
+            free(
+              [s, t],
+              walls
+                .filter(
+                  (q) =>
+                    q.id !== edge.source &&
+                    q.id !== edge.target,
+                )
+                .map((q) => inflate(q, 10)),
+            );
+          let arch: Base | undefined = direct
+            ? {
+                ...materialize(
+                  edge,
+                  s,
+                  t,
+                  [s, t],
+                  0,
+                ),
+                settled: true,
+              }
+            : undefined;
           if (
+            !arch &&
+            edge.route === "step" &&
+            !edge.waypoints?.length &&
+            a.pairedFan &&
+            b.pairedFan &&
+            offset > 80 &&
+            s.side !== t.side &&
+            vertical(s.side) === vertical(t.side)
+          ) {
+            const shift = t[axis] - s[axis];
+            const stem = shift > 0 ? 23 : 34;
+            const peel =
+              0.03 * Math.sign(shift) * stem;
+            const u = move(s, s.side, stem, peel);
+            const v = move(
+              t,
+              t.side,
+              stem,
+              -peel,
+            );
+            const lane = s[axis] + shift * 0.43;
+            const spine = [
+              s,
+              u,
+              { ...u, [axis]: lane },
+              { ...v, [axis]: lane },
+              v,
+              t,
+            ];
+            const path = rounded(
+              spine,
+              Math.min(radius, 8),
+            );
+            if (free(path, walls))
+              arch = {
+                ...materialize(
+                  edge,
+                  s,
+                  t,
+                  path,
+                  4,
+                ),
+                spine,
+                settled: true,
+              };
+          }
+          if (
+            !arch &&
             curve &&
             edge.source !== edge.target &&
             !edge.waypoints?.length

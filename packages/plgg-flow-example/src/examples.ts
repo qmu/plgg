@@ -205,7 +205,7 @@ export const examples = [
   demo(
     "space",
     "立体交差",
-    "交差している2本の線の間を見てください。Shift を押しながらドラッグして回すと、手前と奥に分かれます。",
+    "交差している2本の線の間を見てください。⌘（Ctrl）を押しながらドラッグして回すと、手前と奥に分かれます。",
     `node North at -225 -100 160
 node South at -225 100 -150
 node Upper at 220 -95 -150
@@ -219,7 +219,7 @@ South -> Lower
   demo(
     "layered",
     "自動配置",
-    "接続だけを書いた図です。上から下へ自動で並びます。Shift を押しながらドラッグして回すと、層が階段状に見えます。",
+    "接続だけを書いた図です。上から下へ自動で並びます。⌘（Ctrl）を押しながらドラッグして回すと、層が階段状に見えます。",
     `layout layered down depth
 Web -> Gateway
 Mobile -> Gateway

@@ -143,7 +143,7 @@ test("label width rounds padded text to an eight-unit grid", () =>
     toBe(true),
   ));
 
-test("shared sockets render once and the chosen stroke paints last", () => {
+test("a sending side has one dot, a receiving side none, and the chosen stroke paints last", () => {
   const a = {
       id: "one",
       source: "a",
@@ -190,8 +190,9 @@ test("shared sockets render once and the chosen stroke paints last", () => {
       ) < 1e-6 &&
       [...html.matchAll(/data-port="a"/g)]
         .length === 4 &&
+      // b only receives: arrowheads mark it, no dot
       [...html.matchAll(/data-port="b"/g)]
-        .length === 1,
+        .length === 0,
     toBe(true),
   );
 });

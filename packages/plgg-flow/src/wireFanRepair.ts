@@ -302,13 +302,15 @@ const keepsStems = (path: Point[], w: Wire) =>
 // Swap only the portions of two lanes enclosed by successive crossings.
 export const mendFans = (
   original: Wire[],
+  fixed: readonly boolean[],
   boxes: Box[],
   radius: number,
 ) => {
   const wires = [...original],
     profiles = wires.map(profile);
   const peers = neighbourIndex(profiles);
-  const paths = wires.map((w) =>
+  const paths = wires.map((w, i) =>
+    !fixed[i] &&
     w.edge.route === "step" &&
     !w.edge.waypoints?.length &&
     w.edge.source !== w.edge.target

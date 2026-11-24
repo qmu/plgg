@@ -282,7 +282,7 @@ A sample "部屋に分ける" after "自動配置": about 14 services on
 層 (入口/処理/保存) × 担当 (顧客/注文/基盤) × 環境 (本番/検証), a dozen
 edges, opened slightly turned (yaw −0.5, pitch 0.45) so the cube
 reads at first sight. Description: 「ノードに属性を書くと、軸ごとの部屋に
-自動で入ります。Shift を押しながらドラッグして回すと、どこに何があるかが
+自動で入ります。⌘（Ctrl）を押しながらドラッグして回すと、どこに何があるかが
 立体で分かります。axis の x・y・z を入れ替えると、分け方が変わります。」
 The 最適化 button re-runs the rooms layout on such a sheet.
 

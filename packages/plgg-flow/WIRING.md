@@ -1277,3 +1277,16 @@ For round 30:
 - `hub`/curve: a dented wire keeps the fan's order and gets the
   standard fillet (`siblings-cross` 13, `kink` 12).
 - orgTreeVertical: CEO→A, CEO→C enter the child's top.
+
+## Round 30 review — adopted
+
+`crossPair` is clean (the level wires are straight, right to left),
+hub/curve has no sibling crossings, moderate 118 → 87 on the
+reviewer's run, sev3 0, drag unchanged (4 + 12). Codex was right
+that the audit's `awkward-side` wrongly flagged CEO→A entering A's
+top: a wire that runs along one axis end to end is a flow direction.
+The check now allows it.
+
+Also in this commit (reviewer's own changes to the view): a side
+that only receives wires shows no dot — the arrowheads mark it;
+Shift+drag selects a range, ⌘/Ctrl+drag turns the sheet.

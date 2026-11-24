@@ -2498,7 +2498,12 @@ export const separate = (
   if (
     wires.some((w) => w.edge.route === "step")
   ) {
-    wires = mendFans(wires, boxes, radius);
+    wires = mendFans(
+      wires,
+      bases.map((w) => Boolean(w.settled)),
+      boxes,
+      radius,
+    );
     nestLayerFans(
       wires,
       bases,

@@ -176,7 +176,9 @@ const audit = (g, wires, style) => {
     const count = new Map(); const ends = [];
     wires.forEach((w) => { if (w.edge.source === w.edge.target) return; for (const [m, p, o, d] of [[by.get(w.edge.source), w.source, by.get(w.edge.target), "out"], [by.get(w.edge.target), w.target, by.get(w.edge.source), "in"]]) { const sd = sideOf(m, p), k = m.id + d + sd; count.set(k, (count.get(k) ?? 0) + 1); ends.push([w, m, o, sd, k, d]); } });
     for (const [w, m, o, sd, k, d] of ends) { const dx = o.position.x - m.position.x, dy = o.position.y - m.position.y, l = Math.hypot(dx, dy) || 1; const cos = (x) => (N[x][0] * dx + N[x][1] * dy) / l; const best = Math.max(cos("L"), cos("R"), cos("T"), cos("B")); const blocked = g.nodes.some((x) => { if (x.id === m.id || x.id === o.id) return false; const q = box(x), I = { l: q.l - 10, r: q.r + 10, t: q.t - 10, b: q.b + 10 }; for (let u = 0; u <= 1; u += 0.02) { const p = { x: m.position.x + dx * u, y: m.position.y + dy * u }; if (p.x > I.l && p.x < I.r && p.y > I.t && p.y < I.b) return true; } return false; });
-      if (!blocked && best - cos(sd) > 0.35 && count.get(k) < 2) add(2, "awkward-side", w, `${m.id} ${d} on ${sd}`); } }
+      // a wire that runs along one axis end to end (out of a bottom, into a top) is a flow direction, not an awkward side, as long as the side still faces its other end
+      const mate = ends.find((x) => x[0] === w && x[5] !== d)?.[3], axial = { L: "R", R: "L", T: "B", B: "T" }[sd] === mate && cos(sd) > 0.2;
+      if (!blocked && !axial && best - cos(sd) > 0.35 && count.get(k) < 2) add(2, "awkward-side", w, `${m.id} ${d} on ${sd}`); } }
   // siblings should agree: a node's outgoing (or incoming) wires whose far ends all lie toward one side use that side
   { const sideOf = (m, p) => { const q = box(m); return Math.abs(p.x - q.l) < 1.5 ? "L" : Math.abs(p.x - q.r) < 1.5 ? "R" : Math.abs(p.y - q.t) < 1.5 ? "T" : "B"; }; const N = { L: [-1, 0], R: [1, 0], T: [0, -1], B: [0, 1] };
     const groups = new Map();

@@ -1231,3 +1231,54 @@ for (const route of [
     },
   );
 }
+
+test("crossPair keeps both level wires straight on facing sides", () => {
+  const nodes = [
+    n("North", -225, -100),
+    n("South", -225, 100),
+    n("Upper", 220, -95),
+    n("Lower", 220, 100),
+  ].map((node) => ({
+    ...node,
+    width: 60,
+    height: 28,
+  }));
+  const edges = [
+    e("North", "Lower"),
+    e("South", "Upper"),
+    e("North", "Upper"),
+    e("South", "Lower"),
+  ];
+  return all(
+    (["curve", "step"] satisfies WireStyle[]).map(
+      (route) => {
+        const wires = wireGraph({
+          nodes,
+          edges: edges.map((edge) => ({
+            ...edge,
+            route,
+          })),
+        });
+        return all(
+          wires.slice(2).map((w) =>
+            all([
+              check(w.sourceSide, toBe("right")),
+              check(w.targetSide, toBe("left")),
+              check(
+                w.points.every(
+                  (p) =>
+                    segmentGap(
+                      p,
+                      w.source,
+                      w.target,
+                    ) < 1e-8,
+                ),
+                toBe(true),
+              ),
+            ]),
+          ),
+        );
+      },
+    ),
+  );
+});

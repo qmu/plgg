@@ -556,7 +556,13 @@ export const flowView = (
           : w.targetSide;
       const id = w.edge[direction];
       const sockets = attachments.get(id) ?? {};
-      if (!sockets[side]) {
+      // a side that sends any wire is a source side; one
+      // that only receives is marked by arrowheads alone
+      if (
+        !sockets[side] ||
+        (direction === "source" &&
+          sockets[side]?.direction === "target")
+      ) {
         sockets[side] = {
           direction,
           handle:
@@ -731,6 +737,10 @@ export const flowView = (
             n.connectable !== false &&
             (chosen.has(n.id) || connecting);
         if (!used && !canConnect) return [];
+        // where arrows arrive, the arrowhead is the mark:
+        // no dot under it
+        if (!canConnect && used?.direction === "target")
+          return [];
         const direction = canConnect
           ? connecting
             ? "target"
@@ -1739,11 +1749,11 @@ export const flowView = (
               ? "node"
               : s.lasso
                 ? "lasso"
-                : e.altKey
+                : e.shiftKey
                   ? "box"
                   : e.button === 0 &&
                       e.pointerType !== "touch" &&
-                      e.shiftKey
+                      (e.metaKey || e.ctrlKey)
                     ? "orbit"
                     : "pan",
           }),

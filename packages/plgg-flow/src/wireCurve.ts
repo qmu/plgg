@@ -19,12 +19,31 @@ import {
   inflate,
   pt,
   free,
+  facing,
   vertical,
   simplify,
   crossesItself,
   gap,
   required,
 } from "plgg-flow/wireGeometry";
+
+export const nearlyLevel = (
+  s: Socket,
+  t: Socket,
+) => {
+  const axis = vertical(s.side) ? "x" : "y";
+  const offset = Math.abs(s[axis] - t[axis]);
+  return (
+    s.side !== t.side &&
+    vertical(s.side) === vertical(t.side) &&
+    offset > 1e-6 &&
+    offset <= 8 &&
+    offset <= distance(s, t) * 0.03 &&
+    (t.x - s.x) * normal[s.side].x +
+      (t.y - s.y) * normal[s.side].y >
+      0
+  );
+};
 
 export const canonical = (
   s: Socket,
@@ -52,6 +71,25 @@ export const canonical = (
               ),
           ),
         );
+  if (nearlyLevel(s, t)) {
+    const delta = pt(
+      (t.x - s.x) / 3,
+      (t.y - s.y) / 3,
+    );
+    const p1 = pt(s.x + delta.x, s.y + delta.y);
+    const p2 = pt(t.x - delta.x, t.y - delta.y);
+    return {
+      plain: bezier(
+        s,
+        p1,
+        p2,
+        t,
+        steps ?? Math.ceil(span / 8),
+      ),
+      p1,
+      p2,
+    };
+  }
   const p1 = move(s, s.side, arm),
     p2 = move(t, t.side, arm);
   const plain = bezier(
@@ -219,6 +257,110 @@ export const curvePath = (
         { ...p2, z: t.z },
       ],
     };
+  // Extend the far socket's normal past a staggered blocker.
+  // The remaining curve opens at the near face of the blocker,
+  // preserving socket order in that column.
+  if (s.side !== t.side) {
+    const axis =
+      Math.abs(dx) >= Math.abs(dy) ? "x" : "y";
+    const across = axis === "x" ? "y" : "x";
+    const foreign = boxes.filter(
+      (q) =>
+        q.id !== edge.source &&
+        q.id !== edge.target,
+    );
+    for (const q of blocked) {
+      if (!foreign.includes(q)) continue;
+      const middle =
+        axis === "x"
+          ? (q.l + q.r) / 2
+          : (q.t + q.b) / 2;
+      const end = !normal[s.side][axis]
+        ? s
+        : !normal[t.side][axis]
+          ? t
+          : Math.abs(s[axis] - middle) <
+              Math.abs(t[axis] - middle)
+            ? s
+            : t;
+      const other = end === s ? t : s;
+      if (!normal[other.side][axis]) continue;
+      const sign = normal[other.side][axis];
+      const face =
+        axis === "x"
+          ? sign > 0
+            ? q.l
+            : q.r
+          : sign > 0
+            ? q.t
+            : q.b;
+      const low = across === "x" ? q.l : q.t;
+      const high = across === "x" ? q.r : q.b;
+      if (
+        (face - end[axis]) *
+          (other[axis] - face) <=
+          0 ||
+        Math.max(
+          low - end[across],
+          end[across] - high,
+        ) >
+          1.5 * (high - low)
+      )
+        continue;
+      if (
+        (normal[end.side][axis] !== 0 &&
+          Math.max(
+            low - end[across],
+            end[across] - high,
+          ) <
+            (high - low) / 2) ||
+        Math.abs(face - end[axis]) >
+          2.2 * Math.max(q.r - q.l, q.b - q.t)
+      )
+        continue;
+      const corner = move(
+        end,
+        end.side,
+        normal[end.side][axis]
+          ? 0
+          : end[across] >= low &&
+              end[across] <= high
+            ? 24
+            : 14,
+      );
+      const guide = {
+        ...end,
+        ...corner,
+        [axis]: face,
+        side: facing(
+          -normal[other.side].x,
+          -normal[other.side].y,
+        ),
+      };
+      const arc = canonical(guide, other).plain;
+      const path = [
+        ...fillet([end, corner, guide]),
+        ...arc.slice(1),
+      ];
+      if (
+        free(
+          path,
+          foreign.map((wall) =>
+            inflate(wall, 10),
+          ),
+        ) &&
+        free(path, boxes) &&
+        !extraBends(path)
+      )
+        return materialize(
+          edge,
+          s,
+          t,
+          end === s ? path : path.reverse(),
+          1,
+        );
+    }
+  }
   const signed = (p: Point) =>
     (dx * (p.y - s.y) - dy * (p.x - s.x)) /
     (span || 1);

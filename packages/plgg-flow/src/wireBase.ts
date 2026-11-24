@@ -626,7 +626,18 @@ const routeBase = (
         q.id !== edge.target &&
         cuts(u, v, q),
     );
-    if (barriers.length >= 2) {
+    const barrier = barriers[0];
+    const centered =
+      barriers.length === 1 &&
+      barrier &&
+      Math.abs(
+        (axis === "x"
+          ? barrier.l + barrier.r
+          : barrier.t + barrier.b) /
+          2 -
+          s[axis],
+      ) < 1;
+    if (barriers.length >= 2 || centered) {
       const levels = [
         Math.min(
           ...barriers.map((q) =>
@@ -671,7 +682,11 @@ const routeBase = (
         ];
         const arc = rounded(spine, radius);
         if (safe(arc))
-          return { ...make(arc, 4), spine };
+          return {
+            ...make(arc, 4),
+            spine,
+            settled: Boolean(centered),
+          };
       }
     }
   }
@@ -982,6 +997,7 @@ export const basePath = (
   if (
     edge.waypoints?.length ||
     edge.source === edge.target ||
+    base.settled ||
     base.corners < 4
   )
     return base;
