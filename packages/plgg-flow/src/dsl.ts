@@ -1,3 +1,7 @@
+import {
+  planLayers,
+  type LayerOptions,
+} from "plgg-flow/autoLayout";
 import { ok, err, type Result } from "plgg";
 import {
   acyclicConnection,
@@ -35,6 +39,8 @@ export type Spec = Readonly<{
   graph: Graph;
   rules: readonly Rule[];
   snap?: number;
+  layout?: LayerOptions;
+  pinned?: readonly string[];
 }>;
 
 const tokens = (line: string) =>
@@ -63,7 +69,10 @@ const isRoute = (
 
 const parseNode = (
   ts: readonly Token[],
-): Result<FlowNode, string> => {
+): Result<
+  { node: FlowNode; pinned: boolean },
+  string
+> => {
   const id = ts[1];
   if (!id) return err("node の名前がありません");
   let node: FlowNode = {
@@ -71,10 +80,12 @@ const parseNode = (
     label: id.text,
     position: { x: 0, y: 0, z: 0 },
   };
+  let pinned = false;
   let i = 2;
   while (i < ts.length) {
     const word = ts[i]?.text;
     if (word === "at") {
+      pinned = true;
       const x = num(ts[i + 1]),
         y = num(ts[i + 2]);
       if (x === undefined || y === undefined)
@@ -135,7 +146,7 @@ const parseNode = (
         `${id.text}: 不明な指定「${word ?? ""}」`,
       );
   }
-  return ok(node);
+  return ok({ node, pinned });
 };
 
 const parseEdge = (
@@ -170,6 +181,8 @@ export const parseSpec = (
   const nodes: FlowNode[] = [],
     edges: Edge[] = [],
     rules: Rule[] = [];
+  let layout: LayerOptions | undefined;
+  const pinned: string[] = [];
   let snap: number | undefined;
   const lines = source.split("\n");
   for (const [n, raw] of lines.entries()) {
@@ -178,16 +191,40 @@ export const parseSpec = (
     const ts = tokens(line),
       head = ts[0]?.text,
       at = `${n + 1} 行目: `;
-    if (head === "node") {
+    if (head === "node" && ts[1]?.text !== "->") {
       const r = parseNode(ts);
       if (r.__tag === "Err")
         return err(at + r.content);
-      nodes.push(r.content);
+      nodes.push(r.content.node);
+      if (r.content.pinned)
+        pinned.push(r.content.node.id);
     } else if (ts[1]?.text === "->") {
       const r = parseEdge(ts);
       if (r.__tag === "Err")
         return err(at + r.content);
       edges.push(r.content);
+    } else if (head === "layout") {
+      const [, kind, ...args] = ts.map(
+        (t) => t.text,
+      );
+      const direction = args[0];
+      const explicit =
+        direction === "down" ||
+        direction === "right";
+      if (explicit) args.shift();
+      const depth = args[0] === "depth";
+      if (
+        kind !== "layered" ||
+        args.length !== Number(depth)
+      )
+        return err(
+          at +
+            "layout layered [right|down] [depth] と書きます",
+        );
+      layout = {
+        ...(explicit ? { direction } : {}),
+        ...(depth ? { depth } : {}),
+      };
     } else if (head === "snap") {
       snap = num(ts[1]);
       if (snap === undefined)
@@ -217,16 +254,26 @@ export const parseSpec = (
   const ids = new Set(nodes.map((x) => x.id));
   if (ids.size !== nodes.length)
     return err("同じ名前のノードがあります");
-  const stray = [
-    ...edges.flatMap((e) => [e.source, e.target]),
-    ...nodes.flatMap((x) =>
-      x.parent ? [x.parent] : [],
-    ),
-  ].find((id) => !ids.has(id));
+  for (const { source, target } of edges)
+    for (const id of [source, target])
+      if (!ids.has(id)) {
+        ids.add(id);
+        nodes.push({
+          id,
+          label: id,
+          position: { x: 0, y: 0, z: 0 },
+        });
+      }
+  const stray = nodes
+    .map((n) => n.parent)
+    .find(
+      (id) => id !== undefined && !ids.has(id),
+    );
   if (stray !== undefined)
     return err(`未定義のノード「${stray}」`);
   return ok({
     graph: { nodes, edges },
+    ...(layout ? { layout, pinned } : {}),
     rules,
     ...(snap === undefined ? {} : { snap }),
   });
@@ -252,11 +299,49 @@ const allow = (rules: readonly Rule[]) => {
 export const applySpec =
   (spec: Spec) =>
   (flow: Flow): Flow => {
-    const { allowConnection, snap, ...rest } =
-      flow;
+    const {
+      allowConnection,
+      snap,
+      layered,
+      ...rest
+    } = flow;
+    const pins = new Set(spec.pinned);
+    const computed = new Map(
+      spec.layout
+        ? planLayers(
+            {
+              nodes: spec.graph.nodes.filter(
+                (n) => !pins.has(n.id),
+              ),
+              edges: spec.graph.edges.filter(
+                (e) =>
+                  !pins.has(e.source) &&
+                  !pins.has(e.target),
+              ),
+            },
+            spec.layout,
+          ).graph.nodes.map((n) => [
+            n.id,
+            n.position,
+          ])
+        : [],
+    );
     return {
       ...rest,
       ...spec.graph,
+      ...(spec.layout
+        ? {
+            layered: {
+              options: spec.layout,
+              computed,
+            },
+            nodes: spec.graph.nodes.map((n) => ({
+              ...n,
+              position:
+                computed.get(n.id) ?? n.position,
+            })),
+          }
+        : {}),
       ...allow(spec.rules),
       ...(spec.snap === undefined
         ? {}
@@ -279,22 +364,50 @@ export const printSpec = (
   rules: readonly Rule[],
 ): string =>
   [
+    ...(flow.layered
+      ? [
+          [
+            "layout layered",
+            flow.layered.options.direction,
+            flow.layered.options.depth
+              ? "depth"
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        ]
+      : []),
     ...(flow.snap ? [`snap ${flow.snap}`] : []),
     ...rules.map((r) =>
       r.kind === "acyclic"
         ? "rule acyclic"
         : `rule max-outputs ${r.limit}`,
     ),
-    ...flow.nodes.map((n) =>
-      [
+    ...flow.nodes.map((n) => {
+      const positionText = flow.layered
+        ? String
+        : coord;
+      const p = flow.layered?.computed.get(n.id);
+      const auto =
+        p &&
+        p.x === n.position.x &&
+        p.y === n.position.y &&
+        p.z === n.position.z;
+      return [
         "node",
         name(n.id),
-        "at",
-        coord(n.position.x),
-        coord(n.position.y),
-        ...(Math.round(n.position.z)
-          ? [coord(n.position.z)]
-          : []),
+        ...(auto
+          ? []
+          : [
+              "at",
+              positionText(n.position.x),
+              positionText(n.position.y),
+              ...(Number(
+                positionText(n.position.z),
+              )
+                ? [positionText(n.position.z)]
+                : []),
+            ]),
         ...(n.group ? ["group"] : []),
         ...(n.collapsed ? ["collapsed"] : []),
         ...(n.parent
@@ -316,8 +429,8 @@ export const printSpec = (
               coord(n.grow.y),
             ]
           : []),
-      ].join(" "),
-    ),
+      ].join(" ");
+    }),
     ...flow.edges.map((e) =>
       [
         name(e.source),

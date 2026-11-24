@@ -4,10 +4,10 @@ import {
   printSpec,
 } from "plgg-flow/dsl";
 import { examples } from "plgg-flow-example/examples";
-test("all twenty-four diagrams have unique identities and valid directed edges", () =>
+test("all twenty-five diagrams have unique identities and valid directed edges", () =>
   check(
     new Set(examples.map((e) => e.name)).size ===
-      24 &&
+      25 &&
       examples.every(({ initial }) => {
         const graph = initial();
         const ids = new Set(

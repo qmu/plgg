@@ -1,4 +1,4 @@
-import type { Flow } from "plgg-flow";
+import { fitFlow, type Flow } from "plgg-flow";
 import {
   parseSpec,
   specFlow,
@@ -6,6 +6,7 @@ import {
 } from "plgg-flow/dsl";
 
 export type DemoId =
+  | "layered"
   | "space"
   | "split"
   | "reconnect"
@@ -59,7 +60,10 @@ const demo = (
     hint,
     source,
     spec,
-    initial: () => specFlow(spec()),
+    initial: () => {
+      const f = specFlow(spec());
+      return f.layered ? fitFlow(f) : f;
+    },
   };
 };
 export const examples = [
@@ -75,6 +79,30 @@ North -> Lower
 South -> Upper
 North -> Upper
 South -> Lower
+`,
+  ),
+  demo(
+    "layered",
+    "自動配置",
+    "水平角と垂直角を動かして、サービスの層が階段状に並ぶ様子を見てください。接続を書き足すと配置が変わります。",
+    `layout layered right depth
+Web -> Gateway
+Mobile -> Gateway
+Gateway -> Auth
+Gateway -> Orders
+Gateway -> Catalog
+Gateway -> Search
+Auth -> Users
+Users -> DB
+Orders -> Payments
+Orders -> Queue
+Payments -> Ledger
+Queue -> Mailer
+Ledger -> Audit
+Mailer -> Audit
+Catalog -> Cache
+Search -> Cache
+Cache -> DB
 `,
   ),
   demo(

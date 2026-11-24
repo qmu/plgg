@@ -1,3 +1,4 @@
+import type { LayerOptions } from "./autoLayout";
 import { nodeSize } from "plgg-flow/nodeSize";
 import {
   constrainedDelta,
@@ -118,6 +119,10 @@ export type Drag = Readonly<{
 }>;
 export type Flow = Graph &
   Readonly<{
+    layered?: Readonly<{
+      options: LayerOptions;
+      computed: ReadonlyMap<string, Point3>;
+    }>;
     camera: Camera;
     orbitCenter?: Point3;
     selected: Option<string>;

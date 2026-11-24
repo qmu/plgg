@@ -38,6 +38,16 @@
         "default": "./dist/layout.cjs.js"
       }
     },
+    "./autoLayout": {
+      "import": {
+        "types": "./dist/autoLayout.d.ts",
+        "default": "./dist/autoLayout.es.js"
+      },
+      "require": {
+        "types": "./dist/autoLayout.d.ts",
+        "default": "./dist/autoLayout.cjs.js"
+      }
+    },
     "./topology": {
       "import": {
         "types": "./dist/topology.d.ts",

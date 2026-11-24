@@ -678,6 +678,7 @@ const controls = (
       (n) => n.id === "Process",
     );
   switch (id) {
+    case "layered":
     case "space":
       return [
         input(
@@ -1539,6 +1540,7 @@ const featureInput = (
 ): unknown => {
   const f = s.flow;
   switch (id) {
+    case "layered":
     case "space":
       return f.camera;
     case "split":

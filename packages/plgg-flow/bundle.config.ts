@@ -10,6 +10,7 @@ export default {
     "model",
     "hierarchy",
     "layout",
+    "autoLayout",
     "topology",
     "analysis",
     "interchange",
