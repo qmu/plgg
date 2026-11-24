@@ -11,7 +11,7 @@ import {
 } from "plgg-flow/autoLayout";
 import type { Flow } from "./model";
 export const roomViews = [
-  ["正面", 0.22, -0.2],
+  ["正面", -0.22, -0.2],
   ["上", 0.22, -1.05],
   ["横", 1.3, -0.2],
   ["立体", -Math.PI / 6, -0.55],

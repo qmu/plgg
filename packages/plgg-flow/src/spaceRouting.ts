@@ -206,6 +206,7 @@ export const routeAssignment = (
     };
     const scorePath = (path: Point3[]) => {
       let score = (path.length - 2) * 10000;
+      let length = 0;
       if (score >= cost) return;
       for (let j = 1; j < path.length; j++) {
         const start = path[j - 1]!,
@@ -216,6 +217,31 @@ export const routeAssignment = (
             : start.y !== end.y
               ? "y"
               : "z";
+        if (
+          stack &&
+          k === "y" &&
+          a.p.y !== b.p.y &&
+          cells.some(
+            (cell) =>
+              Math.min(start.y, end.y) <=
+                cell.max.y &&
+              cell.max.y <=
+                Math.max(start.y, end.y),
+          )
+        ) {
+          const rank =
+            start.z > stack.max.z
+              ? 0
+              : start.x < stack.min.x
+                ? 1
+                : start.z >
+                      Math.max(a.p.z, b.p.z) &&
+                    start.z < stack.max.z &&
+                    start.x < stack.max.x
+                  ? 2
+                  : 3;
+          score += rank * 60000;
+        }
         const lo = Math.min(start[k], end[k]),
           hi = Math.max(start[k], end[k]);
         const line = track(k, start);
@@ -225,10 +251,22 @@ export const routeAssignment = (
           )
         )
           return;
+        length += hi - lo;
         score += hi - lo;
         for (const cross of line.crossings)
           if (lo < cross && cross < hi)
             score += 1000000;
+        if (score >= cost) return;
+      }
+      if (stack && a.p.y !== b.p.y) {
+        const first = path[0]!,
+          last = path[path.length - 1]!;
+        const direct =
+          Math.abs(first.x - last.x) +
+          Math.abs(first.y - last.y) +
+          Math.abs(first.z - last.z);
+        if (length > 1.6 * direct)
+          score += 300000;
         if (score >= cost) return;
       }
       cost = score;
@@ -350,7 +388,49 @@ export const routeAssignment = (
         }
     };
     candidates(a.p, b.p, false);
-    if (!best || cost >= 1000000)
+    if (stack && a.p.y !== b.p.y) {
+      for (const z of [
+        stack.max.z + 8,
+        stack.max.z + 16,
+        Math.max(a.p.z, b.p.z) + 32,
+      ]) {
+        for (const sa of [-1, 1])
+          for (const sb of [-1, 1]) {
+            const exit = shift(
+              a.p,
+              "x",
+              a.p.x + sa * (a.x + 16),
+            );
+            const entry = shift(
+              b.p,
+              "x",
+              b.p.x + sb * (b.x + 16),
+            );
+            const from = shift(exit, "z", z),
+              to = shift(entry, "z", z);
+            for (const axis of [
+              "x",
+              "y",
+            ] satisfies ("x" | "y")[])
+              consider([
+                a.p,
+                exit,
+                from,
+                shift(from, axis, to[axis]),
+                to,
+                entry,
+                b.p,
+              ]);
+          }
+      }
+    }
+    if (
+      !best ||
+      cost >=
+        (stack && a.p.y !== b.p.y
+          ? 30000
+          : 1000000)
+    )
       candidates(a.p, b.p, true);
     if (stack && a.p.y !== b.p.y && !best) {
       for (const k of ["x", "z"] satisfies (

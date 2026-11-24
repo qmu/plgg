@@ -180,7 +180,7 @@ export const bestViews = (
       mark.includes(id) ? 3 : 1;
     for (const [yaw, pitch] of [
       [-0.52, -0.55],
-      [0.22, -0.2],
+      [-0.22, -0.2],
       [0.22, -1.05],
       [1.3, -0.2],
     ] satisfies [number, number][]) {
@@ -301,7 +301,7 @@ export const bestViews = (
             );
       const tags = captionTagged(camera);
       const labels = nodes.map((n, i) => {
-        if (tags) score += 0.1 * weight(n.id);
+        if (tags) score += 2 * weight(n.id);
         const projected =
           solids[i]!.vertices.map(at);
         const centre = at({

@@ -20,5 +20,9 @@ export {
   roomViews,
   turnRooms,
 } from "plgg-flow/roomCamera";
-export { roomLabels } from "plgg-flow/roomView";
+export { cardBounds } from "plgg-flow/nodeBody";
+export {
+  roomLabels,
+  spaceScenery,
+} from "plgg-flow/roomView";
 export { bestViews } from "plgg-flow/bestViews";

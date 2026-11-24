@@ -24,7 +24,8 @@ import {
   movingRooms,
   roomFaceView,
   turnRooms,
-  roomLabels,
+  spaceScenery,
+  cardBounds,
   nodeSize,
   bodyDepth,
   bridgePoints,
@@ -158,25 +159,36 @@ export const fitDemo = (flow: Flow): Flow => {
         ...flow,
         camera: fitted,
       });
-      for (const l of roomLabels(
-        flow.rooms,
+      const boxes = cardBounds(
         fitted,
         visible.nodes,
-        visible.edges,
-      )) {
-        const width = l.value.length * 13;
-        const x =
-          l.x +
-          l.dx -
-          (l.anchor === "middle"
-            ? width / 2
-            : l.anchor === "end"
-              ? width
-              : 0);
-        left = Math.min(left, x);
-        right = Math.max(right, x + width);
-        top = Math.min(top, l.y + l.dy - 7);
-        bottom = Math.max(bottom, l.y + l.dy + 7);
+      );
+      const at = project(fitted);
+      for (const label of [
+        ...spaceScenery(flow.rooms, visible),
+        ...(visible.scenery ?? []),
+      ]) {
+        if (label.kind !== "label") continue;
+        const anchor = at(label.anchor);
+        const x = anchor.x + label.offset.x,
+          y = anchor.y + label.offset.y;
+        const half =
+          (Array.from(label.text).length *
+            label.size) /
+            2 +
+          3;
+        boxes.push({
+          left: x - half,
+          right: x + half,
+          top: y - label.size,
+          bottom: y + label.size,
+        });
+      }
+      for (const box of boxes) {
+        left = Math.min(left, box.left);
+        right = Math.max(right, box.right);
+        top = Math.min(top, box.top);
+        bottom = Math.max(bottom, box.bottom);
       }
     }
     return {
@@ -387,7 +399,7 @@ export const roomFrames = <Action>(
   );
 };
 const layerViews = [
-  ["正面", 0, -0.12],
+  roomViews[0]!,
   ["上", -Math.PI / 4, -1.2],
   ["立体", -Math.PI / 6, -0.55],
 ] satisfies [string, number, number][];
@@ -500,9 +512,12 @@ export const optimize: Change = (f) =>
   fitDemo(arrangeSheet(f));
 export const resetSheet: Change = (f) => {
   const laid = arrangeSheet(
-    (f.rooms ? viewAt(0.22, -0.2) : viewAt(0, 0))(
-      { ...f, roomMotion: undefined },
-    ),
+    (f.rooms
+      ? viewAt(-0.22, -0.2)
+      : viewAt(0, 0))({
+      ...f,
+      roomMotion: undefined,
+    }),
   );
   const heights = new Map(
     f.nodes.map((n) => [n.id, n.position.z]),
