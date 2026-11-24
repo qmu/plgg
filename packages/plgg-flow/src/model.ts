@@ -121,6 +121,11 @@ export type Drag = Readonly<{
 }>;
 export type Flow = Graph &
   Readonly<{
+    frame?: Point;
+    /** Logical width at the right of the frame that a
+     * panel laid over the board hides; fitting keeps
+     * the diagram clear of it. */
+    cover?: number;
     layered?: Readonly<{
       options: LayerOptions;
       computed: ReadonlyMap<string, Point3>;
@@ -163,6 +168,12 @@ export type Flow = Graph &
   }>;
 export type Change = (state: Flow) => Flow;
 export const viewport = { x: 900, y: 580 };
+export const frameOf = (flow: Flow): Point =>
+  flow.frame ?? viewport;
+const frameCenter = (flow: Flow): Point => ({
+  x: frameOf(flow).x / 2,
+  y: frameOf(flow).y / 2,
+});
 export const createFlow = (
   graph: Graph,
 ): Flow => ({
@@ -296,7 +307,7 @@ const fitGeometry = (
         }),
       ),
     ],
-    viewport,
+    frameOf(state),
     80,
   )(state.camera);
   return isSome(fitted)
@@ -520,10 +531,7 @@ export const viewAt =
           (n) => n.id === state.spatial?.pivot,
         )
       : undefined;
-    const screen = {
-      x: viewport.x / 2,
-      y: viewport.y / 2,
-    };
+    const screen = frameCenter(state);
     const previous =
       state.orbitCenter &&
       project(state.camera)(state.orbitCenter);
@@ -555,7 +563,8 @@ export const viewAt =
 export const orbitByDrag =
   (dx: number, dy: number): Change =>
   (state) => {
-    const radiansPerUnit = Math.PI / viewport.x;
+    const radiansPerUnit =
+      Math.PI / frameOf(state).x;
     return viewAt(
       state.camera.yaw - dx * radiansPerUnit,
       state.camera.pitch - dy * radiansPerUnit,
@@ -572,7 +581,7 @@ export const zoom =
   (state) => ({
     ...state,
     camera: zoomAt(
-      { x: 450, y: 290 },
+      frameCenter(state),
       factor,
     )(state.camera),
   });

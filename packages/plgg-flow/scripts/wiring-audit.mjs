@@ -23,6 +23,8 @@ S.microservices = (() => {
     ["Catalog", "Cache"], ["Search", "Cache"], ["Cache", "DB"], ["Users", "DB"], ["Orders", "DB"], ["Ledger", "Audit"], ["Mailer", "Audit"], ["Auth", "Users"], ["Payments", "Orders"], ["Audit", "Gateway"], ["DB", "Catalog"]].map(([a, b]) => e(a, b));
   return { nodes, edges };
 })();
+// the demo's first sample: two pairs of level nodes whose diagonals cross. The level wires are straight lines.
+S.crossPair = { nodes: [n("North", -225, -100, { width: 60, height: 28 }), n("South", -225, 100, { width: 60, height: 28 }), n("Upper", 220, -95, { width: 60, height: 28 }), n("Lower", 220, 100, { width: 60, height: 28 })], edges: [e("North", "Lower"), e("South", "Upper"), e("North", "Upper"), e("South", "Lower")] };
 S.stateMachine = (() => {
   const nodes = [n("Idle", -360, 0), n("Loading", -120, -120), n("Ready", 120, 0), n("Editing", 120, 160), n("Saving", 360, 80), n("Error", -120, 160), n("Closed", 580, -80)];
   const edges = [["Idle", "Loading"], ["Loading", "Ready"], ["Loading", "Error"], ["Error", "Idle"], ["Ready", "Editing"], ["Editing", "Ready"], ["Editing", "Saving"], ["Saving", "Ready"], ["Saving", "Error"], ["Ready", "Closed"], ["Error", "Loading"], ["Ready", "Idle"], ["Editing", "Editing"], ["Closed", "Idle"]].map(([a, b]) => e(a, b));

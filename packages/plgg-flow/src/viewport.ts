@@ -19,6 +19,7 @@ import {
   type Option,
 } from "plgg";
 import {
+  pickPlane,
   unproject,
   facingXYPlane,
   projectLayer,
@@ -79,7 +80,7 @@ import {
   connect,
   disconnect,
   deleteSelected,
-  viewport,
+  frameOf,
   type Edge,
   type Flow,
   type Change,
@@ -125,17 +126,53 @@ const onGround = (
   x: number,
   y: number,
 ) => project(camera)({ x, y, z: groundHeight });
+const groundBounds = (flow: Flow) => {
+  const corners = flow.frame
+    ? [0, flow.frame.x].flatMap((x) =>
+        [0, frameOf(flow).y].flatMap((y) => {
+          const hit = pickPlane(
+            flow.camera,
+            { x, y },
+            "z",
+            groundHeight,
+          );
+          return isSome(hit) ? [hit.content] : [];
+        }),
+      )
+    : [];
+  return {
+    left: Math.min(
+      -640,
+      ...corners.map((p) => p.x),
+    ),
+    right: Math.max(
+      640,
+      ...corners.map((p) => p.x),
+    ),
+    top: Math.min(
+      -640,
+      ...corners.map((p) => p.y),
+    ),
+    bottom: Math.max(
+      640,
+      ...corners.map((p) => p.y),
+    ),
+  };
+};
 const groundSurface = (
-  camera: Camera,
+  flow: Flow,
 ): Html<Change> => {
+  const { camera } = flow;
+  const { left, right, top, bottom } =
+    groundBounds(flow);
   const at = (x: number, y: number) =>
     onGround(camera, x, y);
   const side = groundSide(camera);
   const perimeter = [
-    at(-640, -640),
-    at(640, -640),
-    at(640, 640),
-    at(-640, 640),
+    at(left, top),
+    at(right, top),
+    at(right, bottom),
+    at(left, bottom),
   ]
     .map((p) => p.x + "," + p.y)
     .join(" ");
@@ -161,25 +198,39 @@ const groundSurface = (
     [],
   );
 };
-const worldGrid = (
-  camera: Camera,
-): Html<Change> => {
+const worldGrid = (flow: Flow): Html<Change> => {
+  const { camera } = flow;
+  const { left, right, top, bottom } =
+    groundBounds(flow);
   const at = (x: number, y: number) =>
     onGround(camera, x, y);
   const side = groundSide(camera);
   const line = (u: Point, v: Point) =>
     `M${u.x} ${u.y}L${v.x} ${v.y}`;
-  const ticks = Array.from(
-    { length: 41 },
-    (_, i) => (i - 20) * 32,
-  );
-  const path = ticks
-    .map(
-      (t) =>
-        line(at(t, -640), at(t, 640)) +
-        line(at(-640, t), at(640, t)),
-    )
-    .join("");
+  const ticks = (low: number, high: number) => {
+    const step =
+      32 *
+      Math.max(
+        1,
+        Math.ceil((high - low) / (128 * 32)),
+      );
+    const first = Math.ceil(low / step);
+    return Array.from(
+      {
+        length:
+          Math.floor(high / step) - first + 1,
+      },
+      (_, i) => (first + i) * step,
+    );
+  };
+  const path = [
+    ...ticks(left, right).map((x) =>
+      line(at(x, top), at(x, bottom)),
+    ),
+    ...ticks(top, bottom).map((y) =>
+      line(at(left, y), at(right, y)),
+    ),
+  ].join("");
   return el(
     "path",
     [
@@ -195,6 +246,8 @@ const worldGrid = (
     [],
   );
 };
+const surfaceLayer = lazyLayer();
+const gridLayer = lazyLayer();
 const footprintLayer = lazyLayer();
 const frameLayer = lazyLayer();
 const waypointLayer = lazyLayer();
@@ -415,7 +468,7 @@ const defaultLabel = (
     [a("text-anchor", "middle"), a("y", 5)],
     [text(node.label)],
   );
-const scrollHint = (hint: number) =>
+const scrollHint = (hint: number, frame: Point) =>
   el<Change>(
     "g",
     [
@@ -439,8 +492,8 @@ const scrollHint = (hint: number) =>
       el(
         "rect",
         [
-          a("width", viewport.x),
-          a("height", viewport.y),
+          a("width", frame.x),
+          a("height", frame.y),
           a("fill", "#000"),
           a("fill-opacity", 0.45),
         ],
@@ -449,8 +502,8 @@ const scrollHint = (hint: number) =>
       el(
         "text",
         [
-          a("x", viewport.x / 2),
-          a("y", viewport.y / 2),
+          a("x", frame.x / 2),
+          a("y", frame.y / 2),
           a("text-anchor", "middle"),
           a("dominant-baseline", "middle"),
           a("font-size", 18),
@@ -477,6 +530,7 @@ export const flowView = (
   ) => Html<Change> = defaultLabel,
   registry: ViewRegistry = {},
 ): Html<Change> => {
+  const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
   const ports = portsFor(state);
   const routes = new Map(
@@ -540,9 +594,9 @@ export const flowView = (
             48;
         return (
           n.p.x + w >= 0 &&
-          n.p.x - w <= viewport.x &&
+          n.p.x - w <= frame.x &&
           n.p.y + h >= 0 &&
-          n.p.y - h <= viewport.y
+          n.p.y - h <= frame.y
         );
       });
   const counts = new Map(
@@ -931,6 +985,7 @@ export const flowView = (
       original,
       state.camera,
       chosenWire,
+      frame,
       state.ink,
       cull,
       from.item,
@@ -983,13 +1038,9 @@ export const flowView = (
     if (
       cull &&
       (points.every((p) => p.x < -64) ||
-        points.every(
-          (p) => p.x > viewport.x + 64,
-        ) ||
+        points.every((p) => p.x > frame.x + 64) ||
         points.every((p) => p.y < -64) ||
-        points.every(
-          (p) => p.y > viewport.y + 64,
-        ))
+        points.every((p) => p.y > frame.y + 64))
     )
       continue;
     // A face-on camera shows the whole stroke without depth seams.
@@ -1520,8 +1571,8 @@ export const flowView = (
     );
   };
   return svgViewport<Change>(
-    viewport.x,
-    viewport.y,
+    frame.x,
+    frame.y,
     [
       a("class", "flow-board"),
       a(
@@ -2144,7 +2195,11 @@ export const flowView = (
       }),
     ],
     [
-      lazy(groundSurface, state.camera),
+      surfaceLayer(
+        state.camera,
+        [state.frame],
+        () => groundSurface(state),
+      ),
       ...drawNodes.map((n) =>
         footprintLayer(
           n.item,
@@ -2152,7 +2207,9 @@ export const flowView = (
           () => footprint(state.camera, n.item),
         ),
       ),
-      lazy(worldGrid, state.camera),
+      gridLayer(state.camera, [state.frame], () =>
+        worldGrid(state),
+      ),
       depthStems(state.camera, drawNodes),
       ...projected
         .filter((n) => n.group && !n.collapsed)
@@ -2530,7 +2587,7 @@ export const flowView = (
         : []),
       ...(state.scrollHint === undefined
         ? []
-        : [lazy(scrollHint, state.scrollHint)]),
+        : [scrollHint(state.scrollHint, frame)]),
     ],
   );
 };

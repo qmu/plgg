@@ -47,7 +47,7 @@ import {
 import {
   sandbox,
   custom,
-  subNone,
+  subBatch,
   cmdNone,
   cmdEffect,
   cmdBatch,
@@ -59,6 +59,8 @@ import {
   selectNodes,
   selectedNodes,
   fitFlow,
+  frameOf,
+  viewport,
   flowView,
   viewAt,
   deleteSelected,
@@ -72,6 +74,7 @@ import {
 } from "plgg-flow";
 import {
   examples,
+  resizeDemo,
   applyDemoSpec,
   type DemoId,
 } from "./examples";
@@ -96,6 +99,7 @@ const visit = (f: Flow): Visit => ({
   section: f.spatial?.section,
 });
 type Session = Readonly<{
+  fittedCamera: Flow["camera"];
   trackedCard?: string;
   outline?: { parent?: string };
   back: readonly Visit[];
@@ -130,6 +134,7 @@ const session = (
   rules: readonly Rule[] = [],
 ): Session => ({
   flow,
+  fittedCamera: flow.camera,
   rules,
   back: [],
   forward: [],
@@ -146,6 +151,9 @@ const session = (
 });
 type Model = Readonly<{
   index: number;
+  help?: boolean;
+  boardHeight?: number;
+  boardCover?: number;
   sessions: readonly Session[];
 }>;
 type Action = (model: Model) => Model;
@@ -297,8 +305,14 @@ const center =
       camera: {
         ...f.camera,
         origin: {
-          x: f.camera.origin.x + 450 - p.x,
-          y: f.camera.origin.y + 290 - p.y,
+          x:
+            f.camera.origin.x +
+            frameOf(f).x / 2 -
+            p.x,
+          y:
+            f.camera.origin.y +
+            frameOf(f).y / 2 -
+            p.y,
         },
       },
     };
@@ -678,40 +692,6 @@ const controls = (
       (n) => n.id === "Process",
     );
   switch (id) {
-    case "layered":
-    case "space":
-      return [
-        input(
-          "水平角",
-          String(
-            Math.round(
-              (angle(f.camera.yaw) * 180) /
-                Math.PI,
-            ),
-          ),
-          (v) => (f) =>
-            viewAt(
-              (Number(v) * Math.PI) / 180,
-              f.camera.pitch,
-            )(f),
-          [-180, 180],
-        ),
-        input(
-          "仰角",
-          String(
-            Math.round(
-              (angle(f.camera.pitch) * 180) /
-                Math.PI,
-            ),
-          ),
-          (v) => (f) =>
-            viewAt(
-              f.camera.yaw,
-              (Number(v) * Math.PI) / 180,
-            )(f),
-          [-180, 180],
-        ),
-      ];
     case "split":
       return [
         change(
@@ -1282,6 +1262,9 @@ const controls = (
       return [cardHistory(s)];
     case "outline":
       return [hierarchyBrowser(s)];
+    case "layered":
+    case "space":
+      return [];
     case "files":
       return [
         mapHtml((fn: FileEdit) =>
@@ -1337,6 +1320,10 @@ const diagram = (id: DemoId, f: Flow) =>
                   )),
           ),
   );
+const toggleHelp: Action = (m) => ({
+  ...m,
+  help: !m.help,
+});
 const dslPanel = (s: {
   flow: Flow;
   rules: Session["rules"];
@@ -1360,16 +1347,18 @@ const dslPanel = (s: {
         [attr("class", "dsl-head")],
         [
           el("strong", [], [text("DSL")]),
+          ...(typed?.error
+            ? [el("span", [], [text("エラー")])]
+            : []),
           el(
-            "span",
-            [],
+            "button",
             [
-              text(
-                typed?.error
-                  ? "エラー"
-                  : "編集すると図に反映",
-              ),
+              attr("type", "button"),
+              attr("class", "dsl-help"),
+              attr("aria-label", "DSL の書き方"),
+              onClick(toggleHelp),
             ],
+            [text("?")],
           ),
         ],
       ),
@@ -1399,6 +1388,11 @@ const dslPanel = (s: {
               });
               return {
                 ...next,
+                fittedCamera:
+                  next.flow.camera !==
+                  cur.flow.camera
+                    ? next.flow.camera
+                    : cur.fittedCamera,
                 dsl: {
                   text: value,
                   flow: next.flow,
@@ -1409,25 +1403,91 @@ const dslPanel = (s: {
         ],
         [text(source)],
       ),
-      el(
-        "output",
-        [
-          attr("class", "dsl-status"),
-          attr("aria-live", "polite"),
-          ...(typed?.error
-            ? [attr("data-error", "")]
-            : []),
-        ],
-        [
-          text(
-            typed?.error ??
-              'node 名前 at x y [z] · A -> B "ラベル" · rule acyclic · snap 32',
-          ),
-        ],
-      ),
+      ...(typed?.error
+        ? [
+            el(
+              "output",
+              [
+                attr("class", "dsl-status"),
+                attr("aria-live", "polite"),
+                attr("data-error", ""),
+              ],
+              [text(typed.error)],
+            ),
+          ]
+        : []),
     ],
   );
 };
+const helpRows: readonly (readonly [
+  string,
+  string,
+])[] = [
+  [
+    "A -> B",
+    "接続。ノードは書かなくても、名前が出てきた時点で作られます。",
+  ],
+  [
+    'A -> B "ラベル" step animated',
+    "線にラベルを付け、経路（straight / step / curve）や流れのアニメーションを指定します。",
+  ],
+  [
+    "node 名前 at x y [z]",
+    "ノードを置く位置。z を書くと高さが付きます。at を省くと自動配置の対象になります。",
+  ],
+  [
+    'node 名前 label "表示名" width 150',
+    "表示名と幅。空白を含む名前は \" で囲みます。",
+  ],
+  [
+    "node 枠 group / node 子 in 枠",
+    "グループと、その中に入るノード。collapsed で折りたたみます。",
+  ],
+  [
+    "layout layered down depth",
+    "at のないノードを自動で並べます。right は左から右、down は上から下。depth を付けると層ごとに高さが上がります。",
+  ],
+  [
+    "rule acyclic / rule max-outputs 1",
+    "循環する接続や、出力の本数を制限します。",
+  ],
+  ["snap 32", "ドラッグ時に吸着する格子の間隔。"],
+  ["# コメント", "# から行末までは無視されます。"],
+];
+const helpToast: Html<Action> = el(
+  "button",
+  [
+    attr("type", "button"),
+    attr("class", "help-toast"),
+    attr("aria-label", "DSL の書き方を閉じる"),
+    onClick(toggleHelp),
+  ],
+  [
+    el("strong", [], [text("DSL の書き方")]),
+    el(
+      "span",
+      [attr("class", "help-lead")],
+      [
+        text(
+          "1 行に 1 つ書きます。図を動かすと、ここも書き換わります。",
+        ),
+      ],
+    ),
+    el(
+      "span",
+      [attr("class", "help-rows")],
+      helpRows.flatMap(([code, note]) => [
+        el("code", [], [text(code)]),
+        el("span", [], [text(note)]),
+      ]),
+    ),
+    el(
+      "span",
+      [attr("class", "help-close")],
+      [text("クリックで閉じる")],
+    ),
+  ],
+);
 const sidebar = (index: number): Html<Action> =>
   el(
     "aside",
@@ -1542,7 +1602,7 @@ const featureInput = (
   switch (id) {
     case "layered":
     case "space":
-      return f.camera;
+      return id;
     case "split":
       return !!f.edges.length;
     case "cycles":
@@ -1763,6 +1823,7 @@ const view = (m: Model): Html<Action> => {
     ],
     [
       lazy(sidebar, m.index),
+      ...(m.help ? [helpToast] : []),
       el(
         "section",
         [],
@@ -1874,6 +1935,90 @@ const fileUpdate = (
     }),
   ];
 };
+const observeBoard = (root: Element) =>
+  custom<Action>("board-frame", (dispatch) => {
+    const host = root.querySelector(
+      ".canvas-wrap",
+    );
+    if (!host) return () => {};
+    let lastHeight = 0,
+      lastCover = -1;
+    const measure = ({
+      width,
+      height,
+    }: DOMRectReadOnly) => {
+      if (width <= 0 || height <= 0) return;
+      const y = Math.round(
+        (viewport.x * height) / width,
+      );
+      // the DSL panel, when it lies over the board
+      const panel =
+        host.parentElement?.querySelector(".dsl");
+      const cover =
+        panel &&
+        getComputedStyle(panel).position ===
+          "absolute"
+          ? Math.round(
+              (viewport.x *
+                panel.getBoundingClientRect()
+                  .width) /
+                width,
+            )
+          : 0;
+      if (
+        (y === lastHeight &&
+          cover === lastCover) ||
+        y <= 0
+      )
+        return;
+      lastHeight = y;
+      lastCover = cover;
+      dispatch((m) => ({
+        ...m,
+        boardHeight: y,
+        boardCover: cover,
+      }));
+    };
+    const observer = new ResizeObserver(
+      (entries) => {
+        for (const entry of entries)
+          measure(entry.contentRect);
+      },
+    );
+    observer.observe(host);
+    const initial = requestAnimationFrame(() =>
+      measure(host.getBoundingClientRect()),
+    );
+    return () => {
+      cancelAnimationFrame(initial);
+      observer.disconnect();
+    };
+  });
+const sizeBoard = (model: Model): Model => {
+  const height = model.boardHeight;
+  if (height === undefined) return model;
+  return edit((s) => {
+    const fitted =
+      s.flow.camera === s.fittedCamera;
+    const flow = resizeDemo(
+      s.flow,
+      height,
+      fitted,
+      model.boardCover ?? 0,
+    );
+    if (flow === s.flow) return s;
+    return {
+      ...s,
+      flow,
+      fittedCamera: fitted
+        ? flow.camera
+        : s.fittedCamera,
+      ...(s.dsl?.flow === s.flow
+        ? { dsl: { ...s.dsl, flow } }
+        : {}),
+    };
+  })(model);
+};
 const root = document.getElementById("app");
 if (root)
   sandbox<Model, Action>({
@@ -1889,48 +2034,53 @@ if (root)
     view,
     subscriptions: (m) => {
       const current = m.sessions[m.index];
-      if (!current?.returning) return subNone();
+      const board = observeBoard(root);
+      if (!current?.returning) return board;
       const { yaw, pitch } = current.flow.camera;
-      return custom<Action>(
-        "front-" + m.index,
-        (dispatch) => {
-          const started = performance.now();
-          const duration = window.matchMedia(
-            "(prefers-reduced-motion: reduce)",
-          ).matches
-            ? 0
-            : 320;
-          let frame = 0;
-          const tick = (now: number) => {
-            const t = duration
-              ? Math.min(
-                  1,
-                  (now - started) / duration,
-                )
-              : 1;
-            const weight =
-              1 - t * t * (3 - 2 * t);
-            dispatch(
-              edit((s) => ({
-                ...s,
-                flow: viewAt(
-                  angle(yaw) * weight,
-                  angle(pitch) * weight,
-                )(s.flow),
-                returning: t < 1,
-              })),
-            );
-            if (t < 1)
-              frame = requestAnimationFrame(tick);
-          };
-          frame = requestAnimationFrame(tick);
-          return () =>
-            cancelAnimationFrame(frame);
-        },
-      );
+      return subBatch([
+        board,
+        custom<Action>(
+          "front-" + m.index,
+          (dispatch) => {
+            const started = performance.now();
+            const duration = window.matchMedia(
+              "(prefers-reduced-motion: reduce)",
+            ).matches
+              ? 0
+              : 320;
+            let frame = 0;
+            const tick = (now: number) => {
+              const t = duration
+                ? Math.min(
+                    1,
+                    (now - started) / duration,
+                  )
+                : 1;
+              const weight =
+                1 - t * t * (3 - 2 * t);
+              dispatch(
+                edit((s) => ({
+                  ...s,
+                  flow: viewAt(
+                    angle(yaw) * weight,
+                    angle(pitch) * weight,
+                  )(s.flow),
+                  returning: t < 1,
+                })),
+              );
+              if (t < 1)
+                frame =
+                  requestAnimationFrame(tick);
+            };
+            frame = requestAnimationFrame(tick);
+            return () =>
+              cancelAnimationFrame(frame);
+          },
+        ),
+      ]);
     },
     update: (fn, m) => {
-      const next = fn(m);
+      const next = sizeBoard(fn(m));
       const [updated, fileCommand] =
         fileUpdate(next);
       const commands = [fileCommand];

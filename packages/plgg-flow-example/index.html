@@ -559,8 +559,6 @@
       border: 1px solid var(--ink);
       margin: 0 0 18px;
     }
-    /* the library draws on a fixed 900×580 world; the frame
-       keeps that ratio so the sheet fills edge to edge */
     .stage .canvas-wrap {
       margin: 0;
       aspect-ratio: 900 / 580;
@@ -708,7 +706,89 @@
       background: var(--ink);
       color: var(--paper);
     }
-</style>
+
+    /* the DSL lies over the right of the board, the sheet
+       showing faintly through it */
+    @media (min-width: 1001px) {
+      .stage {
+        position: relative;
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .stage .dsl {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: clamp(260px, 30%, 380px);
+        height: auto;
+        border-left: 1px solid var(--ink);
+        background: rgb(255 255 255 / 0.6);
+        contain: none;
+      }
+      .stage .dsl textarea {
+        background: transparent;
+      }
+      .board-controls {
+        right: calc(clamp(260px, 30%, 380px) + 12px);
+      }
+    }
+    .dsl-head {
+      align-items: center;
+    }
+    .dsl-help {
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      background: var(--paper);
+      font: 500 12px/1 var(--display);
+    }
+    .dsl-help:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .help-toast {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      display: grid;
+      gap: 10px;
+      width: min(520px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      padding: 16px 18px;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .help-toast strong {
+      font: 600 14px var(--display);
+    }
+    .help-lead,
+    .help-close {
+      color: var(--graphite);
+    }
+    .help-close {
+      font-size: 12px;
+    }
+    .help-rows {
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      gap: 8px 16px;
+      padding: 10px 0;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--trace);
+    }
+    .help-rows code {
+      font: 12px/1.6 ui-monospace, "SF Mono", Menlo,
+        monospace;
+      white-space: nowrap;
+    }
+  </style>
   <div id="app"></div>
   <script
     type="module"

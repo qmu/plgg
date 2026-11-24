@@ -3,6 +3,7 @@ import {
   nodeSize,
   bodyDepth,
   bridgePoints,
+  frameOf,
   viewport,
   type Flow,
 } from "plgg-flow";
@@ -98,11 +99,13 @@ export const fitDemo = (flow: Flow): Flow => {
       bottom: -Infinity,
     },
   );
+  const frame = frameOf(flow),
+    open = frame.x - (flow.cover ?? 0);
   const scale = Math.min(
     1,
-    (viewport.x - 96) /
+    Math.max(1, open - 96) /
       (bounds.right - bounds.left),
-    (viewport.y - 96) /
+    Math.max(1, frame.y - 96) /
       (bounds.bottom - bounds.top),
   );
   return {
@@ -112,15 +115,47 @@ export const fitDemo = (flow: Flow): Flow => {
       scale,
       origin: {
         x:
-          (viewport.x -
+          (open -
             scale *
               (bounds.left + bounds.right)) /
           2,
         y:
-          (viewport.y -
+          (frame.y -
             scale *
               (bounds.top + bounds.bottom)) /
           2,
+      },
+    },
+  };
+};
+export const resizeDemo = (
+  flow: Flow,
+  height: number,
+  fitted: boolean,
+  cover = 0,
+): Flow => {
+  const previous = frameOf(flow);
+  if (
+    flow.frame &&
+    previous.y === height &&
+    previous.x === viewport.x &&
+    (flow.cover ?? 0) === cover
+  )
+    return flow;
+  const frame = { x: viewport.x, y: height };
+  const next = { ...flow, frame, cover };
+  if (fitted) return fitDemo(next);
+  return {
+    ...next,
+    camera: {
+      ...flow.camera,
+      origin: {
+        x:
+          flow.camera.origin.x +
+          (frame.x - previous.x) / 2,
+        y:
+          flow.camera.origin.y +
+          (frame.y - previous.y) / 2,
       },
     },
   };
@@ -170,7 +205,7 @@ export const examples = [
   demo(
     "space",
     "立体交差",
-    "交差している2本の線の間を見てください。視点をゆっくり回すと、手前と奥に分かれます。",
+    "交差している2本の線の間を見てください。Shift を押しながらドラッグして回すと、手前と奥に分かれます。",
     `node North at -225 -100 160
 node South at -225 100 -150
 node Upper at 220 -95 -150
@@ -184,8 +219,8 @@ South -> Lower
   demo(
     "layered",
     "自動配置",
-    "水平角と垂直角を動かして、サービスの層が階段状に並ぶ様子を見てください。接続を書き足すと配置が変わります。",
-    `layout layered right depth
+    "接続だけを書いた図です。上から下へ自動で並びます。Shift を押しながらドラッグして回すと、層が階段状に見えます。",
+    `layout layered down depth
 Web -> Gateway
 Mobile -> Gateway
 Gateway -> Auth

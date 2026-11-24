@@ -1261,3 +1261,19 @@ The price, to pick up next:
   need to be continuous in their inputs.
 - orgTreeVertical: CEO→A, CEO→C leave the bottom and arrive at the
   side (`awkward-side` 4); they should enter the top.
+
+## A regression the audit had no scene for (found in the demo's first sample)
+
+Round 29 turned the two level wires of the demo's first sample
+(North→Upper, South→Lower: level, facing, nothing between) into
+arches from top to top. No audit scene had this shape, so it passed.
+The scene `crossPair` is now in the audit (10 moderate per style).
+
+For round 30:
+- level, facing nodes with a free corridor use their facing sides and
+  the wire is a straight line — whatever siblings or the row/arch
+  logic say. Arches (same-side sockets) are only for nodes in one row
+  with another node between them.
+- `hub`/curve: a dented wire keeps the fan's order and gets the
+  standard fillet (`siblings-cross` 13, `kink` 12).
+- orgTreeVertical: CEO→A, CEO→C enter the child's top.

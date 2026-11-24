@@ -1,3 +1,4 @@
+import { frameOf } from "plgg-flow";
 import { test, check, toBe } from "plgg-test";
 import {
   parseSpec,
@@ -5,6 +6,7 @@ import {
 } from "plgg-flow/dsl";
 import {
   examples,
+  resizeDemo,
   fitDemo,
   applyDemoSpec,
 } from "plgg-flow-example/examples";
@@ -89,6 +91,34 @@ test("opening and resetting fit a wide diagram with a 48 pixel margin and cap sm
   );
 });
 
+test("resizing the layered board refits a fitted camera and preserves a manually framed view", () => {
+  const flow = examples
+    .find((e) => e.id === "layered")!
+    .initial();
+  const tall = resizeDemo(flow, 1400, true);
+  const camera = {
+    ...flow.camera,
+    scale: 2,
+    origin: { x: 410, y: 310 },
+  };
+  const panned = resizeDemo(
+    { ...flow, camera },
+    1400,
+    false,
+  );
+  return check(
+    frameOf(flow).x === 900 &&
+      frameOf(flow).y === 580 &&
+      frameOf(tall).y === 1400 &&
+      tall.camera.scale > flow.camera.scale &&
+      panned.camera.scale === camera.scale &&
+      panned.camera.origin.x ===
+        camera.origin.x &&
+      panned.camera.origin.y - 700 ===
+        camera.origin.y - 290,
+    toBe(true),
+  );
+});
 test("DSL geometry edits refit the board and text-only edits preserve the camera", () => {
   const demo = examples.find(
     (e) => e.id === "layered",
@@ -102,7 +132,7 @@ test("DSL geometry edits refit the board and text-only edits preserve the camera
     },
   };
   const edited = parseSpec(
-    demo.source + "\nnode Remote at 4000 200",
+    demo.source + "\nnode Remote at 40000 200",
   );
   if (edited.__tag === "Err")
     return check(false, toBe(true));

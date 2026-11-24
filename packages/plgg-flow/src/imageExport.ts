@@ -6,14 +6,14 @@ import {
 } from "plgg-view";
 import { flowView } from "plgg-flow/viewport";
 import {
-  viewport,
+  frameOf,
   type Flow,
 } from "plgg-flow/model";
 /** Standalone SVG uses the built-in data-only drawing vocabulary. */
 export const svgImage = (flow: Flow): string =>
   renderToString(flowView(flow)).replace(
     "<svg ",
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${viewport.x}" height="${viewport.y}" font-family="sans-serif" font-size="13" `,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${frameOf(flow).x}" height="${frameOf(flow).y}" font-family="sans-serif" font-size="13" `,
   );
 
 /** Offline, script-free reader. Fragment identifiers are generated locally;
