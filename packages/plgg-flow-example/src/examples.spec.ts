@@ -22,10 +22,10 @@ import {
   fitDemo,
   applyDemoSpec,
 } from "plgg-flow-example/examples";
-test("all twenty-seven diagrams have unique identities and valid directed edges", () =>
+test("all twenty-eight diagrams have unique identities and valid directed edges", () =>
   check(
     new Set(examples.map((e) => e.name)).size ===
-      27 &&
+      28 &&
       examples.every(({ initial }) => {
         const graph = initial();
         const ids = new Set(
@@ -167,7 +167,8 @@ test("every gallery box sits on grid lines and Rooms opens on its three storeys"
     ),
     flow = examples[index]!.initial();
   return check(
-    examples[index - 1]?.id === "layered" &&
+    examples[index - 2]?.id === "layered" &&
+      examples[index - 1]?.id === "layers" &&
       examples[index + 1]?.id === "dimensions" &&
       flow.rooms?.rooms.length === 18 &&
       flow.nodes.length === 14 &&

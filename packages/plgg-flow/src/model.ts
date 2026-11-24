@@ -1,7 +1,8 @@
+import { bodyDepth } from "plgg-flow/nodeBody";
 import type {
   RoomLayout,
   LayerOptions,
-} from "./autoLayout";
+} from "plgg-flow/autoLayout";
 import {
   freePosition,
   grid,
@@ -199,6 +200,9 @@ export type Flow = Graph &
       computed: ReadonlyMap<string, Point3>;
     }>;
     camera: Camera;
+    layerPin?: string | undefined;
+    manualZoom?: boolean;
+    orbitEase?: { from: Camera; to: Camera };
     orbitCenter?: Point3;
     selected: Option<string>;
     selectedDslRow?:
@@ -678,12 +682,109 @@ export const viewAt =
       ),
     };
   };
+type Drawing = Pick<Flow, "nodes" | "scenery">;
+const drawingPoints = ({
+  nodes,
+  scenery,
+}: Drawing) => [
+  ...nodes
+    .filter((n) => !n.hidden)
+    .flatMap((n) => {
+      const size = nodeSize(n);
+      return [-1, 1].flatMap((x) =>
+        [-1, 1].flatMap((y) =>
+          [-1, 1].map((z) => ({
+            x:
+              n.position.x + (x * size.width) / 2,
+            y:
+              n.position.y +
+              (y * size.height) / 2,
+            z: n.position.z + z * bodyDepth(n),
+          })),
+        ),
+      );
+    }),
+  ...(scenery ?? []).flatMap((s) =>
+    s.kind === "label"
+      ? [s.anchor]
+      : s.kind === "line"
+        ? [
+            ...s.points,
+            ...(s.strokes ?? []).flat(),
+          ]
+        : s.points,
+  ),
+];
+const centerOrbit = (
+  state: Flow,
+  camera: Camera,
+  center: Point3,
+) => {
+  const p = project(camera)(center),
+    frame = frameOf(state);
+  return pan(
+    (frame.x - (state.cover ?? 0)) / 2 - p.x,
+    frame.y / 2 - p.y,
+  )(camera);
+};
+export const settleOrbit = (
+  state: Flow,
+  drawing: Drawing = state,
+): Flow => {
+  const center = state.orbitCenter;
+  if (!center) return state;
+  const frame = frameOf(state),
+    open = frame.x - (state.cover ?? 0);
+  let camera = centerOrbit(
+    state,
+    state.camera,
+    center,
+  );
+  const p = project(camera)(center);
+  let factor = 1;
+  for (const q of drawingPoints(drawing).map(
+    project(camera),
+  )) {
+    factor = Math.min(
+      factor,
+      Math.max(1, open / 2 - 24) /
+        (Math.abs(q.x - p.x) || 1),
+      Math.max(1, frame.y / 2 - 24) /
+        (Math.abs(q.y - p.y) || 1),
+    );
+  }
+  if (
+    (factor >= 1 || state.manualZoom) &&
+    Math.abs(
+      camera.origin.x - state.camera.origin.x,
+    ) < 1e-8 &&
+    Math.abs(
+      camera.origin.y - state.camera.origin.y,
+    ) < 1e-8
+  )
+    return state;
+  if (factor < 1 && !state.manualZoom)
+    camera = centerOrbit(
+      state,
+      { ...camera, scale: camera.scale * factor },
+      center,
+    );
+  return {
+    ...state,
+    camera,
+    orbitEase: { from: state.camera, to: camera },
+  };
+};
 export const orbitByDrag =
-  (dx: number, dy: number): Change =>
+  (
+    dx: number,
+    dy: number,
+    drawing?: Drawing,
+  ): Change =>
   (state) => {
     const radiansPerUnit =
       Math.PI / frameOf(state).x;
-    return viewAt(
+    const rotated = viewAt(
       state.camera.yaw - dx * radiansPerUnit,
       Math.max(
         -Math.PI / 2,
@@ -694,6 +795,33 @@ export const orbitByDrag =
         ),
       ),
     )(state);
+    const points = drawingPoints(
+      drawing ?? state,
+    );
+    if (!points.length) return rotated;
+    const middle = (axis: keyof Point3) => {
+      let min = Infinity,
+        max = -Infinity;
+      for (const p of points) {
+        min = Math.min(min, p[axis]);
+        max = Math.max(max, p[axis]);
+      }
+      return (min + max) / 2;
+    };
+    const center = {
+      x: middle("x"),
+      y: middle("y"),
+      z: middle("z"),
+    };
+    return {
+      ...rotated,
+      orbitCenter: center,
+      camera: centerOrbit(
+        state,
+        rotated.camera,
+        center,
+      ),
+    };
   };
 export const front: Change = viewAt(0, 0);
 export const rotateView: Change = (state) =>
@@ -705,6 +833,7 @@ export const wheelZoom =
   (anchor: Point, deltaY: number): Change =>
   (state) => ({
     ...state,
+    manualZoom: true,
     camera: zoomAt(
       anchor,
       Math.exp(-deltaY * 0.002),
@@ -714,6 +843,7 @@ export const zoom =
   (factor: number): Change =>
   (state) => ({
     ...state,
+    manualZoom: true,
     camera: zoomAt(
       frameCenter(state),
       factor,
@@ -802,8 +932,16 @@ const moveOnGrid = (
     }),
   };
 };
-export const releasePointer: Change = (flow) => {
+export const releasePointer = (
+  flow: Flow,
+  drawing?: Drawing,
+): Flow => {
   const idle = { ...flow, drag: none() };
+  if (
+    isSome(flow.drag) &&
+    flow.drag.content.mode === "orbit"
+  )
+    return settleOrbit(idle, drawing);
   if (
     !isSome(flow.drag) ||
     flow.drag.content.mode !== "node"
@@ -834,7 +972,11 @@ export const releasePointer: Change = (flow) => {
   return { ...idle, ...geometry };
 };
 export const movePointer =
-  (point: Point, pointer: number): Change =>
+  (
+    point: Point,
+    pointer: number,
+    drawing?: Drawing,
+  ): Change =>
   (state) => {
     if (
       !isSome(state.drag) ||
@@ -1161,7 +1303,11 @@ export const movePointer =
       };
     }
     if (d.mode === "orbit") {
-      const rotated = orbitByDrag(dx, dy)(state);
+      const rotated = orbitByDrag(
+        dx,
+        dy,
+        drawing,
+      )(state);
       return {
         ...rotated,
         drag: some({ ...d, last: point }),

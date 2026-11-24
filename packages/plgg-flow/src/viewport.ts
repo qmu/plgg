@@ -7,6 +7,7 @@ import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
 import {
   grid,
+  labelWidth,
   nodeSize,
 } from "plgg-flow/nodeSize";
 import {
@@ -73,6 +74,7 @@ import {
 } from "plgg-flow/hierarchy";
 import {
   releasePointer,
+  settleOrbit,
   beginStroke,
   movePointer,
   wheelZoom,
@@ -590,6 +592,12 @@ export const drawFlow = (
   );
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
+  const drawing = {
+    nodes: scene.nodes,
+    ...(state.scenery && {
+      scenery: state.scenery,
+    }),
+  };
   const ports = portsFor(state);
   const routes = new Map(
     wires.map((w) => [w.edge, w]),
@@ -699,6 +707,16 @@ export const drawFlow = (
         state.edges[edgeIndex(state.edges, e)],
     ),
   );
+  const tags: {
+    depth: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    scale: number;
+    html: Html<Change>;
+    id: string;
+  }[] = [];
   const paintLayers = () => {
     const silhouettes = new Map<
       string,
@@ -777,6 +795,45 @@ export const drawFlow = (
         n.quiet &&
         state.hoveredNode !== n.id &&
         !chosen.has(n.id);
+      if (solid.tagged && solid.caption) {
+        tags.push({
+          id: n.id,
+          depth: n.p.z,
+          x: n.p.x + n.scale * solid.caption[4]!,
+          y: n.p.y + n.scale * solid.caption[5]!,
+          scale: n.scale,
+          width:
+            Math.min(
+              nodeSize(n).width,
+              labelWidth(n.label),
+            ) *
+              n.scale +
+            4,
+          height: 16 * n.scale + 4,
+          html: el(
+            "g",
+            [
+              a(
+                "class",
+                quiet ? "quiet-node" : "",
+              ),
+              a(
+                "fill",
+                quiet
+                  ? "var(--pencil,gray)"
+                  : "currentColor",
+              ),
+              a(
+                "style",
+                "stroke:var(--paper,white)",
+              ),
+              a("stroke-width", 2 / n.scale),
+              a("paint-order", "stroke fill"),
+            ],
+            [render(n, state)],
+          ),
+        });
+      }
       const inputs = [
         extent,
         state.camera,
@@ -1114,7 +1171,7 @@ export const drawFlow = (
                   [],
                 ),
               ),
-              solid.caption
+              solid.caption && !solid.tagged
                 ? el(
                     "g",
                     [
@@ -1122,26 +1179,6 @@ export const drawFlow = (
                         "data-node-caption",
                         solid.tagged ? "tag" : "",
                       ),
-                      ...(solid.tagged
-                        ? [
-                            a(
-                              "style",
-                              "stroke:var(--paper,white)",
-                            ),
-                            a(
-                              "stroke-width",
-                              2 / n.scale,
-                            ),
-                            a(
-                              "paint-order",
-                              "stroke fill",
-                            ),
-                            a(
-                              "stroke-linejoin",
-                              "round",
-                            ),
-                          ]
-                        : []),
                       a(
                         "transform",
                         `matrix(${solid.caption.join(" ")})`,
@@ -2000,6 +2037,37 @@ export const drawFlow = (
       edges,
     );
   };
+  const easeScale =
+    (state.orbitEase?.from.scale ??
+      state.camera.scale) / state.camera.scale;
+  const easeDrawing = (
+    children: Html<Change>[],
+  ) =>
+    state.orbitEase?.to === state.camera
+      ? [
+          el(
+            "g",
+            [
+              a(
+                "style",
+                `--fit-scale:${easeScale};--fit-x:${state.orbitEase.from.origin.x - state.camera.origin.x * easeScale}px;--fit-y:${state.orbitEase.from.origin.y - state.camera.origin.y * easeScale}px;animation:flow-fit 200ms ease-out`,
+              ),
+            ],
+            [
+              el(
+                "style",
+                [],
+                [
+                  text(
+                    "@keyframes flow-fit {from {transform:translate(var(--fit-x),var(--fit-y)) scale(var(--fit-scale))} to {transform:none}}",
+                  ),
+                ],
+              ),
+              ...children,
+            ],
+          ),
+        ]
+      : children;
   return svgViewport<Change>(
     frame.x,
     frame.y,
@@ -2273,6 +2341,7 @@ export const drawFlow = (
             const rotated = orbitByDrag(
               b.x - a.x,
               b.y - a.y,
+              drawing,
             )({
               ...rest,
               camera: start.camera,
@@ -2285,6 +2354,9 @@ export const drawFlow = (
             });
             return {
               ...rotated,
+              manualZoom:
+                rotated.manualZoom ||
+                Math.abs(span - nextSpan) > 0.1,
               camera: zoomAt(
                 a,
                 span && nextSpan
@@ -2300,6 +2372,7 @@ export const drawFlow = (
               movePointer(
                 point.content,
                 e.pointerId,
+                drawing,
               ),
             )
           : none();
@@ -2332,7 +2405,7 @@ export const drawFlow = (
                 ...rest
               } = s;
               return {
-                ...rest,
+                ...settleOrbit(rest, drawing),
                 drag:
                   name === "pointercancel"
                     ? none()
@@ -2410,7 +2483,10 @@ export const drawFlow = (
                   )({ ...s, drag: none() })
                 : { ...s, drag: none() };
             }
-            const released = releasePointer(s);
+            const released = releasePointer(
+              s,
+              drawing,
+            );
             if (
               name === "pointerup" &&
               isSome(s.drag)
@@ -2630,7 +2706,7 @@ export const drawFlow = (
         return some(command);
       }),
     ],
-    [
+    easeDrawing([
       ...(state.scenery
         ? scenery
             .filter((s) => s.layer === "behind")
@@ -2721,6 +2797,72 @@ export const drawFlow = (
       ...scenery
         .filter((s) => s.layer === "front")
         .map((s) => s.html),
+      ...(() => {
+        const placed: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        }[] = [];
+        return tags
+          .sort((a, b) => b.depth - a.depth)
+          .map((tag) => {
+            let y = tag.y;
+            while (
+              placed.some(
+                (p) =>
+                  Math.abs(p.x - tag.x) * 2 <=
+                    p.width + tag.width &&
+                  Math.abs(p.y - y) * 2 <=
+                    p.height + tag.height,
+              )
+            )
+              y -= 4;
+            placed.push({ ...tag, y });
+            return el(
+              "g",
+              [
+                key("tag-" + tag.id),
+                a("pointer-events", "none"),
+                a("data-node-caption", "tag"),
+              ],
+              [
+                ...(tag.y - y > 6
+                  ? [
+                      el(
+                        "line",
+                        [
+                          a("x1", tag.x),
+                          a("x2", tag.x),
+                          a("y1", y),
+                          a(
+                            "y2",
+                            tag.y +
+                              10 * tag.scale,
+                          ),
+                          a(
+                            "stroke",
+                            "var(--pencil,gray)",
+                          ),
+                        ],
+                        [],
+                      ),
+                    ]
+                  : []),
+                el(
+                  "g",
+                  [
+                    a(
+                      "transform",
+                      `translate(${tag.x} ${y}) scale(${tag.scale})`,
+                    ),
+                  ],
+                  [tag.html],
+                ),
+              ],
+            );
+          });
+      })(),
       ...(active &&
       scene.edges.some(
         (e) => e.original === active,
@@ -2889,7 +3031,7 @@ export const drawFlow = (
       ...(state.scrollHint === undefined
         ? []
         : [scrollHint(state.scrollHint, frame)]),
-    ],
+    ]),
   );
 };
 

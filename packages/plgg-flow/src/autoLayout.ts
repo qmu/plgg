@@ -21,8 +21,10 @@ import { components } from "plgg-flow/topology";
 export type LayerOptions = Readonly<{
   direction?: "right" | "down";
   depth?: boolean;
+  layerAxis?: Axis;
 }>;
 export type LayerPlan = Readonly<{
+  planes?: readonly LayerPlane[];
   graph: Graph;
   layers: ReadonlyMap<string, number>;
   routes: ReadonlyMap<number, readonly Point[]>;
@@ -619,10 +621,79 @@ const wrappedPositions = (
   return positions;
 };
 
+export type LayerPlane = {
+  value: string;
+  min: Point3;
+  max: Point3;
+};
+export const placeOnLayers = (
+  graph: Graph,
+  axis: Axis,
+) => {
+  const data = classify(graph, [axis]),
+    values = data.axes[0]!.values;
+  let left = Infinity,
+    right = -Infinity,
+    top = Infinity,
+    bottom = -Infinity;
+  const nodes = graph.nodes.map((n) => {
+    const z = -112 * data.addressOf(n)[0]!,
+      { x, y } = n.position,
+      { width, height } = nodeSize(n);
+    left = Math.min(left, x - width / 2);
+    right = Math.max(right, x + width / 2);
+    top = Math.min(top, y - height / 2);
+    bottom = Math.max(bottom, y + height / 2);
+    return {
+      ...n,
+      position: { x, y, z },
+      within: {
+        min: {
+          x: Number.MIN_SAFE_INTEGER,
+          y: Number.MIN_SAFE_INTEGER,
+          z,
+        },
+        max: {
+          x: Number.MAX_SAFE_INTEGER,
+          y: Number.MAX_SAFE_INTEGER,
+          z,
+        },
+      },
+    };
+  });
+  const planes = nodes.length
+    ? values.map((value, i) => {
+        const z = -112 * i - 20;
+        return {
+          value,
+          min: { x: left - 32, y: top - 32, z },
+          max: {
+            x: right + 32,
+            y: bottom + 32,
+            z,
+          },
+        };
+      })
+    : [];
+  return { graph: { ...graph, nodes }, planes };
+};
 export const planLayers = (
   graph: Graph,
   options: LayerOptions = {},
 ): LayerPlan => {
+  if (options.layerAxis) {
+    if (options.depth)
+      throw new Error(
+        "depth and layerAxis cannot be combined",
+      );
+    const { layerAxis, ...plain } = options,
+      plan = planLayers(graph, plain);
+    return {
+      ...plan,
+      ...placeOnLayers(plan.graph, layerAxis),
+    };
+  }
+
   const down = options.direction === "down";
   const nodes = graph.nodes
     .slice()

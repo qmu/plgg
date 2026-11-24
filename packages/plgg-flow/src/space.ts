@@ -141,14 +141,45 @@ export const planSpace = (
             y: extent.y - slabs.y[j + 1]!,
             z: min.z + slabs.z[k]!,
           };
-          for (const n of cell.nodes) {
-            const p = local.get(n.id)!;
+          // Nodes stand in the middle of their cell, not against
+          // its back-left corner.
+          const placed = cell.nodes.map((n) => ({
+            n,
+            p: local.get(n.id)!,
+            half: sizes(n).width / 2,
+          }));
+          const middle = (
+            lows: number[],
+            highs: number[],
+            span: number,
+          ) =>
+            placed.length
+              ? Math.round(
+                  (span -
+                    Math.min(...lows) -
+                    Math.max(...highs)) /
+                    2 /
+                    16,
+                ) * 16
+              : 0;
+          const shift = {
+            x: middle(
+              placed.map((q) => q.p.x - q.half),
+              placed.map((q) => q.p.x + q.half),
+              spans.x[i]!,
+            ),
+            z: middle(
+              placed.map((q) => q.p.z),
+              placed.map((q) => q.p.z),
+              spans.z[k]!,
+            ),
+          };
+          for (const { n, p } of placed)
             positions.set(n.id, {
-              x: lo.x + p.x,
+              x: lo.x + p.x + shift.x,
               y: extent.y - slabs.y[j]! - p.y,
-              z: lo.z + p.z,
+              z: lo.z + p.z + shift.z,
             });
-          }
           return {
             ...cell,
             index: [i, j, k] satisfies [

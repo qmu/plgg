@@ -131,7 +131,7 @@ const tools: readonly SheetTool[] = [
   {
     name: "views",
     view: (f) =>
-      f.rooms
+      f.rooms || f.layered?.options.layerAxis
         ? text("")
         : el(
             "span",

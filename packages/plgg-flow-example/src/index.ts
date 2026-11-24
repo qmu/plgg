@@ -1237,6 +1237,7 @@ const controls = (
     case "split":
     case "dimensions":
     case "rooms":
+    case "layers":
     case "layered":
     case "space":
       return [];
@@ -1428,7 +1429,9 @@ const toolbar = (
           fittedCamera: next.flow.camera,
         };
       }),
-    !!flow.rooms,
+    flow.layered?.options.layerAxis
+      ? "layer"
+      : !!flow.rooms,
     tool ? [boardActions(tool.view(flow))] : [],
   );
 };
@@ -1443,6 +1446,7 @@ const featureInput = (
   switch (id) {
     case "dimensions":
     case "rooms":
+    case "layers":
     case "layered":
       return id;
     case "space":

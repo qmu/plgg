@@ -41,6 +41,7 @@ import {
 } from "plgg-flow/dsl";
 import { arrangeHierarchy } from "plgg-flow/layout";
 import {
+  placeOnLayers,
   planLayers,
   planRooms,
 } from "plgg-flow/autoLayout";
@@ -71,7 +72,19 @@ export const fitDemo = (flow: Flow): Flow => {
     flow.rooms &&
     camera.yaw === 0 &&
     camera.pitch === 0;
+  const axis = flow.layered?.options.layerAxis;
   const bounds = [
+    ...(axis
+      ? placeOnLayers(flow, axis).planes.flatMap(
+          ({ min, max }) =>
+            [
+              min,
+              max,
+              { ...min, x: max.x },
+              { ...max, x: min.x },
+            ].map(at),
+        )
+      : []),
     ...(flow.rooms?.rooms.flatMap((r) =>
       face
         ? [
@@ -332,6 +345,10 @@ export const roomFrames = <Action>(
     },
   );
 };
+const layerViews = [
+  ["正面", 0, 0],
+  ["立体", -0.5, 0.35],
+] satisfies [string, number, number][];
 export const roomsOpening = viewAt(0.6, -0.5);
 const arrangeSheet: Change = (f) => {
   if (f.rooms) {
@@ -347,7 +364,10 @@ const arrangeSheet: Change = (f) => {
   }
   // a sheet with groups keeps each group whole: the
   // groups and loose nodes are arranged as units
-  if (f.nodes.some((n) => n.group))
+  if (
+    !f.layered?.options.layerAxis &&
+    f.nodes.some((n) => n.group)
+  )
     return {
       ...f,
       ...arrangeHierarchy(f),
@@ -376,17 +396,19 @@ const arrangeSheet: Change = (f) => {
   );
   const laid: Flow = {
     ...f,
-    nodes: f.nodes.map((n) => {
-      const p = placed.get(n.id);
-      return p
-        ? {
-            ...n,
-            position: options.depth
-              ? p
-              : { ...p, z: n.position.z },
-          }
-        : n;
-    }),
+    nodes: options.layerAxis
+      ? plan.graph.nodes
+      : f.nodes.map((n) => {
+          const p = placed.get(n.id);
+          return p
+            ? {
+                ...n,
+                position: options.depth
+                  ? p
+                  : { ...p, z: n.position.z },
+              }
+            : n;
+        }),
     edges: plan.graph.edges,
     ...(f.layered
       ? {
@@ -828,7 +850,7 @@ export const sheetToolbar = <Action>(
   back: boolean,
   forward: boolean,
   change: (fn: Change) => Action,
-  rooms: boolean,
+  views: boolean | "layer",
   tools: readonly Html<Action>[] = [],
 ) => {
   const button = (
@@ -933,22 +955,28 @@ export const sheetToolbar = <Action>(
         }),
       ),
 
-      ...(rooms
+      ...(views
         ? [
-            ...roomViews.map(
-              ([label, yaw, pitch]) =>
-                button(
-                  label,
-                  change((f) =>
-                    turnRooms(
-                      f,
-                      fitDemo(
+            ...(views === "layer"
+              ? layerViews
+              : roomViews
+            ).map(([label, yaw, pitch]) =>
+              button(
+                label,
+                change((f) =>
+                  views === "layer"
+                    ? fitDemo(
                         viewAt(yaw, pitch)(f),
+                      )
+                    : turnRooms(
+                        f,
+                        fitDemo(
+                          viewAt(yaw, pitch)(f),
+                        ),
+                        300,
                       ),
-                      300,
-                    ),
-                  ),
                 ),
+              ),
             ),
           ]
         : []),

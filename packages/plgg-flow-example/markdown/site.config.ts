@@ -25,6 +25,11 @@ export default {
           items: [],
         },
         {
+          text: "レイヤーに分ける",
+          link: "/samples/layers",
+          items: [],
+        },
+        {
           text: "部屋に分ける",
           link: "/samples/rooms",
           items: [],

@@ -593,7 +593,7 @@ export const sheetProperties = <A>(
           (v) => change(setLayout(v)),
         ),
       ),
-      ...(options
+      ...(options && !options.layerAxis
         ? [
             toggle(
               "奥行き",
@@ -634,6 +634,45 @@ export const sheetProperties = <A>(
             })),
         ),
       ),
+      ...(options
+        ? [
+            row(
+              "layer",
+              field(
+                "layer 軸の属性",
+                options.layerAxis?.attribute ??
+                  "",
+                (v) =>
+                  change((f) => {
+                    if (!f.layered) return f;
+                    const {
+                      layerAxis,
+                      depth,
+                      ...plain
+                    } = f.layered.options;
+                    return {
+                      ...f,
+                      layered: {
+                        ...f.layered,
+                        options: v.trim()
+                          ? {
+                              ...plain,
+                              layerAxis: {
+                                attribute:
+                                  v.trim(),
+                                values:
+                                  layerAxis?.values ??
+                                  [],
+                              },
+                            }
+                          : plain,
+                      },
+                    };
+                  }),
+              ),
+            ),
+          ]
+        : []),
       ...axisRows(),
       toggle(
         "循環を禁止",
@@ -823,7 +862,10 @@ export const sheetProperties = <A>(
         ),
       ),
       ...Object.values(
-        flow.rooms?.axes ?? {},
+        flow.rooms?.axes ??
+          (flow.layered?.options.layerAxis
+            ? [flow.layered.options.layerAxis]
+            : []),
       ).map((axis) =>
         row(
           axis.attribute,

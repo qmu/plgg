@@ -8,6 +8,7 @@ import {
 } from "plgg-flow/model";
 import {
   planLayers,
+  placeOnLayers,
   roles,
   type Axis,
   planRooms,
@@ -218,6 +219,7 @@ export const parseSpec = (
     rules: Rule[] = [];
   let rooms = false;
   const definitions: Axis[] = [];
+  const axisLines: string[] = [];
   const assignments = new Map<string, string>();
   const pins = new Map<string, string>();
   let layout: LayerOptions | undefined;
@@ -272,6 +274,7 @@ export const parseSpec = (
         )
       )
         return err(at + "axis 属性 [値…]");
+      axisLines.push(at);
       definitions.push({
         attribute,
         values: words,
@@ -284,6 +287,7 @@ export const parseSpec = (
         if (
           !attribute ||
           (!roles.some((r) => r === role) &&
+            role !== "layer" &&
             role !== "pin")
         )
           return err(
@@ -370,6 +374,34 @@ export const parseSpec = (
     );
   if (stray !== undefined)
     return err(`未定義のノード「${stray}」`);
+  if (layout && definitions.length) {
+    if (definitions.length > 1)
+      return err(
+        axisLines[1] +
+          "layered は軸を1つだけ指定できます",
+      );
+    if (layout.depth)
+      return err(
+        axisLines[0] +
+          "depth と layer 軸は併用できません",
+      );
+    const layerAxis = definitions[0]!;
+    if (
+      [...assignments.values()].some(
+        (role) => role !== "layer",
+      )
+    )
+      return err(
+        axisLines[0] +
+          "layered の軸の役割は layer です",
+      );
+    layout = { ...layout, layerAxis };
+  } else if (
+    [...assignments.values()].includes("layer")
+  )
+    return err(
+      "view layer は layout layered の指定です",
+    );
   const axes: Record<
     string,
     Axis & { pin?: string }
@@ -482,6 +514,23 @@ const laySpec =
         plan?.graph.edges[i],
       ]),
     );
+    const positioned = spec.graph.nodes.map(
+      (n) => ({
+        ...n,
+        position:
+          computed.get(n.id) ?? n.position,
+      }),
+    );
+    const axis = spec.layout?.layerAxis;
+    const lifted =
+      axis &&
+      placeOnLayers(
+        { ...spec.graph, nodes: positioned },
+        axis,
+      );
+    for (const n of lifted?.graph.nodes ?? [])
+      if (computed.has(n.id))
+        computed.set(n.id, n.position);
     return {
       ...rest,
       ...spec.graph,
@@ -493,6 +542,17 @@ const laySpec =
       }),
       ...(spec.layout
         ? {
+            ...(axis && {
+              camera: {
+                ...flow.camera,
+                perspective: false,
+                ...(!layered?.options
+                  .layerAxis && {
+                  yaw: -0.5,
+                  pitch: 0.35,
+                }),
+              },
+            }),
             edges: spec.graph.edges.map(
               (e, i) => routed.get(i) ?? e,
             ),
@@ -500,11 +560,8 @@ const laySpec =
               options: spec.layout,
               computed,
             },
-            nodes: spec.graph.nodes.map((n) => ({
-              ...n,
-              position:
-                computed.get(n.id) ?? n.position,
-            })),
+            nodes:
+              lifted?.graph.nodes ?? positioned,
           }
         : {}),
       ...allow(spec.rules),
@@ -707,6 +764,18 @@ const buildLines = (
               : []),
             ...(options.depth ? ["depth"] : []),
           ]),
+          ...(options.layerAxis
+            ? [
+                directive("axis", [
+                  quoted(
+                    options.layerAxis.attribute,
+                  ),
+                  ...options.layerAxis.values.map(
+                    name,
+                  ),
+                ]),
+              ]
+            : []),
         ]
       : []),
     ...(flow.snap === undefined ||

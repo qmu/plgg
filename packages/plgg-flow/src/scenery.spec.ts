@@ -1,7 +1,14 @@
+import { project } from "plgg-board";
+import {
+  projectNodeBody,
+  bodyDepth,
+} from "plgg-flow/nodeBody";
 import { test, check, toBe } from "plgg-test";
 import { some } from "plgg";
 import { renderToString } from "plgg-view";
 import {
+  orbitByDrag,
+  settleOrbit,
   createFlow,
   movePointer,
   selectNodes,
@@ -120,21 +127,138 @@ test("captions switch between the front face and an upright tag with hysteresis"
         (pitch) =>
           draw(yaw, pitch).includes(
             'data-node-caption="tag"',
-          ) === (yaw === 1.4 || pitch === 1.3),
+          ) === (yaw !== 0 || pitch !== 0),
       ),
     ) &&
       draw(1.4, 0).includes(
         'data-node-caption="tag"',
       ) &&
-      draw(Math.acos(0.48), 0).includes(
+      draw(Math.acos(0.72), 0).includes(
         'data-node-caption="tag"',
       ) &&
-      !draw(Math.acos(0.51), 0).includes(
+      !draw(Math.acos(0.76), 0).includes(
         'data-node-caption="tag"',
       ) &&
-      !draw(Math.acos(0.48), 0).includes(
+      !draw(Math.acos(0.72), 0).includes(
         'data-node-caption="tag"',
       ),
+    toBe(true),
+  );
+});
+
+test("front tags clear one another after every box at the side and top views", () => {
+  const flow = createFlow({
+    nodes: ["Near", "Far"].map((id) => ({
+      id,
+      label: id,
+      position: p,
+    })),
+    edges: [],
+  });
+  return check(
+    [
+      [Math.PI / 2, 0],
+      [-Math.PI / 2, 0],
+      [0.22, -1.05],
+    ].every(([yaw, pitch]) => {
+      const html = renderToString(
+        drawFlow({
+          ...flow,
+          camera: {
+            ...flow.camera,
+            yaw: yaw!,
+            pitch: pitch!,
+          },
+        }),
+      );
+      const tags = html
+        .split('data-node-caption="tag"')
+        .slice(1);
+      const heights = tags.map((tag) =>
+        Number(
+          tag.match(
+            /translate\([^ ]+ ([^)]*)\)/,
+          )?.[1],
+        ),
+      );
+      return (
+        tags.length === 2 &&
+        html.lastIndexOf("data-node-face") <
+          html.indexOf(
+            'data-node-caption="tag"',
+          ) &&
+        Math.abs(heights[0]! - heights[1]!) >
+          20 &&
+        tags.some((tag) => tag.includes("<line"))
+      );
+    }),
+    toBe(true),
+  );
+});
+test("the rear caption reads left to right on the visible back", () => {
+  const node = {
+      id: "rear",
+      label: "Rear",
+      position: p,
+    },
+    flow = createFlow({
+      nodes: [node],
+      edges: [],
+    });
+  const body = projectNodeBody(node, {
+    ...flow.camera,
+    yaw: (5 * Math.PI) / 6,
+  });
+  return check(
+    body.visible.some((f) => f.side === "back") &&
+      !body.tagged &&
+      Number(body.caption?.[0]) > 0,
+    toBe(true),
+  );
+});
+test("drag orbit centres the drawing in the uncovered frame and preserves manual zoom on release", () => {
+  const flow = createFlow({
+    nodes: [
+      {
+        id: "offset",
+        label: "Offset",
+        position: { x: 80, y: 100, z: 20 },
+        width: 64,
+        height: 32,
+      },
+    ],
+    edges: [],
+  });
+  const rotated = orbitByDrag(
+    100,
+    20,
+  )({
+    ...flow,
+    frame: { x: 500, y: 320 },
+    cover: 180,
+    scenery: [
+      {
+        kind: "line",
+        layer: "behind",
+        tone: "gray",
+        points: [{ x: 800, y: 300, z: 60 }],
+      },
+    ],
+  });
+  const centre = project(rotated.camera)({
+    x: (48 + 800) / 2,
+    y: (84 + 300) / 2,
+    z: (20 - bodyDepth(flow.nodes[0]!) + 60) / 2,
+  });
+  return check(
+    Math.abs(centre.x - 160) < 1e-8 &&
+      Math.abs(centre.y - 160) < 1e-8 &&
+      settleOrbit(rotated).camera.scale <
+        rotated.camera.scale &&
+      settleOrbit({
+        ...rotated,
+        manualZoom: true,
+      }).camera.scale === rotated.camera.scale,
     toBe(true),
   );
 });

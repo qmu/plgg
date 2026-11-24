@@ -198,7 +198,9 @@ export const mountSheet = (
           !!m.history.before.length,
           !!m.history.after.length,
           (fn) => change(fn, true),
-          !!current.rooms,
+          current.layered?.options.layerAxis
+            ? "layer"
+            : !!current.rooms,
           names.flatMap((name) => {
             const tool = sheetTools.get(name);
             return tool

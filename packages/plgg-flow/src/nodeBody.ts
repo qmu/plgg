@@ -178,22 +178,26 @@ export const projectNodeBody = (
       ? [{ ...face, points }]
       : [];
   });
-  const origin = corners[4]!,
-    right = corners[5]!,
-    bottom = corners[7]!;
-  const ratio = Math.min(
-    (right.x - origin.x) / (2 * w),
-    (bottom.y - origin.y) / (2 * h),
+  const back = visible.some(
+    (f) => f.side === "back",
   );
-  const tagged =
-    !visible.some((f) => f.side === "front") ||
-    ratio < (wasTagged ? 0.5 : 0.45);
+  const i = back ? 0 : 4;
+  const origin = corners[i]!,
+    right = corners[i + 1]!,
+    bottom = corners[i + 3]!;
+  const ratio = Math.min(
+    Math.abs(right.x - origin.x) / (2 * w),
+    Math.abs(bottom.y - origin.y) / (2 * h),
+  );
+  const tagged = ratio < (wasTagged ? 0.75 : 0.7);
   const face = {
     ...node.position,
-    z: node.position.z + d,
+    z: node.position.z + (back ? -d : d),
   };
   const centerFace = local(at(face));
-  const x = local(at({ ...face, x: face.x + 1 }));
+  const x = local(
+    at({ ...face, x: face.x + (back ? -1 : 1) }),
+  );
   const y = local(at({ ...face, y: face.y + 1 }));
   const xs = corners.map((p) => p.x);
   const caption = tagged
