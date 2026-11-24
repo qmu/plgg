@@ -1823,3 +1823,30 @@ Open, from looking:
   read the names off the boxes win.
 - Axis rows are correct but faint and small at the fitted scale
   (values 9px pencil). Values 10px graphite; names 11px 600.
+
+## Shooting round 2 (cake, six angles; three subjects read cold) — reviewer's score: cake 75, rooms 62
+
+Names are on the faces that show them; from the right, from
+behind and from above the cake stays one solid thing with readable
+names; dark and light tones both hold.
+
+Read cold: 供給網 — "everything passes through 組立工場" is plain.
+Web システムの構成 — mostly. **TCP/IP — not plain**: the point is in
+the wires *between* boards, and they drop along the far rim where
+the board above hides them.
+
+To fix:
+
+1. **Drops are routed where the usual viewer sees them.** Aisle
+   choice prefers, in order: the front rim (largest z), the left
+   rim, a hole through the board in front of the node rows, and
+   only then the far and right rims. (Routes stay independent of
+   the camera; this is a fixed preference for the front, which is
+   where every named view except from behind looks from.)
+2. **正面 is not face-on.** On cake and rooms it is yaw −0.22,
+   elevation 0.20 as designed; seen exactly edge-on, rows of nodes
+   cover one another and boards are bars.
+3. **Names stay in the frame.** In 上 the board names run under
+   the DSL overlay: the fit must include every label box.
+4. View search: a caption forced to a tag costs 2 per node (it
+   picked a view along the service axis for rooms, all tags).
