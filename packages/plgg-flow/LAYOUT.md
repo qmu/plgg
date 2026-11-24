@@ -191,3 +191,11 @@ Not right yet:
   `Audit -> Gateway` and `DB -> Catalog`.
 - fit-to-view must also run after the DSL is edited (the layout
   changes and the sheet may leave the frame).
+
+## Round L5 review — adopted
+
+Seen in the demo turned from above: the reversed edge Audit→Gateway
+rises over the forward flow as a deck with risers; from the front the
+2D picture is unchanged; the sample now has two cycles; the sheet
+refits after a DSL edit. Open: the bridge has raw corners in 3D, and
+long forward edges have no height of their own yet.

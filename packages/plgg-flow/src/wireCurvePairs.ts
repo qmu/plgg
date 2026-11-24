@@ -27,11 +27,8 @@ import {
   normal,
 } from "plgg-flow/wireGeometry";
 import { cache, boxId } from "plgg-flow/wireMemo";
-import {
-  profile,
-  measureConflict,
-} from "plgg-flow/wireInteraction";
-import type { Edge } from "./model";
+import { profile } from "plgg-flow/wireInteraction";
+import type { FlowNode, Edge } from "./model";
 import type { Socket } from "./wireBase";
 
 type Option = {
@@ -48,14 +45,30 @@ const cubics = cache<{
   bounds: Bounds;
   option: Option;
 }>(4096);
+export const socketRegion = (
+  a: FlowNode,
+  b: FlowNode,
+) =>
+  corridor(
+    [a.position, b.position],
+    Math.max(
+      180,
+      24 +
+        0.13 * distance(a.position, b.position),
+      a.width ?? 0,
+      b.width ?? 0,
+      a.height ?? 0,
+      b.height ?? 0,
+    ),
+  );
+const swept = cache<Box[]>(8192);
 const geometry = cache<Option>(8192);
-const option = (
+export const socketOption = (
   edge: Edge,
   s: Socket,
   t: Socket,
   walls: Box[],
   detour: boolean,
-  fan?: "source" | "target",
 ) => {
   const ends = JSON.stringify([
     edge.source,
@@ -64,10 +77,14 @@ const option = (
     t,
   ]);
   const cubic = cubics(ends, () => {
-    const { plain } = canonical(s, t);
-    const shape = profile(
-      materialize(edge, s, t, plain, 0, false),
-    );
+    const { plain, p1, p2 } = canonical(s, t);
+    const shape = profile({
+      ...materialize(edge, s, t, plain, 0, false),
+      controls: [
+        { ...p1, z: s.z },
+        { ...p2, z: t.z },
+      ],
+    });
     return {
       plain,
       bounds: corridor(plain, 10),
@@ -81,86 +98,77 @@ const option = (
       },
     };
   });
-  const nearby = detour
-    ? walls
-    : walls.filter((w) =>
-        intersects(w, cubic.bounds),
-      );
-  return geometry(
-    JSON.stringify([
-      ends,
-      nearby.map(boxId),
-      detour,
-      fan,
-    ]),
-    () => {
-      if (
-        !blockers(edge, cubic.plain, nearby)
-          .length
-      )
-        return cubic.option;
-      if (!detour)
-        return { ...cubic.option, free: false };
-      const wire = curvePath(
-        edge,
-        s,
-        t,
-        nearby,
-        0,
-        1,
-        false,
-        fan,
-      );
-      const shape = profile(wire);
-      let contacts = 0;
-      for (const wall of nearby) {
-        const end =
-          wall.id === edge.source
-            ? s
-            : wall.id === edge.target
-              ? t
-              : undefined;
-        if (
-          wire.points.some(
-            (p) =>
-              (!end || distance(p, end) >= 20) &&
-              pointGap(p, wall) < (end ? 3 : 6),
+  const nearby = walls.filter((w) =>
+    intersects(w, cubic.bounds),
+  );
+  const blocked = swept(
+    JSON.stringify([ends, nearby.map(boxId)]),
+    () => blockers(edge, cubic.plain, nearby),
+  );
+  if (!blocked.length) return cubic.option;
+  if (!detour)
+    return { ...cubic.option, free: false };
+  const active = walls.filter(
+    (q) =>
+      q.id === edge.source ||
+      q.id === edge.target ||
+      blocked.some((w) => boxId(w) === boxId(q)),
+  );
+  for (;;) {
+    const result = geometry(
+      JSON.stringify([ends, active.map(boxId)]),
+      () => {
+        const wire = curvePath(
+          edge,
+          s,
+          t,
+          active,
+          0,
+          1,
+          false,
+        );
+        const shape = profile(wire);
+        let contacts = 0;
+        for (const wall of active) {
+          const end =
+            wall.id === edge.source
+              ? s
+              : wall.id === edge.target
+                ? t
+                : undefined;
+          if (
+            wire.points.some(
+              (p) =>
+                (!end ||
+                  distance(p, end) >= 20) &&
+                pointGap(p, wall) < (end ? 3 : 6),
+            )
           )
-        )
-          contacts++;
-      }
-      return {
-        left: s.side,
-        right: t.side,
-        free: false,
-        shape,
-        length: shape.length,
-        faults:
-          contacts * 10 + extraBends(wire.points),
-      };
-    },
-  );
-};
-
-const conflictMemo = new WeakMap<
-  Option["shape"],
-  WeakMap<Option["shape"], number>
->();
-const conflicts = (a: Option, b: Option) => {
-  const memo =
-    conflictMemo.get(a.shape) ??
-    new WeakMap<Option["shape"], number>();
-  const hit = memo.get(b.shape);
-  if (hit !== undefined) return hit;
-  const cost = measureConflict(
-    a.shape,
-    b.shape,
-    Infinity,
-    true,
-  );
-  memo.set(b.shape, cost);
-  conflictMemo.set(a.shape, memo);
-  return cost;
+            contacts++;
+        }
+        return {
+          left: s.side,
+          right: t.side,
+          free: false,
+          shape,
+          length: shape.length,
+          faults:
+            contacts * 10 +
+            extraBends(wire.points),
+        };
+      },
+    );
+    const path = result.shape.wire.points;
+    const area = corridor(path, 10);
+    const extra = walls.filter(
+      (q) =>
+        !active.includes(q) &&
+        intersects(q, area) &&
+        !free(path, [inflate(q, 10)]),
+    );
+    if (!extra.length) return result;
+    active.push(...extra);
+  }
 };
 
 export const selectCurvePairs = (
@@ -169,7 +177,11 @@ export const selectCurvePairs = (
   policy: (
     end: End,
     start: boolean,
-  ) => { common: boolean; allowed: Side[] },
+  ) => {
+    common: boolean;
+    main: Side;
+    allowed: Side[];
+  },
 ) => {
   const pair = (p: Plan) =>
     JSON.stringify(
@@ -177,7 +189,23 @@ export const selectCurvePairs = (
     );
   const multiplicity = new Map<string, number>();
   const degree = new Map<string, number>();
+  const childrenByNode = new Map<
+    string,
+    Plan[]
+  >();
+  const incoming = new Map<string, number>();
   for (const plan of plans) {
+    const children =
+      childrenByNode.get(plan.edge.source) ?? [];
+    children.push(plan);
+    childrenByNode.set(
+      plan.edge.source,
+      children,
+    );
+    incoming.set(
+      plan.edge.target,
+      (incoming.get(plan.edge.target) ?? 0) + 1,
+    );
     multiplicity.set(
       pair(plan),
       (multiplicity.get(pair(plan)) ?? 0) + 1,
@@ -188,10 +216,7 @@ export const selectCurvePairs = (
     ])
       degree.set(id, (degree.get(id) ?? 0) + 1);
   }
-  const region = new Map<Plan, Box[]>();
   const options = new Map<Plan, Option[]>();
-  const projected = new Map<End, Option[]>();
-  const incident = new Map<string, Plan[]>();
   for (const plan of plans) {
     const { edge, a, b } = plan;
     if (
@@ -202,21 +227,32 @@ export const selectCurvePairs = (
       continue;
     const p = a.node.position,
       q = b.node.position;
-    const reach = Math.max(
-      180,
-      24 + 0.13 * distance(p, q),
-      a.node.width ?? 0,
-      b.node.width ?? 0,
-      a.node.height ?? 0,
-      b.node.height ?? 0,
+    const walls = query(
+      socketRegion(a.node, b.node),
     );
-    const walls = query({
-      l: Math.min(p.x, q.x) - reach,
-      r: Math.max(p.x, q.x) + reach,
-      t: Math.min(p.y, q.y) - reach,
-      b: Math.max(p.y, q.y) + reach,
-    });
-    region.set(plan, walls);
+    // In a downward branch, keep each child attached to the same
+    // faces even when another child occupies the intervening row.
+    const children = required(
+      childrenByNode.get(edge.source),
+    );
+    if (
+      children.length > 1 &&
+      children.every(
+        (child) =>
+          child.b.node.position.y > p.y &&
+          incoming.get(child.edge.target) === 1,
+      ) &&
+      children.some(
+        (child) =>
+          Math.abs(
+            child.b.node.position.x - p.x,
+          ) < 8,
+      )
+    ) {
+      a.side = "bottom";
+      b.side = "top";
+      continue;
+    }
     const obstructed = walls.some(
       (w) =>
         w.id !== edge.source &&
@@ -234,12 +270,15 @@ export const selectCurvePairs = (
       end: End,
       {
         common,
+        main,
         allowed,
       }: ReturnType<typeof policy>,
     ) => {
-      return fixed || (common && !obstructed)
+      return fixed
         ? [end.side]
-        : [end.side, ...allowed];
+        : common && !obstructed
+          ? [main]
+          : [end.side, ...allowed];
     };
     const leftSides = sides(a, sourcePolicy),
       rightSides = sides(b, targetPolicy);
@@ -252,7 +291,7 @@ export const selectCurvePairs = (
         right: Side,
         detour: boolean,
       ) =>
-        option(
+        socketOption(
           edge,
           {
             ...portPosition(a.node, left, 0),
@@ -264,13 +303,6 @@ export const selectCurvePairs = (
           },
           walls,
           detour,
-          (degree.get(a.node.id) ?? 0) >= 4 &&
-            degree.get(b.node.id) === 1
-            ? "source"
-            : (degree.get(b.node.id) ?? 0) >= 4 &&
-                degree.get(a.node.id) === 1
-              ? "target"
-              : undefined,
         );
       const variants = (detour: boolean) =>
         leftSides.flatMap((left) =>
@@ -389,148 +421,18 @@ export const selectCurvePairs = (
       plan,
       candidates(leftSides, rightSides),
     );
-    // At the far end of a sibling only its node geometry belongs to this
-    // fan. Reading its own other wires here would relay a second-hop edit.
-    const facingSides = (end: End) => {
-      const dx =
-          end.peer.position.x -
-          end.node.position.x,
-        dy =
-          end.peer.position.y -
-          end.node.position.y;
-      const primary = facing(dx, dy);
-      const sides: Side[] = [
-        "top",
-        "bottom",
-        "left",
-        "right",
-      ];
-      return [
-        primary,
-        ...sides.filter(
-          (side) =>
-            side !== primary &&
-            normal[side].x * dx +
-              normal[side].y * dy >=
-              0,
-        ),
-      ];
-    };
-    projected.set(
-      a,
-      fixed || degree.get(a.node.id) === 1
-        ? required(options.get(plan))
-        : candidates(leftSides, facingSides(b)),
-    );
-    projected.set(
-      b,
-      fixed || degree.get(b.node.id) === 1
-        ? required(options.get(plan))
-        : candidates(facingSides(a), rightSides),
-    );
-    for (const id of [edge.source, edge.target]) {
-      const list = incident.get(id) ?? [];
-      list.push(plan);
-      incident.set(id, list);
-    }
-  }
-  const cost = (
-    id: string,
-    p: Plan,
-    v: Option,
-    peer: Plan,
-    other: Option,
-  ) => {
-    const out = p.edge.source === id,
-      otherOut = peer.edge.source === id;
-    const mixed =
-      out !== otherOut &&
-      (out ? v.left : v.right) ===
-        (otherOut ? other.left : other.right);
-    return (mixed ? 5 : 0) + conflicts(v, other);
-  };
-  // Solve each fan independently. A decision is never passed on to the
-  // next fan, so solving order cannot propagate a change across a sheet.
-  const fans = new Map<
-    string,
-    Map<Plan, Option>
-  >();
-  for (const [id, star] of incident) {
-    const pool = (p: Plan) =>
-      required(
-        projected.get(
-          p.edge.source === id ? p.a : p.b,
-        ),
-      );
-    const picks = new Map<Plan, Option>();
-    for (const p of star)
-      picks.set(p, required(pool(p)[0]));
-    for (let pass = 0; pass < 3; pass++) {
-      let changed = false;
-      for (const p of star) {
-        const current = required(picks.get(p));
-        let best = current,
-          least = Infinity;
-        for (const v of pool(p)) {
-          let count = v.sidePenalty ?? 0;
-          for (const [peer, other] of picks)
-            if (peer !== p)
-              count += cost(
-                id,
-                p,
-                v,
-                peer,
-                other,
-              );
-          if (
-            count < least ||
-            (count === least &&
-              v.length < best.length - 1e-6)
-          ) {
-            best = v;
-            least = count;
-          }
-        }
-        picks.set(p, best);
-        changed ||= best !== current;
-      }
-      if (!changed) break;
-    }
-    fans.set(id, picks);
   }
   for (const [p, variants] of options) {
-    const stars = [
-      required(fans.get(p.edge.source)),
-      required(fans.get(p.edge.target)),
-    ];
-    let best = required(variants[0]),
-      least = Infinity;
-    for (const v of variants) {
-      let score = v.sidePenalty ?? 0;
-      for (const [index, star] of stars.entries())
-        for (const [peer, route] of star)
-          if (peer !== p)
-            score += cost(
-              index === 0
-                ? p.edge.source
-                : p.edge.target,
-              p,
-              v,
-              peer,
-              route,
-            );
-      if (
-        score < least ||
-        (score === least &&
-          v.length < best.length - 1e-6)
-      ) {
-        best = v;
-        least = score;
-      }
-    }
-    // Preserve the dominant-axis convention on an isolated clear pair.
+    const score = (v: Option) =>
+      (v.sidePenalty ?? 0) +
+      v.length +
+      Number(v.left !== p.a.side) * 1e-5;
+    const best = variants.reduce((a, b) =>
+      score(a) <= score(b) ? a : b,
+    );
     if (
-      stars.every((star) => star.size === 1) &&
+      degree.get(p.a.node.id) === 1 &&
+      degree.get(p.b.node.id) === 1 &&
       best.free &&
       variants.some(
         (v) =>
@@ -539,21 +441,6 @@ export const selectCurvePairs = (
       )
     )
       continue;
-    if (
-      !best.free &&
-      required(multiplicity.get(pair(p))) === 1
-    ) {
-      const wire = best.shape.wire;
-      const walls = required(region.get(p));
-      if (
-        query(corridor(wire.points, 10)).every(
-          (q) =>
-            walls.includes(q) ||
-            free(wire.points, [inflate(q, 10)]),
-        )
-      )
-        p.curve = wire;
-    }
     p.a.side = best.left;
     p.b.side = best.right;
   }

@@ -72,12 +72,12 @@ import {
 } from "plgg-flow";
 import {
   examples,
+  applyDemoSpec,
   type DemoId,
 } from "./examples";
 import {
   parseSpec,
   printSpec,
-  applySpec,
   type Rule,
 } from "plgg-flow/dsl";
 
@@ -1392,7 +1392,7 @@ const dslPanel = (s: {
                   },
                 };
               const next = apply(
-                applySpec(r.content),
+                applyDemoSpec(r.content),
               )({
                 ...cur,
                 rules: r.content.rules,

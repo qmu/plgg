@@ -1217,3 +1217,28 @@ Rule restated for round 28: a curve's shape may depend on other wires
 only through (a) the bundle between the same two nodes and (b) the
 side choice. Lanes for curves are removed again; overlaps are solved
 by side choice or accepted as a fan.
+
+## Round 28 review — adopted; the drag jumps are the reviewer's rule, not lanes
+
+Curve lanes are gone, `snake` 0, org tree and hub clean, sev3 0. But
+drag did not improve (`drag-jump` 16, `drag-jump-neighbour` 19), and
+the list shows why: jumps of 200–500u on wires far from the moved
+node (grid5x4 g01→g43 523u). The cause is the **side retry** the
+reviewer specified in round 25: when a passing node blocks a wire's
+cubic, the wire is moved to other sides, i.e. somewhere else entirely;
+and the retry's "fewer crossings with wires sharing either node" makes
+the choice depend on third parties.
+
+Withdrawn. The rule for round 29:
+- A wire's two sides are a function of its own two nodes only: their
+  relative position (facing sector), sizes, and the fixed sibling /
+  in-out rules evaluated on those two nodes' own wires by the
+  direction to each wire's other end. Never of third nodes, blocking,
+  or crossings.
+- A blocked wire stays on its sides and becomes a soft polyline around
+  the blocker, on the side of the chord away from the blocker's
+  centre. A node dragged across a wire therefore dents it locally and
+  releases it; nothing else moves.
+- Exception, static only: a wire whose facing passage is closed by a
+  node that touches (< 24u) one of its own two nodes may use the next
+  side — this depends on a neighbour that is practically attached.

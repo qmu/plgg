@@ -1064,11 +1064,21 @@ export const flowView = (
               insideLasso(a0, face) ||
               insideLasso(b, face),
           );
+      // Only the vertical risers meet the sockets. The raised deck
+      // participates in depth sorting at its own projected height.
+      const deckSegment =
+        knots !== wire.points &&
+        i > 1 &&
+        i < points.length - 1;
       items.push({
         chosen: chosenWire,
-        depth:
-          i <= 2 ||
-          behindFace(edge.source, wire.sourceSide)
+        depth: deckSegment
+          ? depth
+          : i <= 2 ||
+              behindFace(
+                edge.source,
+                wire.sourceSide,
+              )
             ? paintDepth(
                 edge.source,
                 wire.sourceSide,

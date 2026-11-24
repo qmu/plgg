@@ -1,9 +1,5 @@
-import {
-  outline,
-  chordGap,
-} from "plgg-flow/wireInteraction";
+import { outline } from "plgg-flow/wireInteraction";
 import type { Point } from "plgg-board";
-import type { Wire } from "./wiring";
 import type { Edge } from "./model";
 import {
   corridor,
@@ -71,100 +67,6 @@ export const canonical = (
   );
   return { plain, p1, p2 };
 };
-// Sample both shapes along their runs so a long straight segment cannot
-// hide a larger deviation between its endpoints.
-const follows = (
-  path: readonly Point[],
-  guide: readonly Point[],
-) =>
-  path.every((p, i) => {
-    const a = path[i - 1] ?? p;
-    const steps = Math.max(
-      1,
-      Math.ceil(distance(a, p) / 4),
-    );
-    for (let j = 1; j <= steps; j++) {
-      const q = pt(
-        a.x + ((p.x - a.x) * j) / steps,
-        a.y + ((p.y - a.y) * j) / steps,
-      );
-      if (
-        !guide.some(
-          (end, k) =>
-            k > 0 &&
-            chordGap(q, guide[k - 1]!, end) < 20,
-        )
-      )
-        return false;
-    }
-    return true;
-  });
-
-export const fanCubic = (
-  wire: Wire,
-  s: Socket,
-  t: Socket,
-  boxes: Box[],
-) => {
-  const { plain, p1, p2 } = canonical(s, t);
-  if (
-    !follows(wire.points, plain) ||
-    !follows(plain, wire.points)
-  )
-    return wire;
-  // Moving a handle by d moves the midpoint by 3d/8. Try the
-  // smallest adjustment first, keeping both socket tangents fixed.
-  for (const d of [8, 16, 24, 32, 40, 48]) {
-    for (const [left, right] of [
-      [d, 0],
-      [-d, 0],
-      [0, d],
-      [0, -d],
-      [d, d],
-      [-d, -d],
-      [d, -d],
-      [-d, d],
-    ] satisfies [number, number][]) {
-      const a = move(
-        s,
-        s.side,
-        Math.max(8, distance(s, p1) + left),
-      );
-      const b = move(
-        t,
-        t.side,
-        Math.max(8, distance(t, p2) + right),
-      );
-      const path = bezier(
-        s,
-        a,
-        b,
-        t,
-        plain.length - 1,
-      );
-      if (
-        !blockers(wire.edge, path, boxes)
-          .length &&
-        !crossesItself(path)
-      )
-        return {
-          ...materialize(
-            wire.edge,
-            s,
-            t,
-            path,
-            0,
-            false,
-          ),
-          controls: [
-            { ...a, z: s.z },
-            { ...b, z: t.z },
-          ],
-        };
-    }
-  }
-  return wire;
-};
 export const blockers = (
   edge: Edge,
   plain: Point[],
@@ -199,7 +101,6 @@ export const curvePath = (
   rank: number,
   count: number,
   reciprocal: boolean,
-  fan?: "source" | "target",
 ) => {
   const span = distance(s, t);
   const { plain, p1, p2 } = canonical(s, t);
@@ -262,6 +163,49 @@ export const curvePath = (
         );
       },
     );
+    if (
+      s.side === t.side &&
+      (upright ? dy : dx) === 0
+    ) {
+      const axis = upright ? "y" : "x",
+        along = upright ? "x" : "y";
+      const sign =
+        s.side === "top" || s.side === "left"
+          ? -1
+          : 1;
+      // The outer bundle member gets a wider crown. Both shoulders
+      // keep their socket tangents and are set by this pair alone.
+      const layer = rank / (count - 1);
+      const pitch = Math.min(12, span / 50);
+      const arches = plain.map((p, i) => {
+        const f =
+          (p[along] - s[along]) /
+          (t[along] - s[along]);
+        const u = i / (plain.length - 1);
+        const shoulder =
+          (1 +
+            Math.tanh(
+              (Math.abs(f - 0.5) -
+                (0.075 + 0.1 * layer)) /
+                (0.08 / (1 + layer)),
+            )) /
+          2;
+        return {
+          ...p,
+          [axis]:
+            p[axis] +
+            sign *
+              pitch *
+              ((0.75 * layer - 0.25) *
+                (4 * u * (1 - u)) ** 2 -
+                ((14 - 4 * layer) / 12) *
+                  shoulder *
+                  Math.sin(Math.PI * f) ** 2),
+        };
+      });
+      if (free(arches, boxes))
+        return make(arches, 0);
+    }
     if (free(path, boxes)) return make(path, 0);
   }
   const blocked = blockers(edge, plain, boxes);
@@ -278,6 +222,19 @@ export const curvePath = (
     (span || 1);
   const along = (p: Point) =>
     dx * (p.x - s.x) + dy * (p.y - s.y);
+  const obstacle = required(blocked[0]);
+  const center = pt(
+    (obstacle.l + obstacle.r) / 2,
+    (obstacle.t + obstacle.b) / 2,
+  );
+  const fan =
+    vertical(s.side) === vertical(t.side) &&
+    s.side !== t.side &&
+    rise !== 0
+      ? distance(center, s) < distance(center, t)
+        ? "target"
+        : "source"
+      : undefined;
   const u = move(
       s,
       s.side,
@@ -384,10 +341,125 @@ export const curvePath = (
       length = cost;
     }
   };
+  if (
+    s.side === "bottom" &&
+    t.side === "top" &&
+    Math.abs(dx) < 8 &&
+    blocked.length === 1
+  ) {
+    // Round the approach and departure beside the blocking card.
+    const safe = boxes.map((q) =>
+      q.id === edge.source || q.id === edge.target
+        ? q
+        : inflate(q, 6),
+    );
+    const rim = (obstacle.b - obstacle.t) / 2;
+    for (const x of [
+      obstacle.r + 2 * rim,
+      obstacle.r + 2 * rim + 4,
+      obstacle.r + 2 * rim + 8,
+    ]) {
+      const path = fillet([
+        s,
+        u,
+        pt(x, obstacle.b - 2),
+        t,
+      ]);
+      if (free(path, safe))
+        return materialize(edge, s, t, path, 1);
+    }
+  }
   if (!outward) consider([]);
   if (best)
     return materialize(edge, s, t, best, 0);
   for (const p of candidates) consider([p]);
+  // A guide on an extended socket normal can clear a card with a
+  // single turn where its nearest corner would introduce an S bend.
+  if (!best || leastBends) {
+    for (const end of [s, t]) {
+      const axis = vertical(end.side) ? "y" : "x";
+      const other = end === s ? t : s;
+      const levels = [
+        other[axis],
+        ...candidates.map((p) => p[axis]),
+      ];
+      for (const level of levels) {
+        const extent =
+          (level - end[axis]) *
+          (end.side === "top" ||
+          end.side === "left"
+            ? -1
+            : 1);
+        if (extent > 16 && extent < span)
+          consider([move(end, end.side, extent)]);
+      }
+    }
+  }
+  if (!best || leastBends) {
+    // In a narrow gap a long stem forces the next segment back across
+    // the chord. Shorten the stems before accepting an extra bend.
+    const compact = boxes.map((q) =>
+      q.id === edge.source || q.id === edge.target
+        ? q
+        : inflate(q, 7),
+    );
+    const guides = [
+      pt((s.x + t.x) / 2, (s.y + t.y) / 2),
+      ...candidates,
+    ];
+    for (const f of [0.1, 0.9]) {
+      for (const offset of [
+        -span * 0.6,
+        span * 0.6,
+      ]) {
+        guides.push(
+          pt(
+            s.x + f * dx - (dy * offset) / span,
+            s.y + f * dy + (dx * offset) / span,
+          ),
+        );
+      }
+    }
+    for (const [start, end] of [
+      [16, 16],
+      [12, 12],
+      [10, 10],
+      [8, 16],
+      [16, 8],
+      [6, 16],
+      [16, 6],
+      [6, 6],
+    ] satisfies [number, number][]) {
+      const from = move(s, s.side, start),
+        to = move(t, t.side, end);
+      for (const guide of guides) {
+        const knots = [s, from, guide, to, t];
+        if (
+          extraBends(knots) ||
+          !free(knots, compact)
+        )
+          continue;
+        const forward = (
+          end: Socket,
+          stem: Point,
+          p: Point,
+        ) =>
+          (stem.x - end.x) * (p.x - stem.x) +
+          (stem.y - end.y) * (p.y - stem.y);
+        if (
+          forward(s, from, guide) < 0 ||
+          forward(t, to, guide) < 0
+        )
+          continue;
+        const path = fillet(knots);
+        if (
+          free(path, compact) &&
+          !crossesItself(path)
+        )
+          return materialize(edge, s, t, path, 1);
+      }
+    }
+  }
   if (best && !leastBends)
     return materialize(edge, s, t, best, 1);
   for (const p of candidates)

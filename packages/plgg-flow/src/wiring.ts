@@ -1,12 +1,11 @@
 import {
-  archShoulders,
-  separateCurves,
-} from "plgg-flow/wireCurveLanes";
+  socketRegion,
+  socketOption,
+} from "plgg-flow/wireCurvePairs";
+import { chooseSides } from "plgg-flow/wireSideChoice";
 import {
   curvePath,
-  fanCubic,
   fillet,
-  canonical,
 } from "plgg-flow/wireCurve";
 import { materialize } from "plgg-flow/wirePath";
 import { nodeSize } from "plgg-flow/nodeSize";
@@ -29,7 +28,6 @@ import {
   required,
   distance,
   vertical,
-  rounded,
   facing,
   simplify,
   normal,
@@ -142,10 +140,6 @@ const expand = (b: Bounds, m: number) => ({
   t: b.t - m,
   b: b.b + m,
 });
-const fanShapes = new WeakMap<
-  Wire["points"],
-  ReturnType<typeof cache<Wire>>
->();
 const rememberBase = cache<BaseRoute>();
 const rememberChannel = cache<{
   wires: Wire[];
@@ -257,26 +251,10 @@ export const wireGraph = (
     bundles.set(key, members);
     membersByEdge.set(edge, members);
   }
-  const socketKey = (node: string, side: Side) =>
-    JSON.stringify([node, side]);
-  const socketCounts = new Map<string, number>();
-  for (const { edge, a, b } of ports.plans)
-    if (
-      (!edge.route || edge.route === "curve") &&
-      edge.source !== edge.target
-    )
-      for (const key of [
-        socketKey(edge.source, a.side),
-        socketKey(edge.target, b.side),
-      ])
-        socketCounts.set(
-          key,
-          (socketCounts.get(key) ?? 0) + 1,
-        );
   // Base paths depend only on the chosen sockets and nearby node boxes.
   const guides = new Map<Edge, Wire[]>();
   const bases = ports.plans.map(
-    ({ edge, a, b, curve: chosen }) => {
+    ({ edge, a, b }) => {
       const s = {
           ...portPosition(a.node, a.side, 0),
           side: a.side,
@@ -413,38 +391,6 @@ export const wireGraph = (
       };
       // A clear natural path depends only on its sockets and its swept clearance.
       const member = (base: BaseRoute) => {
-        if (
-          curve &&
-          !edge.waypoints?.length &&
-          edge.source !== edge.target &&
-          pair.length === 1 &&
-          !base.wire.controls &&
-          ((socketCounts.get(
-            socketKey(edge.source, a.side),
-          ) ?? 0) > 1 ||
-            (socketCounts.get(
-              socketKey(edge.target, b.side),
-            ) ?? 0) > 1)
-        ) {
-          const walls = query(
-            corridor(canonical(s, t).plain, 64),
-          );
-          const shapes =
-            fanShapes.get(base.wire.points) ??
-            cache<Wire>(8);
-          fanShapes.set(base.wire.points, shapes);
-          const wire = shapes(
-            JSON.stringify(walls.map(boxId)),
-            () =>
-              fanCubic(base.wire, s, t, walls),
-          );
-          if (wire !== base.wire)
-            base = {
-              ...base,
-              wire,
-              bounds: corridor(wire.points, 0),
-            };
-        }
         return {
           wire: { ...base.wire, edge },
           token: base.token,
@@ -509,9 +455,7 @@ export const wireGraph = (
             }),
             end,
           ]);
-          const path = curve
-            ? fillet(spine)
-            : rounded(spine, radius);
+          const path = fillet(spine);
           const bounds = corridor(path, 10);
           const walls = query(bounds).map((q) =>
             q.id === edge.source ||
@@ -527,32 +471,41 @@ export const wireGraph = (
               path,
               spine.length - 2,
             );
-            const list = guides.get(edge) ?? [];
-            if (
-              !list.some(
-                (w) =>
-                  w.sourceSide === start.side &&
-                  w.targetSide === end.side,
-              )
-            )
-              list.push(wire);
-            guides.set(edge, list);
+            const group = guides.get(edge) ?? [];
+            group.push(wire);
+            guides.set(edge, group);
           }
         }
-        const first = guides.get(edge)?.[0];
-        if (first)
-          return {
-            wire: { ...first, settled: true },
-            bounds: corridor(first.points, 0),
-            token: 0,
-          };
       }
-      if (chosen)
+      const guide = guides.get(edge)?.[0];
+      if (guide)
+        return {
+          wire: { ...guide, settled: true },
+          bounds: corridor(guide.points, 0),
+          token: 0,
+        };
+      if (
+        curve &&
+        pair.length === 1 &&
+        edge.source !== edge.target &&
+        !edge.waypoints?.length
+      ) {
+        const walls = query(
+          socketRegion(a.node, b.node),
+        );
+        const wire = socketOption(
+          edge,
+          s,
+          t,
+          walls,
+          true,
+        ).shape.wire;
         return member({
-          wire: chosen,
-          bounds: corridor(chosen.points, 0),
+          wire,
+          bounds: corridor(wire.points, 0),
           token: 0,
         });
+      }
       const own = nearby.filter(
         (q) =>
           q.id === edge.source ||
@@ -783,13 +736,17 @@ export const wireGraph = (
     }
   }
   if (
-    wires.some(
-      (w) =>
-        !w.edge.route || w.edge.route === "curve",
+    ports.plans.some(
+      ({ edge }) =>
+        !edge.route || edge.route === "curve",
     )
   )
-    wires = separateCurves(wires, query, guides);
-  wires = archShoulders(wires, query);
+    wires = chooseSides(
+      wires,
+      byId,
+      query,
+      guides,
+    );
   const departures = new Set(
     wires.map((w) =>
       JSON.stringify([

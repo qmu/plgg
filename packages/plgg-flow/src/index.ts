@@ -6,4 +6,6 @@ export type {
   JsonValue,
   JsonObject,
 } from "plgg-flow/metadata";
+export { bodyDepth } from "plgg-flow/nodeBody";
+export { bridgePoints } from "plgg-flow/polyline";
 export { nodeSize } from "plgg-flow/nodeSize";

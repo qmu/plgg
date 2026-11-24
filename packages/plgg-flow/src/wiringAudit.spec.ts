@@ -1052,3 +1052,60 @@ test("canonical handles follow the socket axes and clamp their reach", () => {
     toEqual([40, 24, 120, 160, 89]),
   );
 });
+
+test("stacked children use one rounded guide on the same side of each intervening sibling", () => {
+  const wires = wireGraph(orgTree);
+  return check(
+    wires.every(
+      (w) =>
+        w.sourceSide === "bottom" &&
+        w.targetSide === "top" &&
+        (!w.edge.target.endsWith(".1") ||
+          (w.corners === 1 &&
+            w.points.every(
+              (p) => p.x >= w.source.x - 1e-8,
+            ) &&
+            w.points.some(
+              (p) => p.x > w.source.x + 45,
+            ))),
+    ),
+    toBe(true),
+  );
+});
+
+test("removing a different pair preserves the trace at unchanged curve sockets", () => {
+  const before = wireGraph(microservices);
+  return check(
+    before.every((removed) => {
+      const edges = microservices.edges.filter(
+        (e) => e !== removed.edge,
+      );
+      const after = wireGraph({
+        ...microservices,
+        edges,
+      });
+      return after.every((w) => {
+        const old = before.find(
+          (p) => p.edge === w.edge,
+        )!;
+        const samePair =
+          [
+            removed.edge.source,
+            removed.edge.target,
+          ].includes(w.edge.source) &&
+          [
+            removed.edge.source,
+            removed.edge.target,
+          ].includes(w.edge.target);
+        return (
+          samePair ||
+          w.sourceSide !== old.sourceSide ||
+          w.targetSide !== old.targetSide ||
+          JSON.stringify(w.points) ===
+            JSON.stringify(old.points)
+        );
+      });
+    }),
+    toBe(true),
+  );
+});

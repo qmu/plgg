@@ -1,4 +1,3 @@
-import type { Wire } from "./wiring";
 import { selectCurvePairs } from "plgg-flow/wireCurvePairs";
 import { type Bounds } from "plgg-flow/wireCorridors";
 import {
@@ -45,7 +44,6 @@ export type Plan = {
   edge: Edge;
   a: End;
   b: End;
-  curve?: Wire;
 };
 const assignPages = (plans: Plan[]) => {
   // Interleaving intervals cross exactly once on a common page.
@@ -492,8 +490,6 @@ export const planPorts = (
               (n) => n.position[along],
             ),
           );
-        // Separate long skips leaving the head from shorter head
-        // skips. Only the row ends can change this page assignment.
         const exterior =
           tail ||
           (head && span <= (extent * 2) / 3);
@@ -919,7 +915,7 @@ export const planPorts = (
           }
           return owner === start;
         });
-        return { common, allowed };
+        return { common, main, allowed };
       },
     );
   }

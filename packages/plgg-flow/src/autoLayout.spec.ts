@@ -1,4 +1,10 @@
 import {
+  project,
+  frontCamera,
+  projectedScale,
+} from "plgg-board";
+import { projectNodeBody } from "plgg-flow/nodeBody";
+import {
   parseSpec,
   specFlow,
 } from "plgg-flow/dsl";
@@ -276,6 +282,62 @@ test("only a depth-layout feedback wire rises above both ends when turned", () =
             Math.max(w.source.z, w.target.z) + 24,
         ) &&
       !planLayers(g).graph.edges[i]?.lift,
+    toBe(true),
+  );
+});
+
+test("a turned bridge rises vertically past the projected top of its higher node", () => {
+  const node = {
+    id: "high",
+    label: "High",
+    position: { x: 0, y: 0, z: 72 },
+  };
+  const other = {
+    id: "low",
+    label: "Low",
+    position: { x: 240, y: 0, z: 0 },
+  };
+  const [wire] = wireGraph({
+    nodes: [node, other],
+    edges: [
+      { source: "high", target: "low", lift: 24 },
+    ],
+  });
+  if (!wire) return check(false, toBe(true));
+  const camera = {
+    ...frontCamera({ x: 320, y: 240 }),
+    pitch: 1.25,
+    perspective: true,
+  };
+  const at = project(camera);
+  const center = at(node.position);
+  const scale = projectedScale(camera, center.z);
+  const top = Math.min(
+    ...projectNodeBody(
+      node,
+      camera,
+    ).visible.flatMap((face) =>
+      face.points.map(
+        (p) => center.y + p.y * scale,
+      ),
+    ),
+  );
+  const knots = bridgePoints(
+    wire.points,
+    wire.lift,
+    false,
+  );
+  const deck = knots[1]!,
+    far = knots[knots.length - 2]!;
+  return check(
+    center.y < at({ ...node.position, z: 0 }).y &&
+      at(deck).y < top &&
+      deck.x === wire.source.x &&
+      deck.y === wire.source.y &&
+      far.x === wire.target.x &&
+      far.y === wire.target.y &&
+      deck.z === 96 &&
+      far.z === deck.z,
     toBe(true),
   );
 });

@@ -1,5 +1,8 @@
+import { project } from "plgg-board";
 import {
   nodeSize,
+  bodyDepth,
+  bridgePoints,
   viewport,
   type Flow,
 } from "plgg-flow";
@@ -7,6 +10,7 @@ import { wireGraph } from "plgg-flow/wiring";
 import {
   parseSpec,
   specFlow,
+  applySpec,
   type Spec,
 } from "plgg-flow/dsl";
 
@@ -52,15 +56,34 @@ const empty: Spec = {
 // Initial and reset sessions both open on the front of the board.
 export const fitDemo = (flow: Flow): Flow => {
   if (!flow.nodes.length) return flow;
+  const at = project({
+    ...flow.camera,
+    origin: { x: 0, y: 0 },
+    scale: 1,
+  });
   const bounds = [
     ...flow.nodes.flatMap((n) => {
       const { width, height } = nodeSize(n);
-      return [-1, 1].map((sign) => ({
-        x: n.position.x + (sign * width) / 2,
-        y: n.position.y + (sign * height) / 2,
-      }));
+      return [-1, 1].flatMap((x) =>
+        [-1, 1].flatMap((y) =>
+          [-1, 1].map((z) =>
+            at({
+              x: n.position.x + (x * width) / 2,
+              y: n.position.y + (y * height) / 2,
+              z: n.position.z + z * bodyDepth(n),
+            }),
+          ),
+        ),
+      );
     }),
-    ...wireGraph(flow).flatMap((w) => w.points),
+    ...wireGraph(flow).flatMap((w) =>
+      bridgePoints(
+        w.points,
+        w.lift,
+        flow.camera.pitch === 0 &&
+          flow.camera.yaw === 0,
+      ).map(at),
+    ),
   ].reduce(
     (box, p) => ({
       left: Math.min(box.left, p.x),
@@ -102,6 +125,28 @@ export const fitDemo = (flow: Flow): Flow => {
     },
   };
 };
+const layoutKey = (flow: Flow) =>
+  JSON.stringify([
+    flow.nodes.map((n) => [
+      n.id,
+      n.position,
+      nodeSize(n),
+    ]),
+    flow.edges.map((e) => [
+      e.source,
+      e.target,
+      e.route,
+      e.via,
+      e.lift,
+    ]),
+  ]);
+export const applyDemoSpec =
+  (spec: Spec) => (flow: Flow) => {
+    const next = applySpec(spec)(flow);
+    return layoutKey(next) === layoutKey(flow)
+      ? next
+      : fitDemo(next);
+  };
 const demo = (
   id: DemoId,
   name: string,
@@ -158,6 +203,8 @@ Mailer -> Audit
 Catalog -> Cache
 Search -> Cache
 Cache -> DB
+Audit -> Gateway
+DB -> Catalog
 `,
   ),
   demo(

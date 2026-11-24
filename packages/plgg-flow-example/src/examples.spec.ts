@@ -6,6 +6,7 @@ import {
 import {
   examples,
   fitDemo,
+  applyDemoSpec,
 } from "plgg-flow-example/examples";
 test("all twenty-five diagrams have unique identities and valid directed edges", () =>
   check(
@@ -84,6 +85,36 @@ test("opening and resetting fit a wide diagram with a 48 pixel margin and cap sm
       wide.origin.x + (300 - 804) * wide.scale ===
         48 &&
       fit(20).scale === 1,
+    toBe(true),
+  );
+});
+
+test("DSL geometry edits refit the board and text-only edits preserve the camera", () => {
+  const demo = examples.find(
+    (e) => e.id === "layered",
+  )!;
+  const flow = demo.initial();
+  const panned = {
+    ...flow,
+    camera: {
+      ...flow.camera,
+      origin: { x: 40, y: 30 },
+    },
+  };
+  const edited = parseSpec(
+    demo.source + "\nnode Remote at 4000 200",
+  );
+  if (edited.__tag === "Err")
+    return check(false, toBe(true));
+  const changed = applyDemoSpec(edited.content)(
+    panned,
+  );
+  return check(
+    applyDemoSpec(demo.spec())(panned).camera ===
+      panned.camera &&
+      changed.camera.scale < flow.camera.scale &&
+      JSON.stringify(changed.camera) ===
+        JSON.stringify(fitDemo(changed).camera),
     toBe(true),
   );
 });
