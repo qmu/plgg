@@ -96,12 +96,7 @@ export const captionTagged = (
   Math.min(
     Math.abs(Math.cos(camera.yaw)),
     Math.abs(Math.cos(camera.pitch)),
-  ) -
-    Math.abs(
-      Math.sin(camera.yaw) *
-        Math.sin(camera.pitch),
-    ) <
-  (previous ? 0.75 : 0.7);
+  ) < (previous ? 0.75 : 0.7);
 
 /** Project one closed solid. Counterclockwise screen faces are hidden.
  * Local coordinates share the viewport's translated/scaled SVG node group. */

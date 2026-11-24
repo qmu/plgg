@@ -6,12 +6,8 @@ import {
 } from "plgg-flow";
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
-import {
-  sandbox,
-  custom,
-  cmdNone,
-} from "plgg-view/client";
-
+import { readFile } from "node:fs/promises";
+import { el, attr, onClick } from "plgg-view";
 const dom = await build({
   entryPoints: [
     fileURLToPath(
@@ -42,30 +38,49 @@ if (!document.createElementNS)
       document.createElement(localName),
       { namespaceURI, localName },
     );
-const demo = await build({
-  entryPoints: [
-    fileURLToPath(
-      new URL(
-        "../../plgg-flow-example/src/index.ts",
-        import.meta.url,
-      ),
-    ),
-  ],
+// Layout and observation are supplied by browsers on the live sheet.
+class Observer {
+  observe() {}
+  disconnect() {}
+}
+globalThis.ResizeObserver = Observer;
+globalThis.MutationObserver = Observer;
+const frames = new Map();
+let frameId = 0;
+globalThis.requestAnimationFrame = (fn) => {
+  frames.set(++frameId, fn);
+  return frameId;
+};
+globalThis.cancelAnimationFrame = (id) =>
+  frames.delete(id);
+window.matchMedia = (query) => ({
+  matches: query.includes("reduced-motion"),
+  addEventListener() {},
+});
+const source = fileURLToPath(
+  new URL(
+    "../../plgg-ir-diagram/src/",
+    import.meta.url,
+  ),
+);
+const bundle = await build({
+  stdin: {
+    contents: `
+      export { mountSheet } from "./mountSheet.ts";
+      export { sheetTools } from "./flowSheet.ts";
+    `,
+    resolveDir: source,
+  },
+  tsconfig: source + "../tsconfig.json",
   platform: "node",
   format: "esm",
   bundle: true,
   write: false,
 });
-const {
-  init,
-  update,
-  view,
-  examples,
-  boardAction,
-} = await import(
+const { mountSheet, sheetTools } = await import(
   "data:text/javascript;base64," +
     Buffer.from(
-      demo.outputFiles[0].contents,
+      bundle.outputFiles[0].contents,
     ).toString("base64")
 );
 const count = (node) =>
@@ -78,77 +93,100 @@ console.log(
   "sample step median_ms p90_ms svg_elements",
 );
 try {
-  for (const id of [
-    "space",
-    "layered",
-    "rooms",
-  ]) {
-    const index = examples.findIndex(
-      (e) => e.id === id,
+  for (const id of ["layers", "rooms"]) {
+    const page = await readFile(
+      new URL(
+        `../../plgg-flow-example/markdown/samples/${id}.md`,
+        import.meta.url,
+      ),
+      "utf8",
     );
+    const [, options, code] = page.match(
+      /^```plgg-flow ([^\n]*)\n([\s\S]*?)^```/m,
+    );
+    const names =
+      options
+        .match(/tools=(\S+)/)?.[1]
+        .split(",") ?? [];
     for (const mode of ["zoom", "drag"]) {
       const host = document.createElement("div");
-      const model = {
-        ...init(),
-        index,
-        boardHeight: 580,
-        boardCover: 320,
-      };
-      let step;
-      const dispose = sandbox({
-        init: [model, cmdNone()],
-        view,
-        update,
-        subscriptions: () =>
-          custom("bench", (dispatch) => {
-            step = dispatch;
-            return () => {};
-          }),
-      })(host);
-      step((m) => m);
+      host.closest = () => null;
       const point = { x: 200, y: 180 };
-      if (mode === "drag")
-        step(
-          boardAction((f) => ({
-            ...f,
-            selected: some(f.nodes[0].id),
-            drag: some({
-              mode: "node",
-              node: f.nodes[0].id,
-              pointer: 1,
-              last: point,
-            }),
-          })),
+      let action;
+      let updates = 0;
+      sheetTools.set("bench", {
+        name: "bench",
+        view: () =>
+          el(
+            "button",
+            [
+              attr("id", "bench"),
+              onClick((flow) => {
+                updates++;
+                return action(flow);
+              }),
+            ],
+            [],
+          ),
+      });
+      const dispose = mountSheet(
+        host,
+        code,
+        true,
+        [...names, "bench"],
+      );
+      for (const [id, fn] of frames) {
+        frames.delete(id);
+        fn(performance.now());
+      }
+      const trigger = host.querySelector(
+        '[id="bench"]',
+      );
+      const step = () =>
+        trigger.dispatchEvent(
+          new Event("click", { bubbles: true }),
         );
+      if (mode === "drag") {
+        action = (f) => ({
+          ...f,
+          selected: some(f.nodes[0].id),
+          drag: some({
+            mode: "node",
+            node: f.nodes[0].id,
+            pointer: 1,
+            last: point,
+          }),
+        });
+        step();
+      }
       const times = [];
       for (let i = 0; i < 70; i++) {
         const delta = i % 2 ? 1 : -1;
-        const action = boardAction(
+        action =
           mode === "zoom"
             ? wheelZoom(point, -delta * 10)
             : movePointer(
                 { ...point, x: point.x + delta },
                 1,
-              ),
-        );
+              );
         const start = performance.now();
-        step(action);
+        step();
         if (i >= 10)
           times.push(performance.now() - start);
       }
+      if (updates !== (mode === "drag" ? 71 : 70))
+        throw Error(
+          `Sheet processed ${updates} updates`,
+        );
       times.sort((a, b) => a - b);
       console.log(
-        examples[index].name,
+        id,
         mode,
         times[29].toFixed(2),
         times[53].toFixed(2),
-        count(host.querySelector("svg")),
+        count(host.querySelector(".flow-board")),
       );
-      if (
-        times[29] >
-        { space: 1.5, layered: 5, rooms: 8 }[id]
-      )
-        process.exitCode = 1;
+      if (times[29] > 8) process.exitCode = 1;
       dispose();
     }
   }

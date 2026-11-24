@@ -664,10 +664,13 @@ html.dark .vp-doc a:focus-visible code{
  .vp-menu-cb:checked ~ .vp-app:has(.vp-sheet) .vp-sidebar{transform:translateX(0)}
  .vp-menu-cb:checked ~ .vp-backdrop{display:block}
 }
+.vp-sheet{color-scheme:light}
+html.dark .vp-sheet{color-scheme:dark}
 .vp-drawer-description,.vp-mobile-description{display:none}
 @media(max-width:759px),(orientation:landscape) and (max-height:499px){
  .vp-shell:has(.vp-sheet){height:100dvh;box-sizing:border-box;overflow:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
- .vp-shell:has(.vp-sheet) .vp-mobilebar{height:48px;flex:none;box-sizing:border-box}
+ .vp-shell:has(.vp-sheet) .vp-mobilebar{height:48px;flex:none;box-sizing:border-box;padding-inline:0 12px}
+ .vp-shell:has(.vp-sheet) .vp-menu-btn{background-size:22px 2px;background-position:12px calc(50% - 6px),12px center,12px calc(50% + 6px)}
  .vp-shell:has(.vp-sheet) .vp-mobilebar :is(label,button){min-width:44px;min-height:44px}
  .vp-sheet .vp-col-head{display:none}
  .vp-shell:has(.vp-sheet) .vp-mobilebar-home{display:block;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:20px}

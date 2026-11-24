@@ -103,7 +103,7 @@ export const tilted = (flow: Flow) =>
 
 const root = '[data-island="plgg-flow"]';
 export const flowCss = `
-${root}{--ink:var(--pm-text);--paper:var(--pm-surface);--graphite:var(--pm-muted);--trace:var(--pm-border);--wash:var(--pm-surface-2);--pencil:color-mix(in srgb,var(--paper) 66%,var(--ink));--display:system-ui,sans-serif;--body:system-ui,sans-serif;
+${root}{--ink:var(--pm-text);--paper:light-dark(var(--pm-surface),#000);--graphite:var(--pm-muted);--trace:var(--pm-border);--wash:light-dark(var(--pm-surface-2),#141414);--pencil:color-mix(in srgb,var(--paper) 66%,var(--ink));--display:system-ui,sans-serif;--body:system-ui,sans-serif;
 color:var(--ink);background:var(--paper);}
 ${root} figure{margin:0;position:relative}
 ${root} figure .flow-board{height:auto;aspect-ratio:900/580}

@@ -217,6 +217,7 @@ export type Flow = Graph &
      * the diagram clear of it. */
     cover?: number;
     sheetInsets?: Readonly<{
+      phoneWidth?: number;
       left: number;
       top: number;
       bottom: number;

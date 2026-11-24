@@ -1,3 +1,4 @@
+import { labelWidth } from "plgg-flow/nodeSize";
 import { roomViews } from "plgg-flow/roomCamera";
 import { project } from "plgg-board";
 import {
@@ -129,14 +130,17 @@ test("captions switch between the front face and an upright tag with hysteresis"
       }),
     );
   return check(
-    [0, 0.9, 1.4].every((yaw) =>
-      [0, 0.8, 1.3].every(
-        (pitch) =>
-          draw(yaw, pitch).includes(
-            'data-node-caption="tag"',
-          ) === (yaw !== 0 || pitch !== 0),
-      ),
+    !draw(-Math.PI / 6, -0.55).includes(
+      'data-node-caption="tag"',
     ) &&
+      [0, 0.9, 1.4].every((yaw) =>
+        [0, 0.8, 1.3].every(
+          (pitch) =>
+            draw(yaw, pitch).includes(
+              'data-node-caption="tag"',
+            ) === (yaw !== 0 || pitch !== 0),
+        ),
+      ) &&
       draw(1.4, 0).includes(
         'data-node-caption="tag"',
       ) &&
@@ -401,11 +405,22 @@ test("wire tips and flank dots clear their caption in named and turned views", (
       ]) {
         const q = project(camera)(world),
           b = caption.box;
+        // Test the lettered rectangle in face coordinates. Its
+        // screen-aligned bounds also contain two empty corners.
+        const [a, shearY, shearX, d] =
+          caption.matrix;
+        const x = q.x - (b.left + b.right) / 2,
+          y = q.y - (b.top + b.bottom) / 2;
+        const determinant =
+          a * d - shearY * shearX;
         if (
-          q.x >= b.left &&
-          q.x <= b.right &&
-          q.y >= b.top &&
-          q.y <= b.bottom
+          Math.abs(
+            (d * x - shearX * y) / determinant,
+          ) <=
+            labelWidth(node.label) / 2 &&
+          Math.abs(
+            (a * y - shearY * x) / determinant,
+          ) <= 8
         )
           throw Error(
             "socket inside caption " +

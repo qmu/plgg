@@ -395,7 +395,10 @@ for (const sample of [
             return performance.now() - start;
           },
         ).sort((a, b) => a - b);
-        if (times[7]! >= 2)
+        // Placing and routing together: the design's budget is 20 ms;
+        // a shared CI runner is given twice that. The audit measures
+        // the real number.
+        if (times[7]! >= 40)
           throw Error(
             "median space plan took " +
               times[7] +

@@ -140,7 +140,13 @@ export const fitDemo = (flow: Flow): Flow => {
     open =
       frame.x - (flow.cover ?? 0) - inset.left,
     height = frame.y - inset.top - inset.bottom,
-    margin = flow.rooms ? 80 : 96;
+    phoneWidth = flow.sheetInsets?.phoneWidth,
+    phoneFlat = phoneWidth && !flow.rooms,
+    margin = phoneFlat
+      ? (48 * frame.x) / phoneWidth
+      : flow.rooms
+        ? 80
+        : 96;
   const measure = (scale: number) => {
     let left = bounds.left * scale,
       right = bounds.right * scale,
@@ -183,7 +189,11 @@ export const fitDemo = (flow: Flow): Flow => {
       },
     };
   };
-  let upper = flow.rooms ? 1.6 : 1,
+  let upper = phoneFlat
+      ? 1.5
+      : flow.rooms
+        ? 1.6
+        : 1,
     lower = 0;
   let scale = upper;
   for (let i = 0; i < 18; i++) {
@@ -208,7 +218,9 @@ export const fitDemo = (flow: Flow): Flow => {
     },
   };
 };
-const clearInsets = {
+const clearInsets: NonNullable<
+  Flow["sheetInsets"]
+> = {
   left: 0,
   top: 0,
   bottom: 0,
@@ -225,6 +237,8 @@ export const resizeDemo = (
     flow.frame &&
     previous.y === height &&
     previous.x === viewport.x &&
+    flow.sheetInsets?.phoneWidth ===
+      sheetInsets.phoneWidth &&
     (flow.cover ?? 0) === cover &&
     (flow.sheetInsets?.top ?? 0) ===
       sheetInsets.top &&
@@ -522,6 +536,8 @@ export const measuredFrame = (host: Element) => {
     height: unit(height),
     cover: !bottom && box ? unit(box.width) : 0,
     insets: {
+      ...(width < 760 &&
+        bottom && { phoneWidth: width }),
       left: side && tools ? unit(tools.width) : 0,
       top: top && tools ? unit(tools.height) : 0,
       bottom:

@@ -301,6 +301,7 @@ export const bestViews = (
             );
       const tags = captionTagged(camera);
       const labels = nodes.map((n, i) => {
+        if (tags) score += 0.1 * weight(n.id);
         const projected =
           solids[i]!.vertices.map(at);
         const centre = at({

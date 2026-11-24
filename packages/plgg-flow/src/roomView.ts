@@ -336,7 +336,7 @@ const axisGeometry = (
             value,
             attribute: definition.attribute,
             clear,
-            size: 10,
+            size: clear ? 11 : 10,
             ...(span && { span }),
           };
           let box = labelBox(l);
@@ -994,7 +994,7 @@ export const spaceScenery = (
       anchor: unproject(camera, l, l.z),
       offset: { x: l.dx, y: l.dy },
       text: l.value,
-      size: l.outer ? 10 : 13,
+      size: l.outer ? 11 : 13,
       weight: 600,
       tone: l.outer
         ? "var(--graphite,gray)"

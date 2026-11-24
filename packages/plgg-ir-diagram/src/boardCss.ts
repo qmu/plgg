@@ -1,13 +1,13 @@
 export const boardCss = (root: string) => `
 @scope (${root}) {
   .engine-drawing .up {
-    fill: var(--surface, var(--paper));
+    fill: light-dark(var(--surface, var(--paper)), var(--wash));
   }
   .engine-drawing .lit {
-    fill: var(--surface, var(--wash));
+    fill: light-dark(var(--surface, var(--wash)), #1f1f1f);
   }
   .engine-drawing .shade {
-    fill: var(--surface, var(--shade));
+    fill: light-dark(var(--surface, var(--shade)), #0a0a0a);
   }
   .engine-drawing :is(.up, .lit, .shade) {
     fill-opacity: var(--opacity, 1);
@@ -60,11 +60,10 @@ export const boardCss = (root: string) => `
     stroke-width: 0.75;
   }
   .engine-drawing .shadow {
-    fill: var(--shade);
-    opacity: 0.6;
+    fill: light-dark(color-mix(in srgb,var(--shade) 60%,transparent), #000);
   }
   .engine-drawing .board.shadow {
-    opacity: 0.35;
+    fill: light-dark(color-mix(in srgb,var(--shade) 35%,transparent), #000);
   }
   .engine-drawing .node.active.silhouette {
     stroke-width: 2.4;

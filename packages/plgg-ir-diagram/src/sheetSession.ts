@@ -1198,21 +1198,6 @@ export const sessionControls = (
     case "dimensions":
     case "layered":
       return [];
-    case "hidden":
-      return [
-        change(
-          s.flow.hidden === "none"
-            ? "隠線を表示"
-            : "隠線を隠す",
-          (f) => ({
-            ...f,
-            hidden:
-              f.hidden === "none"
-                ? "lines"
-                : "none",
-          }),
-        ),
-      ];
     case "files":
       return [
         mapHtml((fn: FileEdit) =>

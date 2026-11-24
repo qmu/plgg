@@ -48,6 +48,7 @@ const button = (
           ["step", "⌜"],
           ["curve", "∿"],
           ["正面", "▣"],
+          ["隠れ線", "◌"],
           ["立体", "⬡"],
           ["snap off", "⊘"],
         ]).get(label) ??
@@ -58,6 +59,21 @@ const button = (
     [text(label)],
   );
 const tools: readonly FlowTool[] = [
+  {
+    name: "hidden",
+    view: (flow) =>
+      button(
+        "隠れ線",
+        (f) => ({
+          ...f,
+          hidden:
+            f.hidden === "none"
+              ? "lines"
+              : "none",
+        }),
+        flow.hidden !== "none",
+      ),
+  },
   {
     name: "routes",
     view: (flow) =>
@@ -172,7 +188,6 @@ const sessionTools = [
   ["trace", "配線をたどる", "↝"],
   ["revisions", "編集履歴", "≡"],
   ["outline", "グループ一覧", "☷"],
-  ["hidden", "隠線", "◌"],
   ["files", "保存と読み込み", "▤"],
 ] satisfies [string, string, string][];
 export const sheetTools: ReadonlyMap<
