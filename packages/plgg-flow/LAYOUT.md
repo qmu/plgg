@@ -1386,3 +1386,48 @@ to the best of 2 000 random slot assignments. Pass: overlaps 0,
 piercings 0, crossings ≤ the random-best + 1, never more than
 twice the random-best, time within budget, order-independence and
 the stability rule.
+
+## Colour, for one job (owner: "at this point colour may be used after all")
+
+The sheets stay ink on paper. Colour is admitted for exactly one
+job: **telling the values of one axis apart at a glance, from any
+angle** — the thing position alone cannot do once a space is
+turned. It encodes identity, never emphasis or decoration.
+
+- `color <attribute>` in the text chooses the axis (properties
+  area: a 「色」 select listing the axes and 「なし」). Defaults:
+  a layer cake colours its layer axis; a rooms sheet colours the
+  axis in role `y` (storeys); `color off` returns to ink.
+- **Palette**: eight categorical hues in fixed order, assigned to
+  the axis's values in their written order (never by count, never
+  cycled — a 9th value and the unnamed "—" stay ink). Light / dark
+  steps, validated for adjacent colour-vision separation:
+  blue `#2a78d6`/`#3987e5`, orange `#eb6834`/`#d95926`,
+  aqua `#1baf7a`/`#199e70`, yellow `#eda100`/`#c98500`,
+  magenta `#e87ba4`/`#d55181`, green `#008300`/`#0ca30c`,
+  violet `#6250d6`/`#9085e9`, red `#e34948`/`#e66767`.
+  Tokens `--hue-1 … --hue-8` beside the sheet's ink tokens
+  (`light-dark()`), shared by demo and plggpress.
+- **What wears it** (a value's hue = H):
+  - its board / storey floor: fill H at 10 %, outline H at 1px
+    (instead of pencil), the slab's side faces H at 22 %;
+  - its nodes: the box's side and top faces H at 18 %, the front
+    face stays paper, outline stays ink;
+  - a wire: H of its **source** node, 1.25px; a wire between two
+    values is therefore readable as "comes from the blue layer";
+  - the value's name on its axis / board: a 8px square of H before
+    the text.
+- **What never wears it**: text (captions, names, values stay ink
+  or graphite), sockets, arrowheads' outline, selection and hover
+  (ink, as now). Quiet things lose their hue (pencil).
+- Identity is never colour alone: the board's name is on the
+  board, the axis names its values, the DSL says it in words.
+- General seam, no rooms knowledge in the viewport: nodes, edges
+  and scenery carry an optional `hue: 1…8`; the standard renderer
+  maps it to the tokens.
+
+Specs: hue follows the value's written index and survives
+reordering of nodes, pinning and filtering (colour follows the
+entity); a 9th value has no hue; `color off` yields the exact
+ink sheet of before; captions' fill is never a hue; print / parse
+round trip of `color`.
