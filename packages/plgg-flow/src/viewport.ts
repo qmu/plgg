@@ -2,6 +2,12 @@ import {
   roomFor,
   type RoomLayout,
 } from "plgg-flow/autoLayout";
+import {
+  faceAxes,
+  movingRooms,
+  roomFilter,
+  turnRooms,
+} from "plgg-flow/roomCamera";
 import { roomView } from "plgg-flow/roomView";
 import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
@@ -74,6 +80,7 @@ import {
   subtree,
 } from "plgg-flow/hierarchy";
 import {
+  viewAt,
   releasePointer,
   beginStroke,
   movePointer,
@@ -370,7 +377,10 @@ export type ViewRegistry = Readonly<{
     (edge: Edge, state: Flow) => Html<Change>
   >;
 }>;
-const routedScene = (state: Flow) => {
+const routedScene = (
+  state: Flow,
+  rooms: Flow["rooms"],
+) => {
   const whole = visibleScene(
     state,
     state.isolatedBranch,
@@ -392,7 +402,7 @@ const routedScene = (state: Flow) => {
   const wires = wireGraph(
     {
       ...clipped,
-      ...(state.rooms && { rooms: state.rooms }),
+      ...(rooms && { rooms }),
     },
     isSome(state.drag) &&
       state.drag.content.mode === "node" &&
@@ -417,6 +427,10 @@ const sceneCache = new WeakMap<
 // Visibility can synthesize edges; keep their identities across preview frames.
 const viewportLayout = (state: Flow) => {
   const known = sceneCache.get(state.nodes);
+  const rooms =
+    state.rooms && !faceAxes(state.camera)
+      ? state.rooms
+      : undefined;
   const section = state.spatial?.section,
     branch = state.isolatedBranch;
   const overview = Boolean(
@@ -431,16 +445,16 @@ const viewportLayout = (state: Flow) => {
   if (
     known &&
     known.draggedNode === draggedNode &&
-    known.rooms === state.rooms &&
+    known.rooms === rooms &&
     known.edges === state.edges &&
     known.section === section &&
     known.branch === branch &&
     known.overview === overview
   )
     return known.layout;
-  const layout = routedScene(state);
+  const layout = routedScene(state, rooms);
   sceneCache.set(state.nodes, {
-    rooms: state.rooms,
+    rooms,
     edges: state.edges,
     draggedNode,
     section,
@@ -550,12 +564,20 @@ const emptyPreview = () =>
     [],
   );
 export const flowView = (
-  state: Flow,
+  flow: Flow,
   renderLabel: (
     node: FlowNode,
   ) => Html<Change> = defaultLabel,
   registry: ViewRegistry = {},
 ): Html<Change> => {
+  const state = movingRooms(flow);
+  const filter = roomFilter(flow);
+  const muted = (n: FlowNode) =>
+    !!flow.rooms &&
+    Object.entries(filter).some(
+      ([key, value]) =>
+        (n.data?.[key] ?? "—") !== value,
+    );
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
   const ports = portsFor(state);
@@ -708,6 +730,7 @@ export const flowView = (
 
     const inputs = [
       state.camera,
+      muted(n),
       chosen.has(n.id),
       state.spatial?.depthColor,
       isSome(state.source),
@@ -847,6 +870,9 @@ export const flowView = (
           "g",
           [
             a("data-node", n.id),
+            ...(muted(n)
+              ? [a("class", "room-muted")]
+              : []),
             a("tabindex", 0),
             a("role", "button"),
             a(
@@ -1024,6 +1050,7 @@ export const flowView = (
       original,
       state.camera,
       chosenWire,
+      muted(from) || muted(to),
       frame,
       state.ink,
       cull,
@@ -1584,7 +1611,16 @@ export const flowView = (
     const group = items.map((layer, i) =>
       keyedLayer(
         "wire-" + index + "-" + i,
-        layer,
+        muted(from) || muted(to)
+          ? {
+              ...layer,
+              html: el(
+                "g",
+                [a("class", "room-muted-wire")],
+                [layer.html],
+              ),
+            }
+          : layer,
       ),
     );
     wireLayers.set(wire, {
@@ -1975,6 +2011,35 @@ export const flowView = (
               isSome(s.drag)
             ) {
               const d = s.drag.content;
+              if (s.rooms && d.mode === "orbit") {
+                const { yaw, pitch } = s.camera;
+                for (const [y, p] of [
+                  [0, 0],
+                  [0, -Math.PI / 2],
+                  [0, Math.PI / 2],
+                  [-Math.PI / 2, 0],
+                  [Math.PI, 0],
+                  [Math.PI / 2, 0],
+                ] satisfies [number, number][]) {
+                  const delta = (a: number) =>
+                    Math.atan2(
+                      Math.sin(a),
+                      Math.cos(a),
+                    );
+                  if (
+                    Math.hypot(
+                      delta(yaw - y),
+                      delta(pitch - p),
+                    ) <=
+                    Math.PI / 15
+                  )
+                    return turnRooms(
+                      released,
+                      viewAt(y, p)(released),
+                      350,
+                    );
+                }
+              }
               if (
                 d.pressed &&
                 Math.hypot(
@@ -2198,7 +2263,11 @@ export const flowView = (
     [
       ...(state.rooms
         ? [
-            roomView(state.rooms, state.camera),
+            roomView(
+              state.rooms,
+              state.camera,
+              state,
+            ),
             depthStems(
               state.camera,
               drawNodes,

@@ -5,6 +5,7 @@ import {
   removeButton,
   addSheetNode,
   sheetToolbar,
+  roomFrames,
   observeFrame,
   sheetHelp,
   sheetStage,
@@ -1827,6 +1828,22 @@ if (root)
           boardCover,
         }),
       );
+      if (current?.flow.roomMotion)
+        return subBatch([
+          board,
+          roomFrames<Action>(current.flow, (fn) =>
+            edit((s) => {
+              const flow = fn(s.flow);
+              return {
+                ...s,
+                flow,
+                ...(s.dsl?.flow === s.flow && {
+                  dsl: { ...s.dsl, flow },
+                }),
+              };
+            }),
+          ),
+        ]);
       if (!current?.returning) return board;
       const { yaw, pitch } = current.flow.camera;
       return subBatch([

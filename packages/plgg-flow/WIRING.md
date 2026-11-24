@@ -1364,3 +1364,13 @@ cubic simply ends at the shifted point. The audit: `arrow-on-dot`
 (an arrival within 6u of a sending side's centre; 176 today) must be
 0, `arrival-too-far-from-dot` 0, and every other count no worse than
 today (sev3 0; moderate without `arrow-on-dot` 80; drag 4 + 12).
+
+## Round 32 review — not adopted
+
+Arrivals 8u beside the dot: `arrow-on-dot` 176 → 0, but sev3 0 → 16
+(overlaps: a shifted arrival's curve falls onto a neighbour's, e.g.
+rowSkips A→D with E→A), crossings 7 → 16, nine existing specs failing
+(drag stability, pipeline arches, reciprocal bundle). Stashed
+("round32-taskA with the rooms riser"). `arrow-on-dot` is a note in
+the audit until a version without those costs exists. The reading
+problem the owner raised stands unsolved.

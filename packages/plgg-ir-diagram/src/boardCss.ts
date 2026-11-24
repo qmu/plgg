@@ -22,9 +22,19 @@ export const boardCss = (root: string) => `
   .flow-board g {
     cursor: default;
   }
+  /* a node can be picked up: an open hand over it */
+  .flow-board [data-node],
+  .flow-board [data-node] * {
+    cursor: grab;
+  }
   .flow-board:active,
-  .flow-board:active g {
+  .flow-board:active g,
+  .flow-board:active [data-node],
+  .flow-board:active [data-node] * {
     cursor: grabbing;
+  }
+  .flow-board [data-node] circle {
+    cursor: crosshair;
   }
   .flow-board circle {
     cursor: crosshair;
@@ -100,6 +110,17 @@ export const boardCss = (root: string) => `
   .flow-board .room-lattice .room-floor {
     fill: var(--wash);
   }
+  .flow-board .room-far { stroke: var(--pencil); }
+  .flow-board .room-clear { fill: transparent; }
+  .flow-board .room-selected { fill: var(--wash); }
+  .flow-board .room-floor { opacity: .4; }
+  .flow-board .room-shadow { fill: var(--pencil); opacity: .28; }
+  .flow-board .room-caption { visibility: hidden; }
+  .flow-board .room-cell:hover .room-caption { visibility: visible; }
+  .flow-board .room-label { cursor: pointer; }
+  .flow-board .room-muted [stroke], .flow-board .room-muted-wire [stroke] { stroke: var(--pencil); }
+  .flow-board .room-muted text { fill: var(--pencil) !important; }
+  .flow-board .room-muted-wire { opacity: .3; }
   .edge-label {
     paint-order: stroke;
     stroke: var(--paper) !important;
@@ -126,14 +147,14 @@ export const boardCss = (root: string) => `
   }
   /* the selection area: a faint wash inside a dashed
        line that walks slowly round it */
+  /* !important: the monochrome fold above paints every
+       filled shape with paper, which made this an opaque
+       white box hiding what was being selected */
   .flow-board .marquee {
-    fill: color-mix(
-      in srgb,
-      var(--ink) 2.5%,
-      transparent
-    );
+    fill: var(--ink) !important;
+    fill-opacity: 0.07;
     stroke: var(--ink);
-    stroke-opacity: 0.55;
+    stroke-opacity: 0.8;
     stroke-width: 1;
     stroke-dasharray: 5 4;
     vector-effect: non-scaling-stroke;

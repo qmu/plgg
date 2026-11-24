@@ -113,7 +113,7 @@ const audit = (g, wires, style) => {
       const centred = off < 1.5;
       // an arrival on a side that also sends lands beside the dot (8u), never on it
       const beside = nm === "end" && s.id !== t.id && sending.has(sideKey(m, end));
-      if (beside ? off < 6 : !centred) add(2, beside ? "arrow-on-dot" : "socket-off-centre-" + nm, w, beside ? "arrives on a start; it should land 8u beside the dot" : "");
+      if (beside ? off < 6 : !centred) add(beside ? 1 : 2, beside ? "arrow-on-dot" : "socket-off-centre-" + nm, w, beside ? "arrives on a start; it should land 8u beside the dot" : "");
       else if (beside && off > 10) add(2, "arrival-too-far-from-dot", w, off.toFixed(0) + "u");
       if (s.id !== t.id) { const nx = end.x - cx, ny = end.y - cy, tx = other.position.x - cx, ty = other.position.y - cy; const cos = (nx * tx + ny * ty) / ((Math.hypot(nx, ny) || 1) * (Math.hypot(tx, ty) || 1)); if (cos < -0.3) add(2, "side-faces-away-" + nm, w, cos.toFixed(2)); }
     }

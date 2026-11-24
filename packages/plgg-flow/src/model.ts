@@ -1,3 +1,4 @@
+import { roomPerspective } from "plgg-flow/roomCamera";
 import { roomFor } from "plgg-flow/autoLayout";
 import type {
   RoomLayout,
@@ -136,6 +137,18 @@ export type Flow = Graph &
      * the diagram clear of it. */
     cover?: number;
     rooms?: RoomLayout;
+    roomPins?: Readonly<Record<string, string>>;
+    roomHover?:
+      | readonly [string, string]
+      | undefined;
+    roomMotion?:
+      | undefined
+      | {
+          from: Flow;
+          to: Flow;
+          duration: number;
+          progress: number;
+        };
     layered?: Readonly<{
       options: LayerOptions;
       computed: ReadonlyMap<string, Point3>;
@@ -546,6 +559,11 @@ export const viewAt =
       pitch,
       perspective: tilt * tilt * (3 - 2 * tilt),
     };
+    if (state.rooms)
+      camera.perspective = roomPerspective(
+        state.rooms,
+        camera,
+      );
     const pivot = state.spatial?.pivot
       ? state.nodes.find(
           (n) => n.id === state.spatial?.pivot,

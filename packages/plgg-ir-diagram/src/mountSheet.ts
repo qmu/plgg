@@ -5,6 +5,7 @@ import {
   type Html,
 } from "plgg-view";
 import {
+  subBatch,
   sandbox,
   cmdNone,
 } from "plgg-view/client";
@@ -22,6 +23,7 @@ import {
   type Rule,
 } from "plgg-flow/dsl";
 import {
+  roomFrames,
   sheetHint,
   addButton,
   removeButton,
@@ -55,7 +57,12 @@ const change =
       : {
           ...m,
           flow,
-          source: printSpec(flow, m.rules),
+          source:
+            flow.rooms &&
+            flow.nodes === m.flow.nodes &&
+            flow.edges === m.flow.edges
+              ? m.source
+              : printSpec(flow, m.rules),
           error: "",
           fitted:
             fitted ||
@@ -125,7 +132,7 @@ export const mountSheet = (
         sheetToolbar(
           reset,
           (fn) => change(fn, true),
-          !!flow.rooms,
+          !!current.rooms,
         ),
         ...(selectedNodes(current).length ||
         current.activeEdge
@@ -181,6 +188,18 @@ export const mountSheet = (
     init: [initial, cmdNone()],
     view,
     update: (action, m) => [action(m), cmdNone()],
-    subscriptions: () => frame,
+    subscriptions: (m) =>
+      m.flow.roomMotion
+        ? subBatch([
+            frame,
+            roomFrames<Action>(
+              m.flow,
+              (fn) => (model) => ({
+                ...model,
+                flow: fn(model.flow),
+              }),
+            ),
+          ])
+        : frame,
   })(root);
 };

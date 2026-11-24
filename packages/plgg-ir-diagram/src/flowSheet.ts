@@ -3,6 +3,8 @@ import { project } from "plgg-board";
 import {
   addNode,
   viewAt,
+  faceTable,
+  turnRooms,
   roomLabels,
   nodeSize,
   bodyDepth,
@@ -32,7 +34,8 @@ import {
 } from "plgg-view";
 import { custom } from "plgg-view/client";
 // Initial and reset sessions both open on the front of the board.
-export const fitDemo = (flow: Flow): Flow => {
+export const fitDemo = (original: Flow): Flow => {
+  const flow = faceTable(original);
   if (!flow.nodes.length) return flow;
   const camera = {
     ...flow.camera,
@@ -159,16 +162,54 @@ export const fitDemo = (flow: Flow): Flow => {
       frame.y,
       "y",
     );
-  const scale = Math.min(x.scale, y.scale);
+  let scale = Math.min(x.scale, y.scale);
+  let origin = {
+    x: x.origin(scale),
+    y: y.origin(scale),
+  };
+  if (flow.rooms) {
+    // Label collisions depend on pixel-sized glyphs at the fitted scale.
+    for (let i = 0; i < 16; i++) {
+      let left = bounds.left * scale,
+        right = bounds.right * scale,
+        top = bounds.top * scale,
+        bottom = bounds.bottom * scale;
+      for (const l of roomLabels(flow.rooms, {
+        ...camera,
+        scale,
+      })) {
+        const w = l.value.length * 13;
+        const x =
+          l.x +
+          l.dx -
+          (l.anchor === "end"
+            ? w
+            : l.anchor === "middle"
+              ? w / 2
+              : 0);
+        left = Math.min(left, x);
+        right = Math.max(right, x + w);
+        top = Math.min(top, l.y + l.dy - 7);
+        bottom = Math.max(bottom, l.y + l.dy + 7);
+      }
+      origin = {
+        x: (open - left - right) / 2,
+        y: (frame.y - top - bottom) / 2,
+      };
+      const ratio = Math.min(
+        (open - 96) / (right - left),
+        (frame.y - 96) / (bottom - top),
+      );
+      if (ratio >= 1 - 1e-8 || i === 15) break;
+      scale *= Math.max(0.1, ratio * 0.99);
+    }
+  }
   return {
-    ...flow,
+    ...original,
     camera: {
-      ...flow.camera,
+      ...original.camera,
       scale,
-      origin: {
-        x: x.origin(scale),
-        y: y.origin(scale),
-      },
+      origin,
     },
   };
 };
@@ -224,8 +265,59 @@ export const applyDemoSpec =
     const next = applySpec(spec)(flow);
     return layoutKey(next) === layoutKey(flow)
       ? next
-      : fitDemo(next);
+      : flow.rooms && next.rooms
+        ? turnRooms(flow, fitDemo(next), 300)
+        : fitDemo(next);
   };
+export const roomFrames = <Action>(
+  flow: Flow,
+  change: (fn: Change) => Action,
+) => {
+  const motion = flow.roomMotion;
+  return custom<Action>(
+    "room-motion-" +
+      JSON.stringify([
+        motion?.to.camera,
+        motion?.to.nodes.map((n) => n.position),
+      ]),
+    (dispatch) => {
+      if (!motion) return () => {};
+      let frame = 0;
+      const start = performance.now();
+      const tick = (now: number) => {
+        const t = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches
+          ? 1
+          : Math.min(
+              1,
+              (now - start) / motion.duration,
+            );
+        dispatch(
+          change((f) =>
+            f.roomMotion?.to !== motion.to
+              ? f
+              : {
+                  ...f,
+                  roomMotion:
+                    t === 1
+                      ? undefined
+                      : {
+                          ...motion,
+                          progress:
+                            t * t * (3 - 2 * t),
+                        },
+                },
+          ),
+        );
+        if (t < 1)
+          frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(frame);
+    },
+  );
+};
 export const roomsOpening = viewAt(-0.32, 0.26);
 export const optimize: Change = (f) => {
   if (f.rooms) {
@@ -590,16 +682,29 @@ export const sheetToolbar = <Action>(
       button("リセット", reset),
       ...(rooms
         ? [
-            button(
-              "正面",
-              change((f) =>
-                fitDemo(viewAt(0, 0)(f)),
-              ),
-            ),
-            button(
-              "立体",
-              change((f) =>
-                fitDemo(roomsOpening(f)),
+            ...(
+              [
+                ["正面", 0, 0],
+                ["上", 0, -Math.PI / 2],
+                ["横", Math.PI / 2, 0],
+                ["立体", -0.32, 0.26],
+              ] satisfies [
+                string,
+                number,
+                number,
+              ][]
+            ).map(([label, yaw, pitch]) =>
+              button(
+                label,
+                change((f) =>
+                  turnRooms(
+                    f,
+                    fitDemo(
+                      viewAt(yaw, pitch)(f),
+                    ),
+                    350,
+                  ),
+                ),
               ),
             ),
           ]

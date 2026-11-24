@@ -466,3 +466,16 @@ three face views are axis-aligned tables with no overlapping boxes;
 label anchors do not intersect for a sweep of yaw/pitch in steps of
 15°; perspective cap; far/near edge classes swap when the cuboid is
 turned round.
+
+## Rooms, second pass — review
+
+Adopted without item 6 (wires rising between floors): it arrived
+entangled with wiring round 32 in wiring.ts and is stashed with it.
+Seen in the demo: clicking 処理 then 本番 lights the four services in
+both and drops the rest to pencil; 正面 / 上 / 横 are ruled tables of
+two attributes; near edges ink, far edges faint; labels no longer
+pile up at the opening angle.
+
+Open: the face views fit small (the table uses about half the board);
+item 6; the turn animation and reduced-motion path are unverified by
+eye.

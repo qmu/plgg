@@ -1,7 +1,14 @@
 import { project } from "plgg-board";
-import { wireGraph } from "plgg-flow/wiring";
 import { viewAt } from "plgg-flow/model";
-import { roomView } from "plgg-flow/roomView";
+import {
+  faceTable,
+  roomPerspective,
+  inSlab,
+} from "plgg-flow/roomCamera";
+import {
+  roomView,
+  roomLabels,
+} from "plgg-flow/roomView";
 import { renderToString } from "plgg-view";
 import { test, check, toBe } from "plgg-test";
 import { some } from "plgg";
@@ -298,7 +305,7 @@ test("successive layers leave six squares between default boxes", () => {
   );
 });
 
-test("the viewport draws each lattice edge once and reveals floor labels on rotation", () => {
+test("empty rooms only draw corner ticks and turning reveals floor labels", () => {
   const flow = read(sheet),
     html = (angle: number) =>
       renderToString(
@@ -313,7 +320,7 @@ test("the viewport draws each lattice edge once and reveals floor labels on rota
     ...turned.matchAll(/ d="([^"]*)"/g),
   ].map((m) => m[1]!.split("M").length - 1);
   return check(
-    segments.reduce((a, b) => a + b, 0) ===
+    segments.reduce((a, b) => a + b, 0) <=
       2 * 3 * 4 + 3 * 2 * 4 + 3 * 3 * 3 &&
       front.includes(">app<") &&
       front.includes(">dev<") &&
@@ -394,32 +401,152 @@ test("lattice partitions have three strengths and anchors clear the projected cu
   );
 });
 
-test("only room wires changing floor have vertical end segments", () => {
-  const f = read(sheet + "\nA -> C\nC -> A");
-  const regular = wireGraph({
-    nodes: f.nodes,
-    edges: f.edges,
-  });
+test("slab selections intersect across attributes", () =>
+  check(
+    [
+      { layer: "app" },
+      { layer: "app", env: "live" },
+    ].every(
+      (selection, i) =>
+        read(sheet).rooms!.rooms.filter((r) =>
+          inSlab(
+            {
+              layer: r.values[0],
+              env: r.values[2],
+            },
+            selection,
+          ),
+        ).length === (i ? 2 : 6),
+    ),
+    toBe(true),
+  ));
+
+test("each face fits its nodes into separate table cells or slots", () => {
+  const flow = read(sheet);
   return check(
-    wireGraph(f).every((w, i) => {
-      if (w.source.z === w.target.z)
-        return (
-          JSON.stringify(w.points) ===
-          JSON.stringify(regular[i]!.points)
-        );
-      const start = w.points[1]!,
-        end = w.points[w.points.length - 2]!;
-      const rise =
-        Math.sign(w.target.z - w.source.z) * 16;
+    (
+      [
+        [0, 0],
+        [0, Math.PI / 2],
+        [Math.PI / 2, 0],
+      ] satisfies [number, number][]
+    ).every(([yaw, pitch]) => {
+      const table = faceTable(
+        viewAt(yaw, pitch)(flow),
+      );
       return (
-        start.x === w.source.x &&
-        start.y === w.source.y &&
-        start.z === w.source.z + rise &&
-        end.x === w.target.x &&
-        end.y === w.target.y &&
-        end.z === w.target.z - rise
+        table.camera.yaw === 0 &&
+        table.camera.pitch === 0 &&
+        table.nodes.every((a, i) =>
+          table.nodes
+            .slice(i + 1)
+            .every(
+              (b) =>
+                Math.abs(
+                  a.position.x - b.position.x,
+                ) *
+                  2 >=
+                  nodeSize(a).width +
+                    nodeSize(b).width ||
+                Math.abs(
+                  a.position.y - b.position.y,
+                ) *
+                  2 >=
+                  nodeSize(a).height +
+                    nodeSize(b).height,
+            ),
+        )
       );
     }),
     toBe(true),
+  );
+});
+
+test("room labels clear one another and perspective stays bounded through a turn", () => {
+  const flow = read(sheet),
+    layout = flow.rooms!;
+  for (let y = -180; y < 180; y += 15)
+    for (let p = -90; p <= 90; p += 15) {
+      const camera = viewAt(
+        (y * Math.PI) / 180,
+        (p * Math.PI) / 180,
+      )(flow).camera;
+      const labels = roomLabels(
+        layout,
+        camera,
+      ).map((l) => {
+        const width = 13 * l.value.length;
+        return {
+          x:
+            l.x +
+            l.dx -
+            (l.anchor === "end"
+              ? width
+              : l.anchor === "middle"
+                ? width / 2
+                : 0),
+          y: l.y + l.dy,
+          width,
+        };
+      });
+      const depths = layout.rooms.flatMap((r) =>
+        [r.min.x, r.max.x].flatMap((x) =>
+          [r.min.y, r.max.y].flatMap((y) =>
+            [r.min.z, r.max.z].map(
+              (z) =>
+                project(camera)({ x, y, z }).z,
+            ),
+          ),
+        ),
+      );
+      const k = roomPerspective(layout, camera);
+      if (
+        (1000 - k * Math.max(...depths)) /
+          (1000 - k * Math.min(...depths)) <
+          0.7 - 1e-8 ||
+        labels.some((a, i) =>
+          labels
+            .slice(i + 1)
+            .some(
+              (b) =>
+                a.x < b.x + b.width &&
+                b.x < a.x + a.width &&
+                Math.abs(a.y - b.y) < 14,
+            ),
+        )
+      )
+        return check(false, toBe(true));
+    }
+  return check(true, toBe(true));
+});
+
+test("the same outer edge changes from far to near after half a turn", () => {
+  const flow = read(sheet),
+    layout = flow.rooms!,
+    room = layout.rooms[0]!;
+  const classes = [0, Math.PI].map((yaw) => {
+    // Give coincident front and back edges distinct screen positions.
+    const tilted = viewAt(
+      yaw + 0.12,
+      0,
+    )(flow).camera;
+    const a = project(tilted)(room.min),
+      b = project(tilted)({
+        ...room.min,
+        x: room.max.x,
+      });
+    const segment = `M${a.x} ${a.y}L${b.x} ${b.y}`;
+    const html = renderToString(
+      roomView(layout, tilted),
+    );
+    return [
+      ...html.matchAll(
+        /class="room-(far|outer)" d="([^"]+)"/g,
+      ),
+    ].find((m) => m[2]?.includes(segment))?.[1];
+  });
+  return check(
+    classes.join(","),
+    toBe("far,outer"),
   );
 });

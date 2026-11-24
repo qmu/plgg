@@ -9,4 +9,8 @@ export type {
 export { bodyDepth } from "plgg-flow/nodeBody";
 export { bridgePoints } from "plgg-flow/polyline";
 export { nodeSize } from "plgg-flow/nodeSize";
+export {
+  faceTable,
+  turnRooms,
+} from "plgg-flow/roomCamera";
 export { roomLabels } from "plgg-flow/roomView";
