@@ -1797,3 +1797,29 @@ With Japanese names, seen:
    as on a cake and as one reads a layered architecture.
 4. Board names still at a fixed corner (the "placed by
    calculation" section is not yet implemented).
+
+## Captions, names by calculation, 見方, mark — review, adopted (reviewer's score: cake 70, rooms 62)
+
+Engine / space / layout audits 0 / 0; all 20 subject files lay out
+with no overlapping run, no piercing, captions fitting; view search
+40 ms for 20 nodes; slowest update p90 4.9 ms.
+
+Seen: the cake's names are one kind now and its board names stand
+in a clean column on the left; rooms stack top-first (画面 on
+top); no tilted world grid; 「見方」 steps through three views of
+rooms and in the first of them the sentence "検証 has no 決済" can
+be read off the empty corner.
+
+Open, from looking:
+
+- **On the cake every name is a tag over a blank box** although
+  the faces are seen at 87 % width. A box that shows its lettered
+  face should carry its name on it; tags are for when it cannot.
+  Find why the face rule yields tags here.
+- The first view chosen for rooms looks along the service axis:
+  boxes show their narrow sides. The score should count a node
+  whose lettered face is not the one seen (caption forced to a
+  tag) as a small cost, so that, other things equal, views that
+  read the names off the boxes win.
+- Axis rows are correct but faint and small at the fitted scale
+  (values 9px pencil). Values 10px graphite; names 11px 600.
