@@ -1587,3 +1587,35 @@ Acceptance for this section is by the corpus: for each subject the
 reviewer opens the sheet cold and writes down what they see in one
 sentence *before* reading the intended one; a subject passes when
 the two agree. Target 8 of 10.
+
+## Optimised placement and the cake — review, adopted (reviewer's score: cake 45 / 100, rooms 30)
+
+Space audit: sev3 16 → 0, sev2 3 → 0; overlapping runs 327 → 0,
+piercings 4 → 0, oblique 3 → 0, crossings 313 → 214, bends
+585 → 492, slowest 18 ms. The cake reads as boards one would draw.
+
+Seen, to fix in the drawing round that follows:
+
+- **Boards do not hide anything.** To cure the grey nodes all
+  floors were moved behind the whole graph, so a board no longer
+  covers the wires and nodes under it: every drop and every lower
+  wire shows through and the eye cannot tell above from below.
+  Correct order for a stack seen from above: lowest board, the
+  nodes and in-board wires on it, then the next board up, and so
+  on; a wire between boards is split at each board it passes and
+  each part painted with the storey it is in. Boards are opaque
+  paper. (Seen from below, the reverse.) Rooms storeys likewise,
+  but their floors stay see-through (wash 14 %) because a block
+  has walls of cells — there, order still matters for wires.
+- **Captions are sheared 45°** at yaw −π/4 and are tiring to read.
+  Opening view becomes yaw −π/6, elevation 0.55 (faces seen at
+  87 % width), for cake and rooms.
+- **Drops go a long way round the rims** (cakeWide 21 → 40
+  crossings from rim clearance). A drop may pass *through* a board
+  where no node stands — with the hole mark of the drawing
+  section — when that is shorter than going round; rims are for
+  when the straight way is blocked.
+- Rooms at this angle: Trace and a neighbour touch; cell minimum
+  depth is not respected after the optimiser's exchange — keep
+  boxes 16 apart on screen-relevant directions (x and z) in every
+  cell.
