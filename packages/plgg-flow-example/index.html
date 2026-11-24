@@ -818,6 +818,52 @@
     .board-controls .add-node::after {
       transform: rotate(90deg);
     }
+  
+    /* the hint under the board names the gestures of the
+       pointer in use */
+    .hint-touch {
+      display: none;
+    }
+    @media (hover: none) and (pointer: coarse) {
+      .hint-mouse {
+        display: none;
+      }
+      .hint-touch {
+        display: inline;
+      }
+    }
+  
+    /* the board takes all the room there is: tight margins
+       around the sheet */
+    main > section {
+      padding: 14px 16px 10px;
+    }
+    main > section > header {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+    }
+    .stage {
+      margin-bottom: 6px;
+    }
+    @media (min-width: 1001px) {
+      main > section {
+        padding-bottom: 8px;
+      }
+      .stage {
+        margin-bottom: 6px;
+      }
+    }
+      main > section > small {
+      max-width: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.5;
+    }
+    main > section > header .lede {
+      max-width: none;
+      flex: 1 1 20ch;
+    }
   </style>
   <div id="app"></div>
   <script
