@@ -1440,3 +1440,21 @@ zero overlaps, crossings optimised with node positions, names
 readable from every side, the shooting list passing. Colour then
 has to earn its place against that result, not cover for what the
 drawing fails to say.
+
+## Wires along the lattice — review, adopted; the space audit's first numbers
+
+Adopted: an edge may carry a 3D `path`, the standard renderer draws
+it; rooms wires run in aisles and risers and read far better than
+the stretched curves. `viewport.ts` still knows no rooms.
+
+`scripts/space-audit.mjs` (new, reviewer-owned), 13 spaces:
+**every one has overlapping runs** (rooms3 4 pairs, rooms4 10,
+cakes 7–28, random spaces up to 69), one space pierces boxes (4
+runs) and has 3 oblique runs; crossings 313 and bends 585 in
+total. That is the owner's "lines overlap and smear", counted.
+Lanes exist in the design, not yet in the result.
+
+Seen in the browser as well: on the rooms sheet four nodes (Auth,
+Users, Payments, Ledger) are drawn grey although nothing is pinned
+— scenery or a stale `quiet` is veiling them again; and the layer
+sheet is still the upright panes (to be replaced by the cake).
