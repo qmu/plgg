@@ -854,3 +854,53 @@ C. Animated change of view (roles swapped from the properties area).
 
 Budget unchanged: one update of the sample under 8 ms in the
 browser, the element count near today's (245).
+
+## Space — where the values are written, and the partitions (owner, on the first sight of the new space: "much better; put which stretch of each axis is what where it does not overlap and is easy to see, and let the spatial partitions show")
+
+Seen: the axes start at the far-bottom corner, which with two blocks
+is the middle of the picture, so 顧客 / 注文 / 基盤 and 本番 / 検証
+are written over walls, wires and cards; the cells are hinted only
+by faint rulings on the far faces.
+
+**Axes go on the outline.** For the current camera, each axis is
+drawn along the edge of the block's cuboid that lies on the outline
+of its projection (a silhouette edge), choosing among those the one
+on the outer side of the whole picture; values are written outside
+that edge, away from the block.
+
+- x (across): the front-bottom edge of **every** block; values
+  below it.
+- z (depth): the bottom edge on the outward side — of the rightmost
+  block when it is the right side that shows, of the leftmost
+  otherwise; values outside it.
+- y (storeys): the outline's vertical edge on the outer left (or
+  right) of the leftmost (rightmost) block; values beside it,
+  reading from the ground up in the order the storeys stand.
+- A value is centred on its slab, between two ticks that reach 6px
+  outward; the attribute name is written once, beyond the last
+  value, 12px 600. The dotted line, ticks and arrowhead stay.
+- A label's box (13px per glyph × 14) must not meet any card's
+  projected box, another label, or a block's value at its foot;
+  when the chosen edge fails that at the current camera, take the
+  other outline edge of that axis; when both fail, move the label
+  outward in steps of 4px.
+- As the camera turns the edges change — labels jump to the new
+  outline edge, never slide across the picture.
+
+**Partitions show.** A cell must read as a box:
+
+- Every storey's floor is a plate: wash at 35 %, pencil outline,
+  ruled into its cells by trace lines.
+- Every vertical partition line that reaches the block's hull is
+  drawn on the hull as a trace line, on near faces too (near faces
+  have no fill): the block is ruled like a crate on all sides.
+- The pinned slab or cell is framed in ink with its faces washed at
+  20 %; everything else steps back to pencil as today.
+- Budget: the element count may rise to about 400; one update
+  still under 8 ms.
+
+Specs: for the opening view and after turning to each of eight
+yaws at two elevations, no axis label box meets a card box or
+another label; every axis edge used is a silhouette edge of its
+block; each storey draws one plate; hull rulings count
+(X−1)+(Z−1) per vertical face pair and per storey.
