@@ -292,8 +292,16 @@
       font: 500 13px var(--body);
       fill: var(--ink) !important;
     }
+    /* the ordinary arrow over the sheet and its nodes, a
+       closed hand only while something is being dragged, a
+       pointing hand on a wire, a cross on a socket */
+    .flow-board,
     .flow-board g {
-      cursor: grab;
+      cursor: default;
+    }
+    .flow-board:active,
+    .flow-board:active g {
+      cursor: grabbing;
     }
     .flow-board circle {
       cursor: crosshair;
@@ -363,7 +371,8 @@
     .flow-board path.edge[stroke="#e36731"] {
       stroke-width: 3px;
     }
-    .flow-board path.edge {
+    .flow-board path.edge,
+    .flow-board .edge-hit {
       cursor: pointer;
     }
     .board-controls .remove {

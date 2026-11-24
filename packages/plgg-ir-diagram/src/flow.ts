@@ -91,7 +91,10 @@ figure{margin:0;position:relative}
 .flow-board path.edge[stroke="#e36731"]{stroke-width:3px}
 .flow-board .world-grid{stroke:var(--trace)!important;stroke-width:.8}
 .flow-board .edge-label{paint-order:stroke;stroke:var(--paper)!important;stroke-width:5px}
-.flow-board g{cursor:grab}
+.flow-board,.flow-board g{cursor:default}
+.flow-board:active,.flow-board:active g{cursor:grabbing}
+.flow-board path.edge,.flow-board .edge-hit{cursor:pointer}
+.flow-board circle{cursor:crosshair}
 .controls{position:absolute;top:8px;left:8px;display:flex}
 .controls button{font:inherit;font-size:12px;cursor:pointer;background:var(--paper);color:var(--ink);border:1px solid var(--ink);padding:3px 10px}
 .controls button+button{margin-left:-1px}
