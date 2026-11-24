@@ -11,6 +11,43 @@ const escape = (text: string) =>
 const path = (points: readonly Point[]) =>
   "M" +
   points.map((p) => p.x + " " + p.y).join("L");
+/** SVG centrelines with the engine's crossing gaps cut from the farther stroke. */
+export const strokePath = (drawing: Drawing) => {
+  const gaps = new Map<number, Point[]>();
+  for (const m of drawing.marks)
+    if (m.strokeIndex !== undefined) {
+      const points =
+        gaps.get(m.strokeIndex) ?? [];
+      points.push(m.point);
+      gaps.set(m.strokeIndex, points);
+    }
+  return (index: number) => {
+    const s = drawing.strokes[index]!;
+    const cuts = gaps.get(index);
+    if (!cuts) return path(s.points);
+    const [a, b] = s.points,
+      len = Math.hypot(b.x - a.x, b.y - a.y);
+    let d = "",
+      cursor = 0;
+    for (const t of cuts
+      .map(
+        (p) =>
+          Math.hypot(p.x - a.x, p.y - a.y) / len,
+      )
+      .sort((a, b) => a - b)) {
+      const start = t - 2 / len;
+      if (start > cursor)
+        d += path([
+          mix(a, b, cursor),
+          mix(a, b, start),
+        ]);
+      cursor = Math.max(cursor, t + 2 / len);
+    }
+    if (cursor < 1)
+      d += path([mix(a, b, cursor), b]);
+    return d;
+  };
+};
 export const toSvg = (
   drawing: Drawing,
   styles: Readonly<Record<string, string>> = {},
@@ -54,9 +91,7 @@ export const toSvg = (
         path(s.points) + "Z",
       ),
     );
-  const gaps = marks.filter(
-    (m) => m.kind === "gap",
-  );
+  const stroke = strokePath(drawing);
   const batches: {
     id: string;
     style: string;
@@ -64,44 +99,7 @@ export const toSvg = (
     d: string;
   }[] = [];
   for (const [index, s] of strokes.entries()) {
-    const [a, b] = s.points,
-      dx = b.x - a.x,
-      dy = b.y - a.y,
-      length = Math.hypot(dx, dy);
-    const cuts =
-      s.kind === "line"
-        ? gaps
-            .filter(
-              (g) =>
-                g.strokeIndex === index &&
-                Math.abs(
-                  dx * (g.point.y - a.y) -
-                    dy * (g.point.x - a.x),
-                ) <
-                  1e-6 * length,
-            )
-            .map(
-              (g) =>
-                ((g.point.x - a.x) * dx +
-                  (g.point.y - a.y) * dy) /
-                (length * length),
-            )
-            .filter((t) => t > 0 && t < 1)
-            .sort((a, b) => a - b)
-        : [];
-    let d = "",
-      cursor = 0;
-    for (const t of cuts) {
-      const start = t - 2 / length;
-      if (start > cursor)
-        d += path([
-          mix(a, b, cursor),
-          mix(a, b, start),
-        ]);
-      cursor = Math.max(cursor, t + 2 / length);
-    }
-    if (cursor < 1)
-      d += path([mix(a, b, cursor), b]);
+    const d = stroke(index);
     const last = batches[batches.length - 1];
     if (
       last &&

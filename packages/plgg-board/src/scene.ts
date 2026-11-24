@@ -6,6 +6,7 @@ export type Item = Readonly<{
   id: string;
   style: string;
   casts?: boolean;
+  shadowReceiver?: string;
   receives?: boolean;
 }>;
 export type Solid = Item &

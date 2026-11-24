@@ -189,7 +189,7 @@ test("front tags clear one another after every box at the side and top views", (
           ) &&
         Math.abs(heights[0]! - heights[1]!) >
           20 &&
-        tags.some((tag) => tag.includes("<line"))
+        html.includes('class="leader"')
       );
     }),
     toBe(true),
@@ -259,6 +259,67 @@ test("drag orbit centres the drawing in the uncovered frame and preserves manual
         ...rotated,
         manualZoom: true,
       }).camera.scale === rotated.camera.scale,
+    toBe(true),
+  );
+});
+
+test("an opaque cover changes the same wire, outline and caption together", () => {
+  const flow = createFlow({
+    nodes: [
+      {
+        id: "a",
+        label: "A",
+        position: { x: -120, y: 0, z: 0 },
+      },
+      {
+        id: "b",
+        label: "B",
+        position: { x: 120, y: 0, z: 0 },
+      },
+      { id: "c", label: "Covered", position: p },
+    ],
+    edges: [
+      {
+        source: "a",
+        target: "b",
+        path: [
+          { x: -88, y: 0, z: 0 },
+          { x: 88, y: 0, z: 0 },
+        ],
+      },
+    ],
+  });
+  const scenery = [
+    {
+      kind: "plane",
+      layer: "sorted",
+      tone: "black",
+      fill: "white",
+      opacity: 1,
+      points: [
+        { x: -64, y: -32, z: 40 },
+        { x: 64, y: -32, z: 40 },
+        { x: 64, y: 32, z: 40 },
+        { x: -64, y: 32, z: 40 },
+      ],
+    },
+  ] satisfies NonNullable<typeof flow.scenery>;
+  const draw = (hidden: "lines" | "none") =>
+    renderToString(
+      drawFlow({ ...flow, scenery, hidden }),
+    );
+  const lines = draw("lines"),
+    opaque = draw("none");
+  return check(
+    [
+      "wire hidden",
+      "node hidden",
+      "caption covered",
+    ].every(
+      (c) =>
+        lines.includes('class="' + c + '"') &&
+        !opaque.includes('class="' + c + '"'),
+    ) && opaque.includes('class="wire line"'),
     toBe(true),
   );
 });

@@ -1,6 +1,5 @@
 import { roomFor } from "plgg-flow/autoLayout";
 import {
-  bodyDepth,
   cardBounds,
   corners,
 } from "plgg-flow/nodeBody";
@@ -23,7 +22,7 @@ import {
   directions,
   faceAxes,
 } from "plgg-flow/roomCamera";
-import { nodeSize } from "plgg-flow/nodeSize";
+
 const stageBounds = (
   cells: RoomLayout["rooms"],
 ) => ({
@@ -672,16 +671,18 @@ export const spaceScenery = (
       )
         grid(axis, far, cells);
     }
-    for (const level of [
-      ...new Set(
-        (cake ? cells : selected).map(
-          (c) => c.max.y,
-        ),
+    const focus =
+      cake &&
+      (flow.roomHover?.[0] === cake.attribute
+        ? flow.roomHover[1]
+        : flow.roomPins?.[cake.attribute]);
+    const focusLevel = cells.find(
+      (c) => focus && c.values[1] === focus,
+    )?.max.y;
+    for (const level of new Set(
+      (cake ? cells : selected).map(
+        (c) => c.max.y,
       ),
-    ].sort(
-      (a, b) =>
-        at({ ...bounds.min, y: a }).z -
-        at({ ...bounds.min, y: b }).z,
     )) {
       const tiles = (
         cake ? cells : selected
@@ -692,178 +693,56 @@ export const spaceScenery = (
         stageBounds(tiles),
       );
       const tone = cake ? ink : pencil;
-      const quad = (
-        x: number,
-        z: number,
-        right: number,
-        back: number,
-        y: number,
-      ): [Point3, Point3, Point3, Point3] => [
-        { x, y, z },
-        { x: right, y, z },
-        { x: right, y, z: back },
-        { x, y, z: back },
-      ];
-      const shadow = (
-        patches: [
-          Point3,
-          Point3,
-          Point3,
-          Point3,
-        ][],
-        opacity: number,
-        surface: number,
-        order: number,
-      ) => {
-        if (patches[0])
-          result.push({
-            kind: "plane",
-            layer: "sorted",
-            surface,
-            order,
-            points: patches[0],
-            patches: patches.slice(1),
-            tone: "none",
-            fill: "var(--shade,#e9e9e9)",
-            opacity,
-          });
-      };
-      if (cake && level === bounds.max.y)
-        shadow(
-          [
-            quad(
-              p.x + 12,
-              p.z + 8,
-              r.x + 12,
-              r.z + 8,
-              level + 16,
-            ),
-          ],
-          0.35,
-          level + 16,
-          0,
-        );
       if (
         cake &&
-        cells.some((c) => c.max.y < level)
+        focusLevel !== undefined &&
+        level < focusLevel
       )
-        shadow(
-          [
-            quad(
-              p.x + 12,
-              p.z + 8,
-              r.x,
-              r.z,
-              level,
-            ),
-          ],
-          0.35,
-          level,
-          2,
-        );
-      const members = new Set(
-        tiles.flatMap((c) => c.members),
-      );
-      shadow(
-        flow.nodes
-          .filter(
-            (n) => members.has(n.id) && !n.hidden,
-          )
-          .map((n) => {
-            const { x, z } = n.position,
-              w = nodeSize(n).width / 2,
-              d = bodyDepth(n);
-            return quad(
-              x - w + 6,
-              z - d + 5,
-              x + w + 6,
-              z + d + 5,
-              level,
-            );
-          }),
-        0.6,
-        level,
-        3,
-      );
-      result.push({
-        kind: "plane",
-        layer: "sorted",
-        surface: level,
-        thickness: cake ? 6 : 4,
-        order: 1,
-        width: 1.25,
-        points: [p, q, r, t],
-        fill: cake
-          ? "var(--paper,white)"
-          : "var(--wash,white)",
-        opacity: cake ? 1 : 0.14,
-        tone,
-      });
+        result.push({
+          kind: "line",
+          layer: "sorted",
+          tone: pencil,
+          points: [p, q, r, t, p],
+        });
+      else
+        result.push({
+          kind: "plane",
+          layer: "sorted",
+          surface: level,
+          thickness: cake ? 6 : 4,
+          order: 1,
+          width: 1.25,
+          points: [p, q, r, t],
+          fill: cake
+            ? "var(--paper,white)"
+            : "var(--wash,white)",
+          opacity: cake ? 1 : 0.14,
+          tone,
+        });
       if (cake) {
-        const holes: Point3[][] = [];
-        for (const edge of flow.edges) {
-          const path = edge.path ?? [];
-          path.slice(1).forEach((b, i) => {
-            const a = path[i]!;
-            if (
-              (a.y - level) * (b.y - level) >=
-                0 ||
-              a.x !== b.x ||
-              a.z !== b.z ||
-              a.x <= p.x ||
-              a.x >= r.x ||
-              a.z <= p.z ||
-              a.z >= r.z
-            )
-              return;
-            holes.push(
-              Array.from(
-                { length: 16 },
-                (_, j) => ({
-                  x:
-                    a.x +
-                    3 *
-                      Math.cos((j * Math.PI) / 8),
-                  y: level,
-                  z:
-                    a.z +
-                    1.5 *
-                      Math.sin((j * Math.PI) / 8),
-                }),
-              ),
-            );
-          });
-        }
-        const hole = holes[0];
-        if (hole)
-          result.push({
-            kind: "plane",
-            layer: "sorted",
-            surface: level,
-            order: 4,
-            points: hole,
-            patches: holes.slice(1),
-            tone: ink,
-            width: 0.75,
-            fill: "var(--paper,white)",
-            opacity: 1,
-          });
         const value = tiles[0]!.values[1];
         result.push({
           kind: "label",
           layer: "sorted",
           surface: level,
-          order: 5,
-          onSurface: true,
           anchor: {
-            ...(at(t).z > at(p).z ? t : p),
-            x: (p.x + q.x) / 2,
+            y: level,
+            x: Math.min(p.x, q.x) - 16,
+            z: Math.max(t.z, p.z) + 12,
           },
           offset: { x: 0, y: 8 },
           text: value,
           size: 12,
           weight: 600,
           tone: ink,
+          enter: (f) => ({
+            ...f,
+            roomHover: [cake.attribute, value],
+          }),
+          leave: (f) => ({
+            ...f,
+            roomHover: undefined,
+          }),
           press: (f) => ({
             ...f,
             roomPins:

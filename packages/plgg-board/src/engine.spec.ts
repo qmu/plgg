@@ -223,3 +223,36 @@ test("perspective wire meets a sheet at its projected world intersection", () =>
     toBe(true),
   );
 });
+
+test("a line crossing a closed solid has two holes and a hidden interior", () => {
+  const d = render(
+    {
+      ...scene,
+      solids: [box(p(0, 0, 0), p(8, 4, 6))],
+      lines: [
+        {
+          id: "drop",
+          style: "ink",
+          points: [p(-9, 0, 0), p(9, 0, 0)],
+        },
+      ],
+    },
+    camera,
+    light,
+  );
+  const line = d.strokes.filter(
+    (s) => s.id === "drop",
+  );
+  return check(
+    [
+      line.map((s) => s.kind).join(),
+      line[1]?.points.map((q) => q.x).join(),
+      d.marks
+        .filter((m) => m.kind === "hole")
+        .map((m) => m.point.x)
+        .sort((a, b) => a - b)
+        .join(),
+    ].join("|"),
+    toBe("line,hidden,line|-4,4|-4,4"),
+  );
+});

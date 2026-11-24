@@ -19,7 +19,6 @@ export type Face = {
   normal: Point3;
   offset: number;
   double: boolean;
-  pierce: boolean;
 };
 type Piece = {
   face: Face;
@@ -211,7 +210,6 @@ const geometry = (item: Solid | Sheet) => {
     item: Item,
     points: readonly Point3[],
     double: boolean,
-    pierce: boolean,
   ) => {
     const a = points[0],
       b = points[1];
@@ -234,7 +232,6 @@ const geometry = (item: Solid | Sheet) => {
       normal,
       offset: dot(normal, a),
       double,
-      pierce,
     };
     faces.push(f);
     return f;
@@ -246,12 +243,7 @@ const geometry = (item: Solid | Sheet) => {
       const points = loop.flatMap(
         (i) => solid.vertices[i] ?? [],
       );
-      const f = face(
-        solid,
-        points,
-        false,
-        solid.slab === true,
-      );
+      const f = face(solid, points, false);
       if (!f) continue;
       loop.forEach((i, k) => {
         const j = loop[(k + 1) % loop.length];
@@ -278,7 +270,6 @@ const geometry = (item: Solid | Sheet) => {
       sheet,
       sheet.points,
       !sheet.oneSided,
-      true,
     );
     if (f)
       sheet.points.forEach((a, i) => {
@@ -310,6 +301,11 @@ const geometryOf = (item: Solid | Sheet) => {
   return result;
 };
 type Model = Geometry & {
+  volumes: {
+    faces: Face[];
+    min: Point3;
+    max: Point3;
+  }[];
   tree: Node[];
   items: Set<Item>;
 };
@@ -360,6 +356,14 @@ const previous = new WeakMap<
 export const compiled = (scene: Scene) => {
   const cached = cache.get(scene);
   if (cached) return cached;
+  const shared = previous.get(scene.solids);
+  if (
+    shared &&
+    shared === previous.get(scene.sheets)
+  ) {
+    cache.set(scene, shared);
+    return shared;
+  }
   const shapes = [
       ...scene.solids,
       ...scene.sheets,
@@ -395,7 +399,27 @@ export const compiled = (scene: Scene) => {
         added,
       )
     : build(added);
-  const result = { items, faces, edges, tree };
+  const volumes = scene.solids.map((solid) => {
+    const bound = (
+      f: (...values: number[]) => number,
+    ) => ({
+      x: f(...solid.vertices.map((p) => p.x)),
+      y: f(...solid.vertices.map((p) => p.y)),
+      z: f(...solid.vertices.map((p) => p.z)),
+    });
+    return {
+      faces: geometryOf(solid).faces,
+      min: bound(Math.min),
+      max: bound(Math.max),
+    };
+  });
+  const result = {
+    items,
+    faces,
+    edges,
+    tree,
+    volumes,
+  };
   cache.set(scene, result);
   previous.set(scene.sheets, result);
   previous.set(scene.solids, result);

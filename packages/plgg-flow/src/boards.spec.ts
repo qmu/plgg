@@ -1,3 +1,5 @@
+import { renderToString } from "plgg-view";
+import { flowView } from "plgg-flow/sheetView";
 import { test, check, toBe } from "plgg-test";
 import { roomFaceView } from "plgg-flow/roomCamera";
 import { spaceScenery } from "plgg-flow/roomView";
@@ -112,9 +114,8 @@ test("in-board edges advance along x and drops pierce boards at marked holes", (
   };
   return check(
     first!.position.x < second!.position.x &&
-      spaceScenery(flow.rooms!, drawing).some(
-        (s) =>
-          s.kind === "plane" && s.width === 0.75,
+      renderToString(flowView(drawing)).includes(
+        'class="hole"',
       ),
     toBe(true),
   );

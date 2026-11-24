@@ -16,25 +16,6 @@ export const drawScenery = (
   const style = attr("pointer-events", "none");
   if (item.kind === "label") {
     const p = at(item.anchor);
-    const x = at({
-      ...item.anchor,
-      x: item.anchor.x + 1,
-    });
-    const z = at({
-      ...item.anchor,
-      z: item.anchor.z + 1,
-    });
-    const dx = x.x - p.x,
-      dy = x.y - p.y;
-    const laid =
-      item.onSurface &&
-      Math.abs(dx) >= camera.scale * 0.6 &&
-      Math.abs(dy) <=
-        Math.abs(dx) *
-          Math.tan((35 * Math.PI) / 180) &&
-      Math.abs(z.y - p.y) > camera.scale * 0.15;
-    const sx = Math.sign(dx) / camera.scale,
-      sz = Math.sign(z.y - p.y) / camera.scale;
     const { press, enter, leave } = item;
     return {
       layer: item.layer,
@@ -42,31 +23,10 @@ export const drawScenery = (
       html: el<Change>(
         "text",
         [
-          ...(laid
-            ? [
-                attr(
-                  "transform",
-                  `matrix(${dx * sx} ${dy * sx} ${(z.x - p.x) * sz} ${(z.y - p.y) * sz} ${p.x} ${p.y})`,
-                ),
-              ]
-            : []),
-          attr(
-            "x",
-            String(
-              laid ? 0 : p.x + item.offset.x,
-            ),
-          ),
-          attr(
-            "y",
-            String(
-              laid ? 0 : p.y + item.offset.y,
-            ),
-          ),
+          attr("x", String(p.x + item.offset.x)),
+          attr("y", String(p.y + item.offset.y)),
           attr("text-anchor", "middle"),
-          attr(
-            "dominant-baseline",
-            laid ? "alphabetic" : "middle",
-          ),
+          attr("dominant-baseline", "middle"),
           attr(
             "style",
             `font-size:${item.size}px;font-weight:${item.weight};fill:${item.tone} !important${press ? ";cursor:pointer" : ""}`,
@@ -105,93 +65,6 @@ export const drawScenery = (
             : []),
         ],
         [text(item.text)],
-      ),
-    };
-  }
-  if (item.kind === "plane" && item.thickness) {
-    const top = item.points.map(at),
-      bottom = item.points.map((p) =>
-        at({ ...p, y: p.y + item.thickness! }),
-      );
-    const center = top.reduce(
-      (p, q) => ({
-        x: p.x + q.x / top.length,
-        z: p.z + q.z / top.length,
-      }),
-      { x: 0, z: 0 },
-    );
-    const polygon = (points: typeof top) =>
-      points
-        .map(
-          (p, i) =>
-            (i ? "L" : "M") + p.x + " " + p.y,
-        )
-        .join("") + "Z";
-    const face = (
-      points: typeof top,
-      fill: string,
-      opacity: number,
-    ) =>
-      el<Change>(
-        "path",
-        [
-          attr("d", polygon(points)),
-          attr("fill-opacity", String(opacity)),
-          attr(
-            "style",
-            `fill:${fill};stroke:${item.tone};stroke-width:${item.width ?? 1}px;stroke-linejoin:round`,
-          ),
-        ],
-        [],
-      );
-    const above = Math.sin(camera.pitch) <= 0;
-    const sides = top.flatMap((a, i) => {
-      const j = (i + 1) % top.length,
-        b = top[j]!;
-      if ((a.z + b.z) / 2 <= center.z + 1e-8)
-        return [];
-      return [
-        face(
-          [a, b, bottom[j]!, bottom[i]!],
-          (a.x + b.x) / 2 < center.x
-            ? "var(--wash,white)"
-            : "var(--shade,#e9e9e9)",
-          1,
-        ),
-      ];
-    });
-    const surface = face(
-      above ? top : bottom,
-      above ? item.fill : "var(--shade,#e9e9e9)",
-      item.opacity,
-    );
-    const halo =
-      item.opacity === 1
-        ? [
-            el<Change>(
-              "path",
-              [
-                attr(
-                  "d",
-                  polygon(top) + polygon(bottom),
-                ),
-                attr("fill", "none"),
-                attr(
-                  "style",
-                  "stroke:var(--paper,white);stroke-width:7.25px;stroke-linejoin:round",
-                ),
-              ],
-              [],
-            ),
-          ]
-        : [];
-    return {
-      layer: item.layer,
-      depth: center.z,
-      html: el<Change>(
-        "g",
-        [style],
-        [...halo, ...sides, surface],
       ),
     };
   }

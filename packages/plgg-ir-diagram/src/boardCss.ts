@@ -1,5 +1,72 @@
 export const boardCss = (root: string) => `
 @scope (${root}) {
+  .engine-drawing .up {
+    fill: var(--surface, var(--paper));
+  }
+  .engine-drawing .lit {
+    fill: var(--surface, var(--wash));
+  }
+  .engine-drawing .shade {
+    fill: var(--surface, var(--shade));
+  }
+  .engine-drawing :is(.up, .lit, .shade) {
+    fill-opacity: var(--opacity, 1);
+  }
+  .engine-drawing
+    :is(.line, .silhouette, .crease, .hidden) {
+    fill: none;
+    stroke: var(--stroke, var(--ink));
+  }
+  .engine-drawing .silhouette {
+    stroke-width: 1.5;
+  }
+  .engine-drawing .crease {
+    stroke-width: 0.75;
+  }
+  .engine-drawing .line {
+    stroke-width: var(--weight, 1.25);
+  }
+  .engine-drawing .hidden {
+    stroke: var(--pencil, gray);
+    stroke-dasharray: 1 3;
+  }
+  .engine-drawing .node.hidden {
+    stroke-dasharray: 4 3;
+  }
+  .engine-drawing .quiet {
+    --stroke: var(--pencil, gray);
+  }
+  .engine-drawing .active {
+    --weight: 2.5;
+    --stroke: var(--ink);
+  }
+  .engine-drawing .leader {
+    stroke: var(--pencil, gray);
+    stroke-width: 0.75;
+  }
+  .engine-drawing .covered text,
+  .engine-drawing .covered {
+    fill: var(--pencil, gray) !important;
+  }
+  .engine-drawing .arrow,
+  .engine-drawing .mark {
+    fill: var(--ink);
+  }
+  .engine-drawing .hole {
+    fill: var(--paper);
+    stroke: var(--ink);
+    stroke-width: 0.75;
+  }
+  .engine-drawing .shadow {
+    fill: var(--shade);
+    opacity: 0.6;
+  }
+  .engine-drawing .board.shadow {
+    opacity: 0.35;
+  }
+  .engine-drawing .node.active.silhouette {
+    stroke-width: 2.4;
+  }
   .flow-board {
     --shade: light-dark(#e9e9e9, #1f1f1f);
     display: block;

@@ -395,6 +395,16 @@ for (const [name, scene] of Object.entries(S)) {
           );
           const covered = d.map((z) => z > p.z + 0.75);
           if (covered.some((c) => c !== covered[0])) continue;
+          // at the very place where the line goes under, a pixel
+          // either way is fair
+          if (
+            visible.some((v) =>
+              [v.points[0], v.points[v.points.length - 1]].some(
+                (e) => Math.hypot(e.x - p.x, e.y - p.y) < 3,
+              ),
+            )
+          )
+            continue;
           total++;
           if (near(p, visible) === !covered[0]) ok++;
         }

@@ -66,7 +66,12 @@ export const shadows = (
     const travel = (p: Point3) =>
       (face.offset - dot(face.normal, p)) / denom;
     for (const caster of casters) {
-      if (caster === face.item) continue;
+      if (
+        caster === face.item ||
+        (caster.shadowReceiver !== undefined &&
+          caster.shadowReceiver !== face.item.id)
+      )
+        continue;
       const loops =
         "vertices" in caster
           ? caster.faces.map((loop) =>

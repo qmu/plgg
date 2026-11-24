@@ -1236,11 +1236,25 @@ const controls = (
     case "snap":
     case "split":
     case "dimensions":
+    case "layered":
+      return [];
+    case "space":
     case "rooms":
     case "layers":
-    case "layered":
-    case "space":
-      return [];
+      return [
+        change(
+          s.flow.hidden === "none"
+            ? "隠線を表示"
+            : "隠線を隠す",
+          (f) => ({
+            ...f,
+            hidden:
+              f.hidden === "none"
+                ? "lines"
+                : "none",
+          }),
+        ),
+      ];
     case "files":
       return [
         mapHtml((fn: FileEdit) =>
@@ -1445,12 +1459,12 @@ const featureInput = (
   const f = s.flow;
   switch (id) {
     case "dimensions":
-    case "rooms":
-    case "layers":
     case "layered":
       return id;
+    case "rooms":
+    case "layers":
     case "space":
-      return f.camera;
+      return f.hidden;
     case "split":
       return !!f.edges.length;
     case "cycles":

@@ -306,4 +306,7 @@ export const orbitAround = (
 export * from "plgg-board/scene";
 export * from "plgg-board/drawing";
 export { render } from "plgg-board/engine";
-export { toSvg } from "plgg-board/svg";
+export {
+  toSvg,
+  strokePath,
+} from "plgg-board/svg";

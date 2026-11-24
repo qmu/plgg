@@ -188,6 +188,7 @@ export type Drag = Readonly<{
 }>;
 export type Flow = Graph &
   Readonly<{
+    hidden?: "lines" | "none";
     scenery?: readonly Scenery[];
     frame?: Point;
     /** Logical width at the right of the frame that a

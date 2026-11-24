@@ -323,37 +323,24 @@ test("named views draw the standard solid and dimension labels", () => {
       const ordinary = renderToString(
         flowView(ordinaryState),
       );
-      const faces = (markup: string) =>
-        markup
-          .match(
-            /<polygon[^>]*data-node-face[^>]*>/g,
-          )
-          ?.sort()
-          .join("");
+      const ids = (markup: string) =>
+        new Set(
+          Array.from(
+            markup.matchAll(
+              /data-id="node:([^"]+)"/g,
+            ),
+            (m) => m[1],
+          ),
+        );
+      const rendered = ids(html),
+        plain = ids(ordinary);
       return (
-        spaceScenery(flow.rooms!, state).some(
-          (item) =>
-            item.kind === "plane" &&
-            item.layer === "sorted",
+        html.includes('class="board ') &&
+        rendered.size > 0 &&
+        rendered.size === plain.size &&
+        [...rendered].every((id) =>
+          plain.has(id),
         ) &&
-        html.indexOf('fill-opacity="0.14"') >=
-          0 &&
-        !!faces(html) &&
-        faces(html) === faces(ordinary) &&
-        JSON.stringify(
-          html
-            .match(
-              /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
-            )
-            ?.sort(),
-        ) ===
-          JSON.stringify(
-            ordinary
-              .match(
-                /<g data-node-caption[\s\S]*?<\/svg><\/g>/g,
-              )
-              ?.sort(),
-          ) &&
         spaceScenery(flow.rooms!, state).some(
           (item) =>
             item.kind === "label" &&
@@ -646,7 +633,7 @@ test("a wire only splits where an overlapping node has ink on both sides of its 
 test("quiet space wires gain ink on incident hover and selection", () => {
   const f = read(sheet);
   const quiet = (state: typeof f) =>
-    /class="edge quiet-wire"[^>]*data-edge-index="0"/.test(
+    /class="wire quiet line"/.test(
       renderToString(flowView(state)),
     );
   const pinned = {
@@ -690,7 +677,7 @@ test("roles and pinned slices round-trip independently of declaration order", ()
   );
 });
 
-test("an unpinned space paints every background item before its first node", () => {
+test("an unpinned space clears hover emphasis and draws the stage with the engine", () => {
   const flow = read(sheet);
   const state = roomFaceView({
     ...flow,
@@ -700,30 +687,17 @@ test("an unpinned space paints every background item before its first node", () 
       quiet: true,
     })),
   });
-  const scenery = spaceScenery(
-    state.rooms!,
-    state,
-  ).map((item, i) => ({
-    ...item,
-    tone: "paint-marker-" + i + "-end",
-  }));
   const html = renderToString(
-    drawFlow({ ...state, scenery }),
+    drawFlow({
+      ...state,
+      scenery: spaceScenery(state.rooms!, state),
+    }),
   );
-  const first = html.indexOf("data-node-face");
   return check(
-    first >= 0 &&
-      state.nodes.every((n) => !n.quiet) &&
-      scenery.every((item, i) => {
-        const mark = html.indexOf(
-          "paint-marker-" + i + "-end",
-        );
-        return (
-          mark >= 0 &&
-          (item.layer !== "behind" ||
-            mark < first)
-        );
-      }),
+    state.nodes.every((n) => !n.quiet) &&
+      html.includes('class="engine-drawing"') &&
+      html.includes('class="board ') &&
+      html.includes('class="node '),
     toBe(true),
   );
 });

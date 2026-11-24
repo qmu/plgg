@@ -18,6 +18,7 @@ export type Ink = {
     | "crease"
     | "hidden"
     | "line";
+  outline?: boolean;
   points: [Point3, Point3];
 };
 export type Matrix = [

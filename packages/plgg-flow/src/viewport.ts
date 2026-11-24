@@ -1,15 +1,16 @@
-import { drawScenery } from "plgg-flow/scenery";
 import {
-  crossingSpans,
   crossingRuns,
-  wireDepthRuns,
-  type Occluder,
+  crossingSpans,
 } from "plgg-flow/wireDepth";
+import {
+  engineView,
+  spatialDrawing,
+} from "plgg-flow/engineView";
+import { drawScenery } from "plgg-flow/scenery";
 import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
 import {
   grid,
-  labelWidth,
   nodeSize,
 } from "plgg-flow/nodeSize";
 import {
@@ -55,10 +56,7 @@ import {
 } from "plgg-view";
 import { sectionGraph } from "plgg-flow/spatial";
 import { spatialGuides } from "plgg-flow/spatialView";
-import {
-  bridgePoints,
-  polylineSampler,
-} from "plgg-flow/polyline";
+import { polylineSampler } from "plgg-flow/polyline";
 import {
   midpoint,
   distance,
@@ -468,7 +466,6 @@ const viewportLayout = (state: Flow) => {
   return layout;
 };
 type Layer = {
-  band?: number;
   depth: number;
   chosen?: boolean;
   arrow?: boolean;
@@ -575,6 +572,10 @@ const emptyPreview = () =>
     [key("connection-preview")],
     [],
   );
+const hoverLabels = new WeakMap<
+  SVGSVGElement,
+  { id: string; leave: Change | undefined }
+>();
 export const drawFlow = (
   flow: Flow,
   renderLabel: (
@@ -590,60 +591,26 @@ export const drawFlow = (
     framed === flow.nodes
       ? flow
       : { ...flow, nodes: framed };
-  const levels = [
-    ...new Set(
-      (state.scenery ?? []).flatMap((s) =>
-        s.surface === undefined
-          ? []
-          : [s.surface],
-      ),
-    ),
-  ].sort((a, b) => a - b);
-  const direction = Math.sign(
-    Math.sin(state.camera.pitch),
-  );
-  const band = (y: number) =>
-    direction *
-    levels.filter((level) => level < y).length *
-    16;
-  const partition = (path: readonly Point3[]) =>
-    levels.length
-      ? path.flatMap((b, i) => {
-          const a = path[i - 1];
-          if (!a || b.y === a.y) return [b];
-          return [
-            ...levels
-              .filter(
-                (y) => (a.y - y) * (b.y - y) < 0,
-              )
-              .sort(
-                (x, y) =>
-                  (x - y) * Math.sign(b.y - a.y),
-              )
-              .map((y) => {
-                const t = (y - a.y) / (b.y - a.y);
-                return {
-                  x: a.x + t * (b.x - a.x),
-                  y,
-                  z: a.z + t * (b.z - a.z),
-                };
-              }),
-            b,
-          ];
-        })
-      : path;
-  const scenery = (state.scenery ?? []).map(
-    (item) => ({
-      ...drawScenery(item, state.camera),
-      band:
-        item.surface === undefined
-          ? 0
-          : band(item.surface) +
-            direction * (8 - (item.order ?? 0)),
-    }),
-  );
   const frame = frameOf(state);
   const { scene, wires } = viewportLayout(state);
+  const engine = spatialDrawing(state, wires)
+    ? engineView(
+        state,
+        scene.nodes,
+        scene.edges,
+        wires,
+        (n) =>
+          (
+            registry.nodes?.get(n.type ?? "") ??
+            renderLabel
+          )(n, state),
+      )
+    : undefined;
+  const scenery = engine
+    ? []
+    : (state.scenery ?? []).map((s) =>
+        drawScenery(s, state.camera),
+      );
   const drawing = {
     nodes: scene.nodes,
     ...(state.scenery && {
@@ -663,7 +630,7 @@ export const drawFlow = (
     string,
     Partial<Record<Side, Socket[]>>
   >();
-  for (const w of wires)
+  for (const w of engine ? [] : wires)
     for (const direction of [
       "source",
       "target",
@@ -700,10 +667,18 @@ export const drawFlow = (
       }
     }
   const chosen = new Set(selectedNodes(state));
-  const projected = projectLayer(
-    state.camera,
-    (n: FlowNode) => n.position,
-  )(scene.nodes).map(({ item, point }) => {
+  const at = project(state.camera);
+  const projected = (
+    engine
+      ? scene.nodes.map((item) => ({
+          item,
+          point: at(item.position),
+        }))
+      : projectLayer(
+          state.camera,
+          (n: FlowNode) => n.position,
+        )(scene.nodes)
+  ).map(({ item, point }) => {
     const scale = projectedScale(
       state.camera,
       point.z,
@@ -759,30 +734,7 @@ export const drawFlow = (
         state.edges[edgeIndex(state.edges, e)],
     ),
   );
-  const tags: {
-    depth: number;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    scale: number;
-    html: Html<Change>;
-    id: string;
-  }[] = [];
-  const tagBoxes = new Map<
-    string,
-    {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    }
-  >();
-  const paintLayers = () => {
-    const silhouettes = new Map<
-      string,
-      Point[][]
-    >();
+  const paintFlatSheet = () => {
     const turned = new Map<
       string,
       Record<Side, boolean>
@@ -821,16 +773,6 @@ export const drawFlow = (
         left: shows("right"),
       };
       turned.set(n.id, away);
-      if (picked.size)
-        silhouettes.set(
-          n.id,
-          solid.visible.map((face) =>
-            face.points.map((p) => ({
-              x: n.p.x + p.x * n.scale,
-              y: n.p.y + p.y * n.scale,
-            })),
-          ),
-        );
       const drag = isSome(state.drag)
         ? state.drag.content
         : undefined;
@@ -848,48 +790,9 @@ export const drawFlow = (
         n.quiet &&
         state.hoveredNode !== n.id &&
         !chosen.has(n.id);
-      if (solid.tagged && solid.caption) {
-        tags.push({
-          id: n.id,
-          depth: n.p.z,
-          x: n.p.x + n.scale * solid.caption[4]!,
-          y: n.p.y + n.scale * solid.caption[5]!,
-          scale: n.scale,
-          width:
-            Math.min(
-              nodeSize(n).width,
-              labelWidth(n.label),
-            ) *
-              n.scale +
-            4,
-          height: 16 * n.scale + 4,
-          html: el(
-            "g",
-            [
-              a(
-                "class",
-                quiet ? "quiet-node" : "",
-              ),
-              a(
-                "fill",
-                quiet
-                  ? "var(--pencil,gray)"
-                  : "currentColor",
-              ),
-              a(
-                "style",
-                "stroke:var(--paper,white)",
-              ),
-              a("stroke-width", 2 / n.scale),
-              a("paint-order", "stroke fill"),
-            ],
-            [render(n, state)],
-          ),
-        });
-      }
       const inputs = [
         extent,
-        band(n.position.y),
+
         state.camera,
         quiet,
         chosen.has(n.id),
@@ -1054,7 +957,6 @@ export const drawFlow = (
           );
         });
       const value = {
-        band: band(n.position.y),
         depth: solid.depth,
         html: lazy(deferred, () =>
           el<Change>(
@@ -1367,8 +1269,7 @@ export const drawFlow = (
       });
       return layer;
     });
-    // Sort projected segments with the billboards so a crossing changes
-    // order when the camera moves around the diagram.
+    // Preserve the flat sheet’s socket and selection stacking.
     const solidDepth = new Map(
       drawNodes.map((n, i) => [
         n.id,
@@ -1388,85 +1289,16 @@ export const drawFlow = (
         ? Math.min(depth, solid - 0.02)
         : Math.max(depth, solid + 0.02);
     };
-    const flat =
-      state.camera.yaw === 0 &&
-      state.camera.pitch === 0;
-    const boxes: Occluder[] =
-      flat &&
-      !tags.length &&
-      !wires.some((w) => w.edge.path)
-        ? []
-        : drawNodes.map((n) => {
-            const solid = bodies.get(
-              n.item,
-            )!.solid;
-            const outline = solid.visible.flatMap(
-              (face) => face.points,
-            );
-            const xs = outline.map(
-                (p) => n.p.x + p.x * n.scale,
-              ),
-              ys = outline.map(
-                (p) => n.p.y + p.y * n.scale,
-              );
-            const box = {
-              left: Math.min(...xs),
-              right: Math.max(...xs),
-              top: Math.min(...ys),
-              bottom: Math.max(...ys),
-              depth:
-                solidDepth.get(n.id) ?? n.p.z,
-            };
-            if (tags.length)
-              tagBoxes.set(n.id, {
-                x: (box.left + box.right) / 2,
-                y: (box.top + box.bottom) / 2,
-                width: box.right - box.left,
-                height: box.bottom - box.top,
-              });
-            return box;
-          });
-    const spatialSheet =
-      levels.length > 0 ||
-      wires.some((w) => w.edge.path);
-    if (spatialSheet)
-      state.scenery?.forEach((item, i) => {
-        if (
-          item.kind !== "plane" ||
-          item.surface !== undefined ||
-          item.layer !== "sorted"
-        )
-          return;
-        const points = item.points.map(
-          project(state.camera),
-        );
-        boxes.push({
-          left: Math.min(
-            ...points.map((p) => p.x),
-          ),
-          right: Math.max(
-            ...points.map((p) => p.x),
-          ),
-          top: Math.min(
-            ...points.map((p) => p.y),
-          ),
-          bottom: Math.max(
-            ...points.map((p) => p.y),
-          ),
-          depth: scenery[i]!.depth,
-        });
-      });
-    const spans = spatialSheet
+
+    // Explicit paths on a flat sheet retain the two-dimensional crossing glyph.
+    const paths =
+      wires.some((w) => w.edge.path) ||
+      state.scenery?.some(
+        (s) => s.surface !== undefined,
+      );
+    const spans = paths
       ? crossingSpans(
-          wires.map((w) =>
-            partition(
-              bridgePoints(
-                w.points,
-                w.lift,
-                flat,
-              ),
-            ).map(project(state.camera)),
-          ),
+          wires.map((w) => w.points.map(at)),
         )
       : undefined;
     const crossings =
@@ -1515,10 +1347,10 @@ export const drawFlow = (
         state.camera,
         chosenWire,
         sharedArrival,
-        levels.join(","),
+        paths ? state.nodes : undefined,
+        paths ? state.edges : undefined,
         originalIndex,
-        flat && !spans ? undefined : state.nodes,
-        spans ? state.edges : undefined,
+
         frame,
         state.ink,
         cull,
@@ -1546,21 +1378,7 @@ export const drawFlow = (
         chosenWire && !turned.get(id)?.[side]
           ? Infinity
           : above(id, side, depth);
-      const knots = levels.length
-        ? Array.from(
-            partition(
-              bridgePoints(
-                wire.points,
-                wire.lift,
-                flat,
-              ),
-            ),
-          )
-        : bridgePoints(
-            wire.points,
-            wire.lift,
-            flat,
-          );
+      const knots = wire.points;
       const poly = polylineSampler(knots);
       const sample = (t: number) => {
         const p = project(state.camera)(poly(t));
@@ -1595,8 +1413,7 @@ export const drawFlow = (
       // A face-on camera shows the whole stroke without depth seams.
       const controls = wire.controls;
       const line =
-        flat &&
-        !spans &&
+        !paths &&
         controls &&
         (wire.source.z === wire.target.z ||
           !state.camera.perspective)
@@ -1621,8 +1438,9 @@ export const drawFlow = (
                 );
               })
               .join("")
-          : flat && !spans
-            ? points
+          : paths
+            ? ""
+            : points
                 .map(
                   (p, i) =>
                     (i ? "L" : "M") +
@@ -1630,8 +1448,7 @@ export const drawFlow = (
                     " " +
                     p.y,
                 )
-                .join("")
-            : "";
+                .join("");
       const events = () => [
         ...(original.quiet || edge.path
           ? [
@@ -1852,44 +1669,37 @@ export const drawFlow = (
           visible,
         ]);
       };
-      let length = 0;
       const cuts = crossings?.get(wire);
-      const spatial =
-        levels.length ||
-        cuts?.some((c) => c.length) ||
-        edge.path
-          ? crossingRuns(
-              points,
-              cuts ?? [],
-              boxes,
-            )
-          : undefined;
-      const runs =
-        spatial?.map((r) => r.run) ??
-        wireDepthRuns(points, boxes);
-      for (const [
-        indexInWire,
-        run,
-      ] of runs.entries()) {
-        const a0 = run[0]!,
-          b = run[run.length - 1]!;
+      const split =
+        !!edge.path ||
+        !!cuts?.some((c) => c.length);
+      const runs = split
+        ? crossingRuns(points, cuts ?? [], [])
+        : points.length >= 2
+          ? [
+              {
+                run: points,
+                depth:
+                  (points[0]!.z + points[1]!.z) /
+                  2,
+                halo: false,
+              },
+            ]
+          : [];
+      let length = 0;
+      for (const { run, depth, halo } of runs) {
         const offset = length;
         length += run.reduce(
-          (sum, p, j) =>
-            j
-              ? sum +
+          (total, p, i) =>
+            i
+              ? total +
                 Math.hypot(
-                  p.x - run[j - 1]!.x,
-                  p.y - run[j - 1]!.y,
+                  p.x - run[i - 1]!.x,
+                  p.y - run[i - 1]!.y,
                 )
-              : sum,
+              : total,
           0,
         );
-        const depth =
-          spatial?.[indexInWire]?.depth ??
-          (flat
-            ? (a0.z + run[1]!.z) / 2
-            : Math.max(...run.map((p) => p.z)));
         const fade = Math.min(
           1,
           Math.max(0, (depth + 300) / 600),
@@ -1906,29 +1716,10 @@ export const drawFlow = (
           line ||
           run
             .map(
-              (p, j) =>
-                (j ? "L" : "M") + p.x + " " + p.y,
+              (p, i) =>
+                (i ? "L" : "M") + p.x + " " + p.y,
             )
             .join("");
-        const behindFace = (
-          id: string,
-          side: Side,
-        ) =>
-          chosenWire &&
-          turned.get(id)?.[side] &&
-          silhouettes
-            .get(id)
-            ?.some(
-              (face) =>
-                insideLasso(a0, face) ||
-                insideLasso(b, face),
-            );
-        // Only the vertical risers meet the sockets. The raised deck
-        // participates in depth sorting at its own projected height.
-        const deckSegment =
-          knots !== wire.points &&
-          indexInWire > 0 &&
-          indexInWire < runs.length - 1;
         const visible = lazy(deferred, () => {
           return el<Change>(
             "path",
@@ -1967,7 +1758,7 @@ export const drawFlow = (
                 : []),
               a(
                 "stroke-width",
-                (flat ? run[1]!.scale : b.scale) *
+                run[1]!.scale *
                   (chosenWire
                     ? 3
                     : hovered
@@ -1981,53 +1772,15 @@ export const drawFlow = (
         });
         items.push({
           chosen: chosenWire,
-          band: levels.length
-            ? band(
-                (unproject(state.camera, a0, a0.z)
-                  .y +
-                  unproject(state.camera, b, b.z)
-                    .y) /
-                  2,
-              )
-            : 0,
-          depth: spatial
+          depth: split
             ? depth
-            : !chosenWire && !flat
-              ? depth -
-                (runs.length > 1 ? 1e-8 : 0)
-              : deckSegment
-                ? depth
-                : indexInWire === 0 ||
-                    behindFace(
-                      edge.source,
-                      wire.sourceSide,
-                    )
-                  ? paintDepth(
-                      edge.source,
-                      wire.sourceSide,
-                      depth - 0.01,
-                    )
-                  : indexInWire ===
-                        runs.length - 1 ||
-                      behindFace(
-                        edge.target,
-                        wire.targetSide,
-                      )
-                    ? paintDepth(
-                        edge.target,
-                        wire.targetSide,
-                        depth - 0.01,
-                      )
-                    : chosenWire
-                      ? Infinity
-                      : depth - 0.01,
+            : paintDepth(
+                edge.source,
+                wire.sourceSide,
+                depth - 0.01,
+              ),
           html: lazy(deferred, () =>
-            paint(
-              path,
-              visible,
-              spatial?.[indexInWire]?.halo ??
-                false,
-            ),
+            paint(path, visible, halo),
           ),
         });
       }
@@ -2041,8 +1794,6 @@ export const drawFlow = (
             (atStart ? "backward" : "forward")
         )
           continue;
-        const bridge = knots !== wire.points;
-        const deck = knots[1]?.z ?? wire.target.z;
         const at = project(state.camera)(
           sharedArrival
             ? wire.target
@@ -2061,42 +1812,35 @@ export const drawFlow = (
           wire.points[1]?.z !== wire.source.z &&
           wire.points[1]?.x === wire.source.x &&
           wire.points[1]?.y === wire.source.y;
-        const near = bridge
-          ? atStart
-            ? (points[1] ?? tip)
-            : project(state.camera)({
-                ...wire.target,
-                z: 2 * wire.target.z - deck,
+        const near = atStart
+          ? !edge.path &&
+            (!edge.route ||
+              edge.route === "curve") &&
+            edge.source !== edge.target &&
+            !sourceRiser
+            ? project(state.camera)({
+                ...move(
+                  wire.source,
+                  wire.sourceSide,
+                  1,
+                ),
+                z: wire.source.z,
               })
-          : atStart
-            ? !edge.path &&
-              (!edge.route ||
-                edge.route === "curve") &&
-              edge.source !== edge.target &&
-              !sourceRiser
-              ? project(state.camera)({
-                  ...move(
-                    wire.source,
-                    wire.sourceSide,
-                    1,
-                  ),
-                  z: wire.source.z,
-                })
-              : (points[1] ?? tip)
-            : sharedArrival
-              ? (points
-                  .slice(0, -1)
-                  .reverse()
-                  .find(
-                    (p) =>
-                      p.x !== tip.x ||
-                      p.y !== tip.y,
-                  ) ?? tip)
-              : project(state.camera)(
-                  wire.arrow.toward,
-                );
+            : (points[1] ?? tip)
+          : sharedArrival
+            ? (points
+                .slice(0, -1)
+                .reverse()
+                .find(
+                  (p) =>
+                    p.x !== tip.x ||
+                    p.y !== tip.y,
+                ) ?? tip)
+            : project(state.camera)(
+                wire.arrow.toward,
+              );
         const towardTip =
-          atStart || (sharedArrival && !bridge);
+          atStart || sharedArrival;
         const radians = Math.atan2(
           towardTip
             ? tip.y - near.y
@@ -2130,7 +1874,7 @@ export const drawFlow = (
           tip.y - radius * Math.sin(radians);
         items.push({
           chosen: chosenWire,
-          band: band(node.position.y),
+
           arrow: true,
           depth: sending
             ? (solidDepth.get(node.id) ?? tip.z) -
@@ -2192,7 +1936,6 @@ export const drawFlow = (
               ? tangent + 180
               : tangent;
         items.push({
-          band: band(poly(0.5).y),
           depth: middle.z,
           html: lazy(deferred, () =>
             el(
@@ -2260,7 +2003,6 @@ export const drawFlow = (
     );
     const sorted = layers.sort(
       (a, b) =>
-        (a.band ?? 0) - (b.band ?? 0) ||
         a.depth - b.depth ||
         Number(!!a.chosen) - Number(!!b.chosen) ||
         Number(!!a.arrow) - Number(!!b.arrow),
@@ -2274,6 +2016,13 @@ export const drawFlow = (
   const selectRegion = (
     inside: (p: Point) => boolean,
   ) => {
+    if (engine) {
+      const selection = engine.region(inside);
+      return selectArea(
+        selection.nodes,
+        selection.edges,
+      );
+    }
     const projectPoint = project(state.camera);
     const edges = scene.edges.flatMap(
       ({ edge, original }) => {
@@ -2397,21 +2146,43 @@ export const drawFlow = (
             ),
           );
         }
-        const port = e.target
-          .closest("[data-port]")
-          ?.getAttribute("data-port");
+        const pickedItem = engine?.hit(
+          point.content,
+        );
+        if (pickedItem?.label?.press)
+          return some(pickedItem.label.press);
+        const edge = pickedItem?.edge;
+        if (edge) {
+          const prev = selectedEdges(state);
+          return some(
+            chooseEdges(
+              e.shiftKey
+                ? prev.includes(edge)
+                  ? prev.filter((v) => v !== edge)
+                  : [...prev, edge]
+                : [edge],
+            ),
+          );
+        }
+        const port =
+          pickedItem?.port?.node ??
+          e.target
+            .closest("[data-port]")
+            ?.getAttribute("data-port");
         const handle =
+          pickedItem?.port?.handle ??
           e.target
             .closest("[data-port]")
             ?.getAttribute("data-handle") ??
           undefined;
         const direction =
-          e.target
+          pickedItem?.port?.direction ??
+          (e.target
             .closest("[data-port]")
             ?.getAttribute("data-direction") ===
           "target"
             ? "target"
-            : "source";
+            : "source");
         if (port) {
           const dot = e.target.closest(
               "[data-port]",
@@ -2419,7 +2190,8 @@ export const drawFlow = (
             side = dot?.getAttribute("data-side"),
             node = lookup.get(port);
           const socket =
-            node &&
+            pickedItem?.port?.point ??
+            (node &&
             (side === "left" ||
               side === "right" ||
               side === "top" ||
@@ -2440,7 +2212,7 @@ export const drawFlow = (
                     ),
                   ),
                 ))
-              : undefined;
+              : undefined);
           svg.setPointerCapture(e.pointerId);
           return some((s) => {
             const next = connect(
@@ -2463,13 +2235,20 @@ export const drawFlow = (
           });
         }
         const node =
-          e.target
-            .closest("[data-node]")
-            ?.getAttribute("data-node") ?? "";
+          pickedItem?.node ??
+          (engine
+            ? null
+            : e.target
+                .closest("[data-node]")
+                ?.getAttribute("data-node")) ??
+          "";
         const group = lookup.get(node);
         if (
           group &&
-          e.target.closest("[data-group-handle]")
+          (pickedItem?.resize ||
+            e.target.closest(
+              "[data-group-handle]",
+            ))
         ) {
           const hit = pickPlane(
             state.camera,
@@ -2557,17 +2336,76 @@ export const drawFlow = (
           }),
         }));
       }),
+      onEvent<Change>("pointerleave", (e) => {
+        if (
+          !engine ||
+          !(
+            e.currentTarget instanceof
+            SVGSVGElement
+          )
+        )
+          return none();
+        const old = hoverLabels.get(
+          e.currentTarget,
+        );
+        hoverLabels.delete(e.currentTarget);
+        if (
+          !old &&
+          !state.hoveredNode &&
+          !state.hoveredEdge
+        )
+          return none();
+        return some((s) => ({
+          ...(old?.leave?.(s) ?? s),
+          hoveredNode: undefined,
+          hoveredEdge: undefined,
+        }));
+      }),
       onEvent<Change>("pointermove", (e) => {
         if (
           !(e instanceof PointerEvent) ||
           !(
             e.currentTarget instanceof
             SVGSVGElement
-          ) ||
-          (!isSome(state.drag) && !state.pinch)
+          )
         )
           return none();
         const point = local(e.currentTarget, e);
+        if (!isSome(state.drag) && !state.pinch) {
+          if (!engine || !isSome(point))
+            return none();
+          const item = engine.hit(point.content);
+          const svg = e.currentTarget,
+            previous = hoverLabels.get(svg),
+            changed = item?.id !== previous?.id;
+          if (
+            !changed &&
+            item?.node === state.hoveredNode &&
+            item?.edge === state.hoveredEdge
+          )
+            return none();
+          if (item?.id)
+            hoverLabels.set(svg, {
+              id: item.id,
+              leave: item.label?.leave,
+            });
+          else hoverLabels.delete(svg);
+          return some((s) => {
+            const left =
+              changed && previous?.leave
+                ? previous.leave(s)
+                : s;
+            const next =
+              changed && item?.label?.enter
+                ? item.label.enter(left)
+                : left;
+            return {
+              ...next,
+              hoveredNode: item?.node,
+              hoveredEdge: item?.edge,
+            };
+          });
+        }
         if (state.pinch && isSome(point)) {
           const [a, b] = state.pinch;
           if (
@@ -2690,11 +2528,18 @@ export const drawFlow = (
               e.clientX,
               e.clientY,
             );
-          const target = svg.contains(hit)
-            ? hit
-                ?.closest("[data-port]")
-                ?.getAttribute("data-port")
-            : null;
+          const release = local(svg, e);
+          const socket =
+            engine && isSome(release)
+              ? engine.hit(release.content)?.port
+              : undefined;
+          const target =
+            socket?.node ??
+            (svg.contains(hit)
+              ? hit
+                  ?.closest("[data-port]")
+                  ?.getAttribute("data-port")
+              : null);
           return some((s) => {
             if (
               isSome(s.drag) &&
@@ -2781,18 +2626,21 @@ export const drawFlow = (
               target !== s.drag.content.node
               ? connect(
                   target,
-                  hit
-                    ?.closest("[data-port]")
-                    ?.getAttribute(
-                      "data-handle",
-                    ) ?? undefined,
-                  hit
-                    ?.closest("[data-port]")
-                    ?.getAttribute(
-                      "data-direction",
-                    ) === "source"
-                    ? "source"
-                    : "target",
+                  socket?.handle ??
+                    hit
+                      ?.closest("[data-port]")
+                      ?.getAttribute(
+                        "data-handle",
+                      ) ??
+                    undefined,
+                  socket?.direction ??
+                    (hit
+                      ?.closest("[data-port]")
+                      ?.getAttribute(
+                        "data-direction",
+                      ) === "source"
+                      ? "source"
+                      : "target"),
                 )(released)
               : released;
           });
@@ -2962,46 +2810,48 @@ export const drawFlow = (
       }),
     ],
     easeDrawing([
-      ...(state.scenery
-        ? scenery
-            .filter((s) => s.layer === "behind")
-            .sort((a, b) => a.depth - b.depth)
-            .map((s) => s.html)
-        : [
-            surfaceLayer(
-              state.camera,
-              [state.frame],
-              () => groundSurface(state),
-            ),
-            ...drawNodes
-              .filter(
-                (n) =>
-                  !(n.group && !n.collapsed) &&
-                  !parents.get(n.parent ?? "")
-                    ?.group,
-              )
-              .map((n) =>
-                footprintLayer(
-                  n.item,
-                  [state.camera],
-                  () =>
-                    footprint(
-                      state.camera,
-                      n.item,
-                    ),
-                ),
+      ...(engine
+        ? []
+        : state.scenery
+          ? scenery
+              .filter((s) => s.layer === "behind")
+              .sort((a, b) => a.depth - b.depth)
+              .map((s) => s.html)
+          : [
+              surfaceLayer(
+                state.camera,
+                [state.frame],
+                () => groundSurface(state),
               ),
-            gridLayer(
-              state.camera,
-              [state.frame],
-              () => worldGrid(state),
-            ),
-            depthStems(
-              state.camera,
-              drawNodes,
-              parents,
-            ),
-          ]),
+              ...drawNodes
+                .filter(
+                  (n) =>
+                    !(n.group && !n.collapsed) &&
+                    !parents.get(n.parent ?? "")
+                      ?.group,
+                )
+                .map((n) =>
+                  footprintLayer(
+                    n.item,
+                    [state.camera],
+                    () =>
+                      footprint(
+                        state.camera,
+                        n.item,
+                      ),
+                  ),
+                ),
+              gridLayer(
+                state.camera,
+                [state.frame],
+                () => worldGrid(state),
+              ),
+              depthStems(
+                state.camera,
+                drawNodes,
+                parents,
+              ),
+            ]),
       // Keep the preview in its own SVG layer across pointer updates.
       isSome(state.drag) &&
       state.drag.content.mode === "connect"
@@ -3048,111 +2898,10 @@ export const drawFlow = (
             })(),
           )
         : lazy(emptyPreview, undefined),
-      paintLayers(),
+      engine?.html ?? paintFlatSheet(),
       ...scenery
         .filter((s) => s.layer === "front")
         .map((s) => s.html),
-      ...(() => {
-        const placed: {
-          x: number;
-          y: number;
-          width: number;
-          height: number;
-        }[] = [];
-        return tags
-          .sort((a, b) => b.depth - a.depth)
-          .map((tag) => {
-            let x = tag.x,
-              y = tag.y;
-            const own = tagBoxes.get(tag.id)!;
-            const other = [
-              ...tagBoxes.values(),
-            ].filter((b) => b !== own);
-            const overlaps = (p: typeof own) =>
-              Math.abs(p.x - x) * 2 <=
-                p.width + tag.width &&
-              Math.abs(p.y - y) * 2 <=
-                p.height + tag.height;
-            while (
-              placed.some(overlaps) ||
-              other.some(overlaps)
-            ) {
-              y -= 4;
-              if (
-                tag.y - y > 24 &&
-                other.some(overlaps)
-              ) {
-                y = own.y;
-                for (
-                  let offset =
-                    (own.width + tag.width) / 2 +
-                    6;
-                  ;
-                  offset += 8
-                ) {
-                  x = own.x + offset;
-                  if (
-                    !placed.some(overlaps) &&
-                    !other.some(overlaps)
-                  )
-                    break;
-                  x = own.x - offset;
-                  if (
-                    !placed.some(overlaps) &&
-                    !other.some(overlaps)
-                  )
-                    break;
-                }
-                break;
-              }
-            }
-            placed.push({ ...tag, x, y });
-            return el(
-              "g",
-              [
-                key("tag-" + tag.id),
-                a("pointer-events", "none"),
-                a("data-node-caption", "tag"),
-              ],
-              [
-                ...(x !== tag.x || tag.y - y > 6
-                  ? [
-                      el(
-                        "line",
-                        [
-                          a("x1", x),
-                          a("x2", tag.x),
-                          a("y1", y),
-                          a(
-                            "y2",
-                            x !== tag.x
-                              ? own.y
-                              : tag.y +
-                                  10 * tag.scale,
-                          ),
-                          a(
-                            "stroke",
-                            "var(--pencil,gray)",
-                          ),
-                        ],
-                        [],
-                      ),
-                    ]
-                  : []),
-                el(
-                  "g",
-                  [
-                    a(
-                      "transform",
-                      `translate(${x} ${y}) scale(${tag.scale})`,
-                    ),
-                  ],
-                  [tag.html],
-                ),
-              ],
-            );
-          });
-      })(),
       ...(active &&
       scene.edges.some(
         (e) => e.original === active,

@@ -30,7 +30,7 @@ export const planSpace = (
   const spans = {
     x: values("x").map(() => 112),
     y: values("y").map((): number =>
-      cake ? 144 : 80,
+      cake ? 144 : 256,
     ),
     z: values("z").map((): number =>
       cake ? 64 : 176,

@@ -22,16 +22,15 @@ import {
   viewAt,
   front,
 } from "plgg-flow/index";
-import {
-  projectedScale,
-  project,
-  pan,
-  zoomAt,
-} from "plgg-board";
+import { project, pan, zoomAt } from "plgg-board";
 const node = (id: string) => ({
   id,
   label: id,
   position: { x: 0, y: 0, z: 10 },
+});
+const flatNode = (id: string) => ({
+  ...node(id),
+  position: { x: 0, y: 0, z: 0 },
 });
 test("deleting a selected node cleans up incident connections", () => {
   const initial = createFlow({
@@ -161,10 +160,10 @@ test("a sending side has one dot, a receiving side none, and the chosen stroke p
     b = { ...a, id: "two" };
   const view = createFlow({
     nodes: [
-      node("a"),
+      flatNode("a"),
       {
-        ...node("b"),
-        position: { x: 280, y: 50, z: 10 },
+        ...flatNode("b"),
+        position: { x: 280, y: 50, z: 0 },
       },
     ],
     edges: [a, b],
@@ -272,18 +271,18 @@ test("a connection preview leaves rendered wire paths fixed", () => {
 test("an unrelated wire keeps its lazy argument when a card moves", () => {
   const state = createFlow({
     nodes: [
-      node("a"),
+      flatNode("a"),
       {
-        ...node("b"),
-        position: { x: 250, y: 0, z: 10 },
+        ...flatNode("b"),
+        position: { x: 250, y: 0, z: 0 },
       },
       {
-        ...node("c"),
-        position: { x: 0, y: 400, z: 10 },
+        ...flatNode("c"),
+        position: { x: 0, y: 400, z: 0 },
       },
       {
-        ...node("d"),
-        position: { x: 300, y: 400, z: 10 },
+        ...flatNode("d"),
+        position: { x: 300, y: 400, z: 0 },
       },
     ],
     edges: [
@@ -333,7 +332,7 @@ test("an unrelated wire keeps its lazy argument when a card moves", () => {
 test("twenty cards leave only a handful of eager SVG children", () => {
   const nodes = Array.from(
     { length: 20 },
-    (_, i) => node(String(i)),
+    (_, i) => flatNode(String(i)),
   );
   const flow = createFlow({ nodes, edges: [] });
   const before = flowView(flow);
@@ -374,10 +373,10 @@ test("twenty cards leave only a handful of eager SVG children", () => {
 test("opposing arrows meet the three-unit rim before either socket dot paints", () => {
   const flow = createFlow({
     nodes: [
-      node("a"),
+      flatNode("a"),
       {
-        ...node("b"),
-        position: { x: 280, y: 20, z: 10 },
+        ...flatNode("b"),
+        position: { x: 280, y: 20, z: 0 },
       },
     ],
     edges: [
@@ -447,11 +446,6 @@ test("a turned tray projects its frame, corner control and member stem onto the 
   );
   const html = renderToString(flowView(flow));
   const at = project(flow.camera);
-  const center = at(group.position);
-  const scale = projectedScale(
-    flow.camera,
-    center.z,
-  );
   const corners = [
     [-96, -64],
     [96, -64],
@@ -460,28 +454,28 @@ test("a turned tray projects its frame, corner control and member stem onto the 
   ]
     .map(([x, y]) => {
       const p = at({ x: x!, y: y!, z: 32 });
-      return [
-        (p.x - center.x) / scale,
-        (p.y - center.y) / scale,
-      ].join(",");
+      return p.x + " " + p.y;
     })
-    .join(" ");
-  const base = at({ ...child.position, z: 32 }),
-    tip = at(child.position);
+    .join("L");
+  const base = at({
+    ...child.position,
+    z: group.position.z,
+  });
   const trayOnly = renderToString(
     flowView({ ...flow, nodes: [group] }),
   );
   return check(
-    html.split('data-group="team"').length ===
-      2 &&
-      html.split('data-group-handle="team"')
-        .length === 2 &&
-      html.includes('points="' + corners + '"') &&
+    html.includes('data-id="node:team"') &&
       html.includes(
-        `M${base.x} ${base.y}L${tip.x} ${tip.y}`,
+        'data-id="handle:node:team"',
       ) &&
-      !trayOnly.includes("data-node-face") &&
-      !trayOnly.includes("data-group-volume"),
+      html.includes('d="M' + corners + 'Z"') &&
+      html.includes('class="stem line"') &&
+      html.includes(
+        "M" + base.x + " " + base.y + "L",
+      ) &&
+      !trayOnly.includes('class="node up"') &&
+      !trayOnly.includes('class="node shade"'),
     toBe(true),
   );
 });

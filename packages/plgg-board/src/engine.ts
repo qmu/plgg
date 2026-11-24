@@ -183,6 +183,7 @@ export const render = (
     b: Point3,
     kind: Ink["kind"],
     own: readonly Face[],
+    interior: readonly [Point3, Point3][] = [],
   ) => {
     if (k) {
       const da = near(a),
@@ -195,6 +196,30 @@ export const render = (
     a = vertex(a);
     b = vertex(b);
     const intervals: Interval[] = [];
+    if (interior.length) {
+      const dx = b.x - a.x,
+        dy = b.y - a.y;
+      const parameter = (p: Point3) =>
+        Math.abs(dx) > Math.abs(dy)
+          ? (p.x - a.x) / dx
+          : dy
+            ? (p.y - a.y) / dy
+            : b.z !== a.z
+              ? (p.z - a.z) / (b.z - a.z)
+              : 0;
+      for (let [u, v] of interior) {
+        const du = near(u),
+          dv = near(v);
+        if (du < 0 && dv < 0) continue;
+        if (du < 0) u = mix(u, v, du / (du - dv));
+        else if (dv < 0)
+          v = mix(u, v, du / (du - dv));
+        const lo = Math.max(0, parameter(at(u))),
+          hi = Math.min(1, parameter(at(v)));
+        if (hi > lo) intervals.push({ lo, hi });
+      }
+    }
+    const outline = kind === "silhouette";
     const emit = (
       kind: Ink["kind"],
       lo: number,
@@ -204,6 +229,7 @@ export const render = (
         id: item.id,
         style: item.style,
         kind,
+        ...(outline && { outline }),
         points: [
           lo === 0 ? a : mix(a, b, lo),
           hi === 1 ? b : mix(a, b, hi),
@@ -252,15 +278,49 @@ export const render = (
     );
   }
   const wireStart = drawing.strokes.length;
-  const pierced = model.faces.filter(
-    (f) => f.pierce,
+  const pierced = model.faces.filter((f) =>
+    scene.sheets.some((s) => s === f.item),
   );
   for (const line of scene.lines) {
     for (let i = 1; i < line.points.length; i++) {
       const a = line.points[i - 1]!,
         b = line.points[i]!;
-      segment(line, a, b, "line", []);
-      for (const f of pierced) {
+      const candidates = model.volumes.filter(
+        ({ min, max }) =>
+          Math.max(a.x, b.x) >= min.x &&
+          Math.min(a.x, b.x) <= max.x &&
+          Math.max(a.y, b.y) >= min.y &&
+          Math.min(a.y, b.y) <= max.y &&
+          Math.max(a.z, b.z) >= min.z &&
+          Math.min(a.z, b.z) <= max.z,
+      );
+      const interior: [Point3, Point3][] = [];
+      for (const volume of candidates) {
+        let lo = 0,
+          hi = 1;
+        for (const f of volume.faces) {
+          const da = dot(f.normal, a) - f.offset,
+            db = dot(f.normal, b) - f.offset;
+          if (da >= -epsilon && db >= -epsilon) {
+            hi = 0;
+            break;
+          }
+          if (da > 0)
+            lo = Math.max(lo, da / (da - db));
+          if (db > 0)
+            hi = Math.min(hi, da / (da - db));
+        }
+        if (hi > lo)
+          interior.push([
+            mix(a, b, lo),
+            mix(a, b, hi),
+          ]);
+      }
+      segment(line, a, b, "line", [], interior);
+      for (const f of [
+        ...pierced,
+        ...candidates.flatMap((v) => v.faces),
+      ]) {
         const da = dot(f.normal, a) - f.offset,
           db = dot(f.normal, b) - f.offset;
         // Count a crossing at a polyline joint once, only if it changes sides.
