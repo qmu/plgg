@@ -950,6 +950,12 @@ export type Room = {
   max: Point3;
 };
 export type RoomLayout = {
+  tableHidden?: RoomAxes[Direction];
+  tableAxes?: readonly [
+    Direction,
+    Direction,
+    Direction,
+  ];
   axes: RoomAxes;
   rooms: Room[];
 };

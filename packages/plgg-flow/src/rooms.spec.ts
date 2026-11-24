@@ -1,3 +1,4 @@
+import { wireDepthRuns } from "plgg-flow/wireDepth";
 import { wireGraph } from "plgg-flow/wiring";
 import { portPosition } from "plgg-flow/nodeBody";
 import { project } from "plgg-board";
@@ -352,7 +353,7 @@ test("the rooms lattice paints every stroke in at most eight paths", () => {
     toBe(true),
   );
 });
-test("lattice partitions have three strengths and anchors clear the projected cuboid by twelve pixels", () => {
+test("the axes share the ground origin, extend forty units and tick every slab boundary", () => {
   const flow = read(sheet),
     layout = flow.rooms!;
   return check(
@@ -362,53 +363,56 @@ test("lattice partitions have three strengths and anchors clear the projected cu
       [0.6, -0.5],
     ].every(([yaw, pitch]) => {
       const camera = viewAt(
-        yaw!,
-        pitch!,
-      )(flow).camera;
+          yaw!,
+          pitch!,
+        )(flow).camera,
+        at = project(camera),
+        origin = { x: 0, y: 0, z: 0 };
       const html = renderToString(
-        roomView(layout, camera),
+        roomView(layout, camera, flow),
       );
-      const limits =
-        layout.rooms[layout.rooms.length - 1]!
-          .max;
-      const corners = [0, limits.x].flatMap((x) =>
-        [0, limits.y].flatMap((y) =>
-          [0, limits.z].map((z) =>
-            project(camera)({ x, y, z }),
-          ),
-        ),
-      );
-      const anchors = [
-        ...html.matchAll(
-          /<text x="([^"]+)" y="([^"]+)"/g,
-        ),
-      ];
       return (
-        anchors.length === (yaw ? 10 : 6) &&
-        anchors.every(([, x, y]) =>
-          corners.some((p) =>
-            corners.some((q) => {
-              const dx = q.x - p.x,
-                dy = q.y - p.y,
-                length = Math.hypot(dx, dy);
-              if (!length) return false;
-              const side = (
-                u: number,
-                v: number,
-              ) =>
-                ((u - p.x) * dy -
-                  (v - p.y) * dx) /
-                length;
-              return (
-                corners.every(
-                  (r) => side(r.x, r.y) <= 1e-6,
-                ) &&
-                side(Number(x), Number(y)) >=
-                  11.99
-              );
+        (
+          ["x", "y", "z"] satisfies (
+            | "x"
+            | "y"
+            | "z"
+          )[]
+        ).every((axis) => {
+          const limit = Math.max(
+            ...layout.rooms.map(
+              (r) => r.max[axis],
+            ),
+          );
+          const end = at({
+              ...origin,
+              [axis]: limit + 40,
             }),
-          ),
-        ) &&
+            start = at(origin);
+          const path = html.match(
+            new RegExp(
+              'data-room-axis="' +
+                axis +
+                '" d="([^"]+)"',
+            ),
+          )?.[1];
+          if (!yaw && axis === "z")
+            return (
+              path === `M${start.x} ${start.y}h0`
+            );
+          return (
+            path?.startsWith(
+              `M${start.x} ${start.y}L${end.x} ${end.y}M`,
+            ) &&
+            path.split("M").length - 4 ===
+              new Set(
+                layout.rooms.map(
+                  (r) => r.min[axis],
+                ),
+              ).size +
+                1
+          );
+        }) &&
         ["outer", "inner", "empty"].every(
           (kind) =>
             html.includes(
@@ -608,6 +612,80 @@ test("inter-floor wires use one vertical riser at the upper socket in either dir
           )
         );
       }),
+    toBe(true),
+  );
+});
+
+test("hover and selection guide a room node to its three segment midpoints in one path", () => {
+  const flow = read(sheet);
+  const layout = flow.rooms!,
+    node = flow.nodes[0]!,
+    room = roomFor(layout, node)!;
+  const camera = viewAt(-0.32, 0.26)(flow).camera,
+    at = project(camera),
+    p = at(node.position);
+  const axes: readonly ("x" | "y" | "z")[] = [
+    "x",
+    "y",
+    "z",
+  ];
+  const path = axes
+    .map((axis) => {
+      const q = at({
+        x: 0,
+        y: 0,
+        z: 0,
+        [axis]:
+          (room.min[axis] + room.max[axis]) / 2,
+      });
+      return `M${p.x} ${p.y}L${q.x} ${q.y}`;
+    })
+    .join("");
+  return check(
+    [
+      { ...flow, roomNode: node.id },
+      selectNodes([node.id])(flow),
+    ].every((state) => {
+      const html = renderToString(
+        roomView(layout, camera, state),
+      );
+      return (
+        html.includes(
+          `class="room-guides" d="${path}"`,
+        ) &&
+        html.match(/data-room-axis=/g)?.length ===
+          3 &&
+        html.match(/class="room-guides"/g)
+          ?.length === 1
+      );
+    }),
+    toBe(true),
+  );
+});
+
+test("a wire only splits where an overlapping node has ink on both sides of its depth", () => {
+  const points = [
+    { x: 0, y: 0, z: 0, scale: 1 },
+    { x: 100, y: 0, z: 100, scale: 1 },
+  ];
+  const box = {
+    left: 25,
+    right: 75,
+    top: -10,
+    bottom: 10,
+    depth: 50,
+  };
+  const split = wireDepthRuns(points, [box]);
+  return check(
+    split.length === 2 &&
+      split[0]?.[1]?.z === 50 &&
+      split[1]?.[0]?.z === 50 &&
+      wireDepthRuns(points, [
+        { ...box, left: 80 },
+      ]).length === 1 &&
+      wireDepthRuns(points, [
+        { ...box, top: 20, bottom: 30 },
+      ]).length === 1,
     toBe(true),
   );
 });

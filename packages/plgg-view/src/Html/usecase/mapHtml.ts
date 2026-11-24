@@ -1,27 +1,9 @@
+import { box, mapOption } from "plgg";
 import {
-  box,
-  match,
-  mapOption,
-  SoftStr,
-} from "plgg";
-import {
-  Html,
-  LazyContent,
-  element$,
-  text$,
-  raw$,
-  lazy$,
+  type Html,
+  type LazyContent,
 } from "plgg-view/Html/model/Html";
-import {
-  Attribute,
-  attr$,
-  handler$,
-  eventHandler$,
-  host$,
-  anim$,
-  css$,
-  key$,
-} from "plgg-view/Html/model/Attribute";
+import { type Attribute } from "plgg-view/Html/model/Attribute";
 
 /**
  * Re-tags an {@link Attribute}'s `Msg` through `f` — static attrs and animation
@@ -30,61 +12,41 @@ import {
  */
 const mapAttribute =
   <A, B>(f: (a: A) => B) =>
-  (attribute: Attribute<A>): Attribute<B> =>
-    match(attribute)(
-      [
-        attr$(),
-        ({ content }): Attribute<B> =>
-          box("Attr")(content),
-      ],
-      [
-        handler$(),
-        ({ content }): Attribute<B> =>
-          box("Handler")({
-            event: content.event,
-            toMsg: (payload: SoftStr) =>
-              f(content.toMsg(payload)),
-          }),
-      ],
-      [
-        eventHandler$(),
-        ({ content }): Attribute<B> =>
-          box("EventHandler")({
-            event: content.event,
-            toMsg: (event: Event) =>
-              mapOption(f)(content.toMsg(event)),
-          }),
-      ],
-      [
-        host$(),
-        ({ content }): Attribute<B> =>
-          box("Host")({
-            mount: (node, dispatch) =>
-              content.mount(node, (msg) =>
-                dispatch(f(msg)),
-              ),
-            update: (node, dispatch) =>
-              content.update(node, (msg) =>
-                dispatch(f(msg)),
-              ),
-          }),
-      ],
-      [
-        anim$(),
-        ({ content }): Attribute<B> =>
-          box("Anim")(content),
-      ],
-      [
-        css$(),
-        ({ content }): Attribute<B> =>
-          box("Css")(content),
-      ],
-      [
-        key$(),
-        ({ content }): Attribute<B> =>
-          box("Key")(content),
-      ],
-    );
+  (attribute: Attribute<A>): Attribute<B> => {
+    switch (attribute.__tag) {
+      case "Attr":
+      case "Anim":
+      case "Css":
+      case "Key":
+        return attribute;
+      case "Handler":
+        return box("Handler")({
+          event: attribute.content.event,
+          toMsg: (payload: string) =>
+            f(attribute.content.toMsg(payload)),
+        });
+      case "EventHandler":
+        return box("EventHandler")({
+          event: attribute.content.event,
+          toMsg: (event: Event) =>
+            mapOption(f)(
+              attribute.content.toMsg(event),
+            ),
+        });
+      case "Host":
+        return box("Host")({
+          mount: (node, dispatch) =>
+            attribute.content.mount(node, (msg) =>
+              dispatch(f(msg)),
+            ),
+          update: (node, dispatch) =>
+            attribute.content.update(
+              node,
+              (msg) => dispatch(f(msg)),
+            ),
+        });
+    }
+  };
 
 /**
  * The functor over `Msg`: re-tags every handler in an `Html<A>` tree to produce
@@ -93,43 +55,33 @@ const mapAttribute =
  */
 export const mapHtml =
   <A, B>(f: (a: A) => B) =>
-  (node: Html<A>): Html<B> =>
-    match(node)(
-      [
-        element$(),
-        ({ content }): Html<B> =>
-          box("Element")({
-            tag: content.tag,
-            attributes: content.attributes.map(
-              mapAttribute(f),
-            ),
-            children: content.children.map(
-              mapHtml(f),
-            ),
-          }),
-      ],
-      [
-        text$(),
-        ({ content }): Html<B> =>
-          box("Text")(content),
-      ],
-      [
-        raw$(),
-        ({ content }): Html<B> =>
-          box("Raw")(content),
-      ],
-      // the thunk is re-composed with `f`, NOT invoked here — mapping a
-      // lazy subtree must stay lazy, and `arg` (the memo key the renderer
-      // compares `===`) is carried over unchanged.
-      [
-        lazy$(),
-        ({ content }): Html<B> =>
-          box("Lazy")<LazyContent<B>>({
-            arg: content.arg,
-            fn: content.fn,
-            messageMaps: [...content.messageMaps, f],
-            render: () =>
-              mapHtml(f)(content.render()),
-          }),
-      ],
-    );
+  (node: Html<A>): Html<B> => {
+    switch (node.__tag) {
+      case "Text":
+      case "Raw":
+        return node;
+      case "Element":
+        return box("Element")({
+          tag: node.content.tag,
+          attributes: node.content.attributes.map(
+            mapAttribute(f),
+          ),
+          children: node.content.children.map(
+            mapHtml(f),
+          ),
+        });
+      case "Lazy": {
+        const content = node.content;
+        return box("Lazy")<LazyContent<B>>({
+          arg: content.arg,
+          fn: content.fn,
+          messageMaps: [
+            ...content.messageMaps,
+            f,
+          ],
+          render: () =>
+            mapHtml(f)(content.render()),
+        });
+      }
+    }
+  };

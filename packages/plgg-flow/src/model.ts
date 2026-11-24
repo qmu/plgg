@@ -142,6 +142,7 @@ export type Flow = Graph &
     cover?: number;
     rooms?: RoomLayout;
     roomPins?: Readonly<Record<string, string>>;
+    roomNode?: string | undefined;
     roomHover?:
       | readonly [string, string]
       | undefined;
@@ -626,6 +627,15 @@ export const rotateView: Change = (state) =>
     state.camera.yaw - 0.48,
     state.camera.pitch + 0.64,
   )(state);
+export const wheelZoom =
+  (anchor: Point, deltaY: number): Change =>
+  (state) => ({
+    ...state,
+    camera: zoomAt(
+      anchor,
+      Math.exp(-deltaY * 0.002),
+    )(state.camera),
+  });
 export const zoom =
   (factor: number): Change =>
   (state) => ({

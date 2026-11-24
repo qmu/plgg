@@ -681,3 +681,49 @@ Second pass:
    one path (plus one hit path) and order whole wires by their
    nearest point; split only wires that pass both in front of and
    behind a node.
+
+## Performance second pass, toolbar, axes — review, adopted
+
+Reviewer's browser measurement (same method): 部屋に分ける 74 → 40 →
+**3.9 ms** per update (1,426 → 298 elements), 自動配置 10.6 → 6.4 ms,
+the first small sample 4.9 ms (unchanged; possibly warm-up — to be
+looked at). The time had been in plgg-view's message mapping and CSS
+collection (`match` dispatch again), not in the sheet. The bench now
+runs the demo's own update and view.
+
+Toolbar: リセット re-lays and returns to the front; ⏮ ◀ ▶ ⏭ walk one
+history (checked: reset → back → next → first → last give the
+expected texts and disabled states). Axes: three dotted axes from the
+ground-floor origin with arrowheads, `x 層`, `y 担当`, `z 環境`,
+ticks and values.
+
+## Rooms, third pass — it must read as space (owner: "still not working, is it")
+
+With the axes the directions are named, but the sheet still reads as
+a slightly tilted table. Four changes:
+
+1. **Parallel projection for rooms.** A rooms sheet is drawn without
+   perspective: parallel lines stay parallel, far nodes are the size
+   of near ones, the lattice stays a lattice. (Other sheets keep
+   their projection.)
+2. **Floors are plates, clearly apart.** Floor height 140 → 220.
+   Each floor is a plate: its outline in ink, its surface the wash at
+   55 %, drawn back to front so nearer floors cover farther ones; the
+   floor's value (本番, 検証) is written on the plate's near-left
+   corner, 12px 600. The cuboid's vertical edges stay hairlines.
+   Rooms on a plate are ruled by trace lines on the plate itself, not
+   by walls.
+3. **Wires step back.** On a rooms sheet wires are drawn in the
+   pencil tone at 1px; a wire turns ink when either end's node is
+   hovered or selected, or when both its ends are in the pinned
+   slab. Wires between floors keep their riser.
+4. **The opening view shows three faces**: yaw −0.62, pitch 0.48 (in
+   parallel projection this is a near-isometric view from the front
+   left above), fitted clear of the DSL overlay. 「立体」 returns to
+   it.
+
+Specs: a rooms sheet's projected parallel edges stay parallel within
+0.5°; node boxes on different floors have equal projected size;
+plates are painted far to near; a wire's tone follows the hover /
+selection / slab rule; the opening view shows the top, front and side
+of the cuboid (three faces with positive projected area).

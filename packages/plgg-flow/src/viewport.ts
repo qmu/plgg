@@ -8,6 +8,10 @@ import {
   roomFilter,
   turnRooms,
 } from "plgg-flow/roomCamera";
+import {
+  wireDepthRuns,
+  type Occluder,
+} from "plgg-flow/wireDepth";
 import { roomView } from "plgg-flow/roomView";
 import { move } from "plgg-flow/wireGeometry";
 import { lazyLayer } from "plgg-flow/lazyLayer";
@@ -82,6 +86,7 @@ import {
   releasePointer,
   beginStroke,
   movePointer,
+  wheelZoom,
   orbitByDrag,
   selectNodes,
   selectArea,
@@ -486,19 +491,7 @@ const viewportLayout = (state: Flow) => {
   });
   return layout;
 };
-type StrokeSlice = {
-  id: string;
-  owner: object;
-  path: string;
-  visible: Html<Change>;
-  paint: (
-    path: string,
-    visible: Html<Change>[],
-    id?: string,
-  ) => Html<Change>;
-};
 type Layer = {
-  slice?: StrokeSlice;
   depth: number;
   chosen?: boolean;
   arrow?: boolean;
@@ -536,7 +529,6 @@ const trayFrames = new WeakMap<
 const socketRadius = 3;
 const nodeLayers = layerMemo<Layer>();
 const wireLayers = layerMemo<Layer[]>();
-const strokeRuns = layerMemo<Html<Change>>();
 const matches = (
   old: unknown[],
   next: unknown[],
@@ -816,6 +808,7 @@ export const flowView = (
           (original.width !== n.width ||
             original.height !== n.height));
       const inputs = [
+        !!state.rooms,
         extent,
         state.camera,
         muted(n),
@@ -987,6 +980,31 @@ export const flowView = (
             "g",
             [
               a("data-node", n.id),
+              ...(state.rooms
+                ? [
+                    onEvent<Change>(
+                      "pointerenter",
+                      () =>
+                        some((s) => ({
+                          ...s,
+                          roomNode: n.id,
+                        })),
+                    ),
+                    onEvent<Change>(
+                      "pointerleave",
+                      () =>
+                        some((s) =>
+                          s.roomNode === n.id
+                            ? {
+                                ...s,
+                                roomNode:
+                                  undefined,
+                              }
+                            : s,
+                        ),
+                    ),
+                  ]
+                : []),
               ...(muted(n)
                 ? [a("class", "room-muted")]
                 : []),
@@ -1232,6 +1250,30 @@ export const flowView = (
         ? Math.min(depth, solid - 0.02)
         : Math.max(depth, solid + 0.02);
     };
+    const flat =
+      state.camera.yaw === 0 &&
+      state.camera.pitch === 0;
+    const boxes: Occluder[] = flat
+      ? []
+      : drawNodes.map((n) => {
+          const solid = bodies.get(n.item)!.solid;
+          const outline = solid.visible.flatMap(
+            (face) => face.points,
+          );
+          const xs = outline.map(
+              (p) => n.p.x + p.x * n.scale,
+            ),
+            ys = outline.map(
+              (p) => n.p.y + p.y * n.scale,
+            );
+          return {
+            left: Math.min(...xs),
+            right: Math.max(...xs),
+            top: Math.min(...ys),
+            bottom: Math.max(...ys),
+            depth: solidDepth.get(n.id) ?? n.p.z,
+          };
+        });
     const originalIndices = new Map(
       state.edges.map((e, i) => [e, i]),
     );
@@ -1259,6 +1301,7 @@ export const flowView = (
         chosenWire,
         sharedArrival,
         originalIndex,
+        flat ? undefined : state.nodes,
         muted(from) || muted(to),
         frame,
         state.ink,
@@ -1287,9 +1330,6 @@ export const flowView = (
         chosenWire && !turned.get(id)?.[side]
           ? Infinity
           : above(id, side, depth);
-      const flat =
-        state.camera.pitch === 0 &&
-        state.camera.yaw === 0;
       const knots = bridgePoints(
         wire.points,
         wire.lift,
@@ -1508,12 +1548,9 @@ export const flowView = (
       ];
       const paint = (
         path: string,
-        visible: Html<Change>[],
-        id?: string,
+        visible: Html<Change>,
       ) => {
-        const attributes = id
-          ? [key(id), ...events()]
-          : events();
+        const attributes = events();
         // a wire is a hairline; what takes the click is
         // a band around it wide enough for a finger
         const hitWidth =
@@ -1545,20 +1582,33 @@ export const flowView = (
                 [],
               ),
 
-              ...visible,
+              visible,
             ])
-          : el("g", attributes, visible);
+          : el("g", attributes, [visible]);
       };
       let length = 0;
-      for (const [i, b] of points.entries()) {
-        const a0 = points[i - 1];
-        if (!a0 || (flat && i > 1)) continue;
+      const runs = wireDepthRuns(points, boxes);
+      for (const [
+        indexInWire,
+        run,
+      ] of runs.entries()) {
+        const a0 = run[0]!,
+          b = run[run.length - 1]!;
         const offset = length;
-        length += Math.hypot(
-          b.x - a0.x,
-          b.y - a0.y,
+        length += run.reduce(
+          (sum, p, j) =>
+            j
+              ? sum +
+                Math.hypot(
+                  p.x - run[j - 1]!.x,
+                  p.y - run[j - 1]!.y,
+                )
+              : sum,
+          0,
         );
-        const depth = (a0.z + b.z) / 2;
+        const depth = flat
+          ? (a0.z + run[1]!.z) / 2
+          : Math.max(...run.map((p) => p.z));
         const fade = Math.min(
           1,
           Math.max(0, (depth + 300) / 600),
@@ -1566,27 +1616,14 @@ export const flowView = (
         const color = edge.highlighted
           ? "#e36731"
           : `hsl(174 28% ${60 - fade * 38}%)`;
-        const next = points[i + 1];
-        const extension = next
-          ? Math.min(
-              0.5,
-              1 /
-                (Math.hypot(
-                  next.x - b.x,
-                  next.y - b.y,
-                ) || 1),
-            )
-          : 0;
-        const overlap = next
-          ? "L" +
-            (b.x + (next.x - b.x) * extension) +
-            " " +
-            (b.y + (next.y - b.y) * extension)
-          : "";
         const path =
           line ||
-          `M${a0.x} ${a0.y}L${b.x} ${b.y}` +
-            overlap;
+          run
+            .map(
+              (p, j) =>
+                (j ? "L" : "M") + p.x + " " + p.y,
+            )
+            .join("");
         const behindFace = (
           id: string,
           side: Side,
@@ -1604,8 +1641,8 @@ export const flowView = (
         // participates in depth sorting at its own projected height.
         const deckSegment =
           knots !== wire.points &&
-          i > 1 &&
-          i < points.length - 1;
+          indexInWire > 0 &&
+          indexInWire < runs.length - 1;
         const visible = lazy(deferred, () => {
           return el<Change>(
             "path",
@@ -1644,7 +1681,8 @@ export const flowView = (
                 : []),
               a(
                 "stroke-width",
-                b.scale * (chosenWire ? 2.4 : 1),
+                (flat ? run[1]!.scale : b.scale) *
+                  (chosenWire ? 2.4 : 1),
               ),
               a("stroke-linecap", "round"),
             ],
@@ -1653,50 +1691,38 @@ export const flowView = (
         });
         items.push({
           chosen: chosenWire,
-          depth: deckSegment
-            ? depth
-            : i <= 2 ||
-                behindFace(
-                  edge.source,
-                  wire.sourceSide,
-                )
-              ? paintDepth(
-                  edge.source,
-                  wire.sourceSide,
-                  depth - 0.01,
-                )
-              : i >= points.length - 3 ||
-                  behindFace(
-                    edge.target,
-                    wire.targetSide,
-                  )
-                ? paintDepth(
-                    edge.target,
-                    wire.targetSide,
-                    depth - 0.01,
-                  )
-                : chosenWire
-                  ? Infinity
-                  : depth - 0.01,
-          ...(state.rooms &&
-          !muted(from) &&
-          !muted(to)
-            ? {
-                slice: {
-                  id:
-                    "wire-" +
-                    index +
-                    "-stroke-" +
-                    i,
-                  owner: wire,
-                  path,
-                  visible,
-                  paint,
-                },
-              }
-            : {}),
+          depth:
+            !chosenWire && !flat
+              ? depth -
+                (runs.length > 1 ? 1e-8 : 0)
+              : deckSegment
+                ? depth
+                : indexInWire === 0 ||
+                    behindFace(
+                      edge.source,
+                      wire.sourceSide,
+                    )
+                  ? paintDepth(
+                      edge.source,
+                      wire.sourceSide,
+                      depth - 0.01,
+                    )
+                  : indexInWire ===
+                        runs.length - 1 ||
+                      behindFace(
+                        edge.target,
+                        wire.targetSide,
+                      )
+                    ? paintDepth(
+                        edge.target,
+                        wire.targetSide,
+                        depth - 0.01,
+                      )
+                    : chosenWire
+                      ? Infinity
+                      : depth - 0.01,
           html: lazy(deferred, () =>
-            paint(path, [visible]),
+            paint(path, visible),
           ),
         });
       }
@@ -1922,44 +1948,10 @@ export const flowView = (
         Number(!!a.chosen) - Number(!!b.chosen) ||
         Number(!!a.arrow) - Number(!!b.arrow),
     );
-    const children: Html<Change>[] = [];
-    for (let i = 0; i < sorted.length; i++) {
-      const layer = sorted[i]!;
-      const first = layer.slice;
-      if (!first) {
-        children.push(layer.html);
-        continue;
-      }
-      const paths = [first.path],
-        visible = [first.visible];
-      while (
-        sorted[i + 1]?.slice?.owner ===
-        first.owner
-      ) {
-        const slice = sorted[++i]!.slice!;
-        paths.push(slice.path);
-        visible.push(slice.visible);
-      }
-      const old = strokeRuns.get(first);
-      if (old && matches(old.inputs, visible))
-        children.push(old.value);
-      else {
-        const value = first.paint(
-          paths.join(""),
-          visible,
-          first.id,
-        );
-        strokeRuns.set(first, {
-          inputs: visible,
-          value,
-        });
-        children.push(value);
-      }
-    }
     return el(
       "g",
       [key("depth-layers")],
-      children,
+      sorted.map((layer) => layer.html),
     );
   };
   const depthLayers = () => {
@@ -2566,13 +2558,7 @@ export const flowView = (
         e.preventDefault();
         const p = local(e.currentTarget, e);
         return isSome(p)
-          ? some((s) => ({
-              ...s,
-              camera: zoomAt(
-                p.content,
-                Math.exp(-e.deltaY * 0.002),
-              )(s.camera),
-            }))
+          ? some(wheelZoom(p.content, e.deltaY))
           : none();
       }),
       onEvent<Change>("keydown", (e) => {

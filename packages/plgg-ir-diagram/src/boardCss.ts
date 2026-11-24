@@ -129,6 +129,8 @@ export const boardCss = (root: string) => `
   .flow-board .room-shadow { fill: var(--pencil); opacity: .28; }
   .flow-board .room-caption { visibility: hidden; }
   .flow-board .room-cell:hover .room-caption { visibility: visible; }
+  .flow-board .room-scene [data-room-axis] { stroke: var(--ink); }
+  .flow-board .room-scene .room-guides { stroke: var(--pencil); }
   .flow-board .room-label { cursor: pointer; }
   .flow-board .room-muted [stroke], .flow-board .room-muted-wire [stroke] { stroke: var(--pencil); }
   .flow-board .room-muted text { fill: var(--pencil) !important; }

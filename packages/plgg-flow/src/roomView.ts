@@ -17,6 +17,7 @@ import type { Change, Flow } from "./model";
 import type {
   Room,
   RoomLayout,
+  Direction,
 } from "./autoLayout";
 import {
   directions,
@@ -26,162 +27,263 @@ import {
   roomFilter,
   inSlab,
 } from "plgg-flow/roomCamera";
-export const roomLabels = (
+const origin = { x: 0, y: 0, z: 0 };
+// Each short subpath restarts the two-pixel dash. The tick and arrow
+// strokes stay continuous while sharing the dotted shaft's SVG path.
+const axisMark = (
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+) => {
+  const parts = Math.max(
+    1,
+    Math.ceil(Math.hypot(dx, dy) / 2),
+  );
+  const step = `l${dx / parts} ${dy / parts}`;
+  return (
+    `M${x} ${y}` +
+    Array.from(
+      { length: parts },
+      () => step,
+    ).join("m0 0")
+  );
+};
+const axisGeometry = (
   layout: RoomLayout,
   camera: Camera,
 ) => {
-  const limits = limitsOf(layout),
-    at = project(camera);
-  const corners = [0, limits.x].flatMap((x) =>
-    [0, limits.y].flatMap((y) =>
-      [0, limits.z].map((z) => ({ x, y, z })),
-    ),
-  );
-  const projected = corners.map(at);
-  const labels: {
-    x: number;
-    y: number;
-    dx: number;
-    dy: number;
-    anchor: string;
-    value: string;
-    attribute: string;
-    clear: boolean;
-  }[] = [];
-  for (const [
-    index,
-    axis,
-  ] of directions.entries()) {
-    const [a, b] = directions.filter(
-      (d) => d !== axis,
+  const at = project(camera),
+    start = at(origin),
+    limits = limitsOf(layout);
+  const face = faceAxes(camera);
+  const center = at({
+    x: limits.x / 2,
+    y: limits.y / 2,
+    z: limits.z / 2,
+  });
+  return directions.flatMap((axis, index) => {
+    const definition =
+      layout.axes[axis] ??
+      (axis === "z"
+        ? layout.tableHidden
+        : undefined);
+    if (!definition) return [];
+    const position = (v: number) =>
+      at({ ...origin, [axis]: v });
+    const tip = position(limits[axis] + 40);
+    const hidden = face?.includes(axis) === false;
+    const length = Math.hypot(
+      tip.x - start.x,
+      tip.y - start.y,
     );
-    if (!a || !b) continue;
-    const definition = layout.axes[axis];
-    if (
-      !definition ||
-      faceAxes(camera)?.includes(axis) === false
-    )
-      continue;
-    // Follow the nearest parallel edge, moving its labels together
-    // along the shortest screen normal that clears the cuboid.
-    const edges = corners
-      .filter((p) => !p[axis])
-      .flatMap((p) => {
-        const start = at(p),
-          end = at({
-            ...p,
-            [axis]: limits[axis],
-          });
-        const dx = end.x - start.x,
-          dy = end.y - start.y,
-          length = Math.hypot(dx, dy);
-        if (length < 1e-6) return [];
-        const tx = dx / length,
-          ty = dy / length;
-        return [-1, 1].map((sign) => {
-          const nx = -ty * sign,
-            ny = tx * sign;
-          const shift = Math.max(
-            ...projected.map(
-              (q) =>
-                (q.x - start.x) * nx +
-                (q.y - start.y) * ny,
-            ),
-          );
-          return {
-            p,
-            tx,
-            ty,
-            nx,
-            ny,
-            shift,
-            depth: start.z + end.z,
-          };
-        });
-      })
+    const tx =
+      hidden || !length
+        ? -1
+        : (tip.x - start.x) / length;
+    const ty =
+      hidden || !length
+        ? 0
+        : (tip.y - start.y) / length;
+    const sign =
+      -ty * (center.x - start.x) +
+        tx * (center.y - start.y) >
+      0
+        ? -1
+        : 1;
+    const nx = -ty * sign,
+      ny = tx * sign;
+    const slabs = layout.rooms
+      .filter((r) =>
+        directions.every(
+          (d) =>
+            d === axis ||
+            r.index[directions.indexOf(d)] === 0,
+        ),
+      )
       .sort(
-        (l, r) =>
-          r.depth - l.depth || l.shift - r.shift,
+        (a, b) =>
+          a.index[index]! - b.index[index]!,
       );
-    const edge = edges[0];
-    if (!edge) continue;
-    const label = (
+    const ticks = [
+      ...slabs.map((r) => r.min[axis]),
+      slabs[slabs.length - 1]?.max[axis] ?? 0,
+    ];
+    const path = hidden
+      ? `M${start.x} ${start.y}h0`
+      : `M${start.x} ${start.y}L${tip.x} ${tip.y}` +
+        axisMark(
+          tip.x,
+          tip.y,
+          -6 * tx + 3 * nx,
+          -6 * ty + 3 * ny,
+        ) +
+        axisMark(
+          tip.x,
+          tip.y,
+          -6 * tx - 3 * nx,
+          -6 * ty - 3 * ny,
+        ) +
+        ticks
+          .map((v) => {
+            const p = position(v);
+            return axisMark(
+              p.x - 3 * nx,
+              p.y - 3 * ny,
+              6 * nx,
+              6 * ny,
+            );
+          })
+          .join("");
+    return [
+      {
+        axis,
+        letter: layout.tableAxes?.[index] ?? axis,
+        definition,
+        slabs,
+        index,
+        tip: hidden ? start : tip,
+        position,
+        hidden,
+        tx,
+        ty,
+        nx,
+        ny,
+        path,
+      },
+    ];
+  });
+};
+type AxisLabel = {
+  axis: Direction;
+  letter: Direction;
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  anchor: string;
+  value: string;
+  attribute: string;
+  clear: boolean;
+  size: number;
+};
+const axisLabels = (
+  axes: ReturnType<typeof axisGeometry>,
+) => {
+  const labels: AxisLabel[] = [];
+  const left = (l: AxisLabel) =>
+    l.x +
+    l.dx -
+    (l.anchor === "end"
+      ? 1
+      : l.anchor === "middle"
+        ? 0.5
+        : 0) *
+      13 *
+      l.value.length;
+  for (const {
+    axis,
+    letter,
+    definition,
+    slabs,
+    index,
+    tip,
+    position,
+    hidden,
+    tx,
+    ty,
+    nx,
+    ny,
+  } of axes) {
+    const add = (
+      p: Point3,
       value: string,
-      coordinate: number,
-      beyond: number,
+      clear: boolean,
+      halfSpan = 0,
     ) => {
-      const anchorAt = (
-        edge: (typeof edges)[number],
-      ) => {
-        const q = at({
-          ...edge.p,
-          [axis]: coordinate,
-        });
-        return {
-          x: q.x + edge.shift * edge.nx,
-          y: q.y + edge.shift * edge.ny,
-          dx: 12 * edge.nx + beyond * edge.tx,
-          dy: 12 * edge.ny + beyond * edge.ty,
-          anchor:
-            edge.nx < -0.25
-              ? "end"
-              : edge.nx > 0.25
-                ? "start"
-                : "middle",
-          value,
-          attribute: definition.attribute,
-          clear: beyond !== 0,
-        };
+      const l = {
+        axis,
+        letter,
+        x: p.x,
+        y: p.y,
+        dx: clear ? tx * 12 : nx * 12,
+        dy: clear ? ty * 12 : ny * 12,
+        anchor:
+          (clear ? tx : nx) < -0.25
+            ? "end"
+            : (clear ? tx : nx) > 0.25
+              ? "start"
+              : "middle",
+        value,
+        attribute: definition.attribute,
+        clear,
+        size: clear ? 12 : 11,
       };
-      let item = anchorAt(edge);
-      const bounds = (l: typeof item) => {
-        const width = 13 * l.value.length;
-        const x =
-          l.x +
-          l.dx -
-          (l.anchor === "end"
-            ? width
-            : l.anchor === "middle"
-              ? width / 2
-              : 0);
-        return { x, y: l.y + l.dy, width };
-      };
-      const collides = (
-        item: ReturnType<typeof anchorAt>,
-      ) =>
-        labels.some((l) => {
-          const a = bounds(l),
-            b = bounds(item);
-          return (
-            a.x < b.x + b.width + 3 &&
-            b.x < a.x + a.width + 3 &&
-            Math.abs(a.y - b.y) < 16
-          );
-        });
-      if (beyond && collides(item))
-        item =
-          edges
-            .map(anchorAt)
-            .find(
-              (candidate) => !collides(candidate),
-            ) ?? item;
-      while (collides(item)) {
-        item.dx += edge.tx * 8;
-        item.dy += edge.ty * 8;
-      }
-      labels.push(item);
-    };
-    for (const room of layout.rooms)
-      if (!room.min[a] && !room.min[b])
-        label(
-          room.values[index]!,
-          (room.min[axis] + room.max[axis]) / 2,
-          0,
+      const overlap = () =>
+        labels.some(
+          (other) =>
+            Math.abs(
+              l.y + l.dy - other.y - other.dy,
+            ) < 15 &&
+            left(l) <
+              left(other) +
+                13 * other.value.length +
+                2 &&
+            left(other) <
+              left(l) + 13 * l.value.length + 2,
         );
-    label(definition.attribute, limits[axis], 16);
+      if (!clear && overlap()) l.size = 10;
+      const dx = l.dx,
+        dy = l.dy;
+      for (
+        let shift = 4;
+        overlap() && shift <= halfSpan;
+        shift += 4
+      ) {
+        l.dx = dx + tx * shift;
+        l.dy = dy + ty * shift;
+        if (overlap()) {
+          l.dx = dx - tx * shift;
+          l.dy = dy - ty * shift;
+        }
+      }
+      // Edge-on, several projected segments can occupy less than one glyph.
+      // Stack those labels outward, retaining their midpoint along the axis.
+      if (overlap()) {
+        l.dx = dx;
+        l.dy = dy;
+      }
+      while (overlap()) {
+        l.dx += nx * 4;
+        l.dy += ny * 4;
+      }
+      labels.push(l);
+    };
+    if (!hidden)
+      for (const room of slabs) {
+        const a = position(room.min[axis]),
+          b = position(room.max[axis]);
+        add(
+          position(
+            (room.min[axis] + room.max[axis]) / 2,
+          ),
+          room.values[index]!,
+          false,
+          Math.hypot(b.x - a.x, b.y - a.y) / 2,
+        );
+      }
+    add(
+      tip,
+      letter + " " + definition.attribute,
+      true,
+    );
   }
   return labels;
 };
+export const roomLabels = (
+  layout: RoomLayout,
+  camera: Camera,
+) => axisLabels(axisGeometry(layout, camera));
 const prepareRooms = (layout: RoomLayout) => {
   const limits = limitsOf(layout);
   const points = new Map<string, Point3>();
@@ -465,6 +567,30 @@ export const roomView = (
       }));
     }),
   ];
+  const axes = axisGeometry(layout, camera);
+  const node = flow?.nodes.find(
+    (n) =>
+      n.id ===
+      (flow.roomNode ??
+        (flow.selected.__tag === "Some"
+          ? flow.selected.content
+          : undefined)),
+  );
+  const room = node && roomFor(layout, node);
+  const guides =
+    node && room
+      ? axes
+          .map(({ axis, position }) => {
+            const p = at(node.position),
+              q = position(
+                (room.min[axis] +
+                  room.max[axis]) /
+                  2,
+              );
+            return `M${p.x} ${p.y}L${q.x} ${q.y}`;
+          })
+          .join("")
+      : "";
   return el(
     "g",
     [
@@ -499,7 +625,37 @@ export const roomView = (
             ),
         ),
       ),
-      ...roomLabels(layout, camera).map((l) =>
+      ...axes.map((a) =>
+        el<Change>(
+          "path",
+          [
+            attr("data-room-axis", a.letter),
+            attr("d", a.path),
+            attr("fill", "none"),
+            attr("stroke", "var(--ink)"),
+            attr("stroke-width", "1.25"),
+            attr("stroke-linecap", "round"),
+            attr("stroke-dasharray", "2 4"),
+          ],
+          [],
+        ),
+      ),
+      ...(guides
+        ? [
+            el<Change>(
+              "path",
+              [
+                attr("class", "room-guides"),
+                attr("d", guides),
+                attr("stroke", "var(--pencil)"),
+                attr("stroke-dasharray", "2 4"),
+                attr("fill", "none"),
+              ],
+              [],
+            ),
+          ]
+        : []),
+      ...axisLabels(axes).map((l) =>
         el<Change>(
           "text",
           [
@@ -508,8 +664,26 @@ export const roomView = (
             attr("text-anchor", l.anchor),
             attr("dominant-baseline", "middle"),
             ...labelEvents(l),
+            attr(
+              "style",
+              `font-size:${l.size}px;font-weight:${l.clear ? 600 : 500};fill:var(--${l.clear || flow?.roomPins?.[l.attribute] === l.value || node?.data?.[l.attribute] === l.value ? "ink" : "graphite"}) !important;text-decoration:${!l.clear && flow?.roomPins?.[l.attribute] === l.value ? "underline" : "none"}`,
+            ),
           ],
-          [text(l.value)],
+          l.clear
+            ? [
+                el(
+                  "tspan",
+                  [
+                    attr(
+                      "style",
+                      "font-size:10px;fill:var(--pencil)",
+                    ),
+                  ],
+                  [text(l.letter + " ")],
+                ),
+                text(l.attribute),
+              ]
+            : [text(l.value)],
         ),
       ),
     ],

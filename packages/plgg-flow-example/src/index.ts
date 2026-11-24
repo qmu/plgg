@@ -1,5 +1,10 @@
 import { demoSheetStyle } from "plgg-flow-example/sheetStyle";
 import {
+  history,
+  record,
+  travel,
+  sheetEdited,
+  type Travel,
   sheetHint,
   addButton,
   removeButton,
@@ -110,11 +115,13 @@ const visit = (f: Flow): Visit => ({
   section: f.spatial?.section,
 });
 type Revision = Readonly<{
+  hidden: Option<Graph>;
   fittedCamera: Flow["camera"];
   flow: Flow;
   rules: readonly Rule[];
 }>;
 const revision = (s: Revision): Revision => ({
+  hidden: s.hidden,
   flow: s.flow,
   rules: s.rules,
   fittedCamera: s.fittedCamera,
@@ -135,6 +142,7 @@ type Session = Readonly<{
   tools: ToolState;
   files: Files;
   returning: boolean;
+  opening: Revision;
   before: readonly Revision[];
   after: readonly Revision[];
   start: Option<Flow>;
@@ -162,8 +170,12 @@ const session = (
   tools: toolState(),
   files: initialFiles(),
   returning: false,
-  before: [],
-  after: [],
+  ...history({
+    hidden: none(),
+    flow,
+    rules,
+    fittedCamera: flow.camera,
+  }),
   start: none(),
   saved: none(),
   clipboard: none(),
@@ -183,44 +195,48 @@ const edit =
   (fn: Edit): Action =>
   (m) => ({
     ...m,
-    sessions: m.sessions.map((s, i) =>
-      i === m.index ? fn(s) : s,
-    ),
+    sessions: m.sessions.map((s, i) => {
+      if (i !== m.index) return s;
+      const next = fn(s);
+      // Some sample controls edit the graph and their own session state together.
+      return next.before === s.before &&
+        !isSome(next.flow.drag) &&
+        (sheetEdited(s.flow, next.flow) ||
+          s.rules !== next.rules)
+        ? {
+            ...next,
+            ...record<Revision>(s, revision(s)),
+          }
+        : next;
+    }),
   });
-const historyEdit =
-  (redo: boolean): Edit =>
+const travelSheet =
+  (way: Travel): Edit =>
   (s) => {
-    const stack = redo ? s.after : s.before,
-      entry = stack[stack.length - 1];
-    if (!entry) return s;
-    return redo
-      ? {
-          ...s,
-          ...entry,
-          after: stack.slice(0, -1),
-          before: [...s.before, revision(s)],
-        }
-      : {
-          ...s,
-          ...entry,
-          before: stack.slice(0, -1),
-          after: [...s.after, revision(s)],
-        };
+    const next = travel<Revision>(
+      s,
+      revision(s),
+      way,
+    );
+    return {
+      ...s,
+      ...next.history,
+      ...next.current,
+      start: none(),
+      returning: false,
+    };
   };
+const historyEdit = (redo: boolean): Edit =>
+  travelSheet(redo ? "next" : "back");
 const apply =
-  (fn: Change): Edit =>
+  (fn: Change, force = false): Edit =>
   (s) => {
     const flow = fn(s.flow);
     const start = isSome(s.start)
       ? s.start.content
       : s.flow;
     const changed =
-      flow.nodes !== start.nodes ||
-      flow.edges !== start.edges ||
-      flow.marks !== start.marks ||
-      flow.bookmarks !== start.bookmarks ||
-      flow.sets !== start.sets ||
-      flow.spatial !== start.spatial;
+      force || sheetEdited(start, flow);
     const dragging = isSome(flow.drag);
     const rejected =
       isSome(s.flow.source) &&
@@ -232,14 +248,12 @@ const apply =
       flow,
       returning: false,
       start: dragging ? some(start) : none(),
-      before:
-        !dragging && changed
-          ? [
-              ...s.before.slice(-49),
-              revision({ ...s, flow: start }),
-            ]
-          : s.before,
-      after: !dragging && changed ? [] : s.after,
+      ...(!dragging && changed
+        ? record<Revision>(
+            s,
+            revision({ ...s, flow: start }),
+          )
+        : {}),
       message: rejected
         ? "接続条件を満たしていません"
         : flow.edges.length > s.flow.edges.length
@@ -1099,14 +1113,18 @@ const controls = (
         })),
         btn(
           "保存状態を復元",
-          (s) =>
-            isSome(s.saved)
+          (s) => {
+            const saved = s.saved;
+            return isSome(saved)
               ? {
-                  ...s,
-                  flow: s.saved.content,
+                  ...apply(
+                    () => saved.content,
+                    true,
+                  )(s),
                   message: "復元しました",
                 }
-              : s,
+              : s;
+          },
           !isSome(s.saved),
         ),
         el("output", [], [text(s.message)]),
@@ -1235,9 +1253,9 @@ const controls = (
 // One mapping function for the life of the page: the
 // renderer skips an unchanged lazy subtree only when the
 // functions mapped over it are the very same objects.
-const boardActions = mapHtml((fn: Change) =>
-  edit(apply(fn)),
-);
+export const boardAction = (fn: Change) =>
+  edit(apply(fn));
+const boardActions = mapHtml(boardAction);
 const labelText = (label: string) =>
   el(
     "text",
@@ -1395,16 +1413,24 @@ const header = (
  */
 const toolbar = (
   e: (typeof examples)[number],
-  flow: Flow,
+  s: Session,
 ): Html<Action> => {
+  const flow = s.flow;
   const tool = demoSheetTools.get(
     e.id === "space" ? "views" : e.id,
   );
   return sheetToolbar(
-    edit(() =>
-      session(e.initial(), e.spec().rules),
-    ),
-    (fn) => edit(apply(fn)),
+    (way) => edit(travelSheet(way)),
+    !!s.before.length,
+    !!s.after.length,
+    (fn) =>
+      edit((s) => {
+        const next = apply(fn, true)(s);
+        return {
+          ...next,
+          fittedCamera: next.flow.camera,
+        };
+      }),
     e.id === "rooms",
     tool ? [boardActions(tool.view(flow))] : [],
   );
@@ -1493,6 +1519,8 @@ const featureCache = new Map<
   DemoId,
   {
     input: unknown;
+    back: boolean;
+    forward: boolean;
     canRemove: boolean;
     html: Html<Action>;
   }
@@ -1510,6 +1538,8 @@ const boardControls = (
   if (
     old &&
     old.input === input &&
+    old.back === !!s.before.length &&
+    old.forward === !!s.after.length &&
     old.canRemove === canRemove
   )
     return old.html;
@@ -1518,7 +1548,7 @@ const boardControls = (
       "div",
       [attr("class", "board-controls")],
       [
-        toolbar(e, s.flow),
+        toolbar(e, s),
         el(
           "div",
           [attr("class", "feature")],
@@ -1537,12 +1567,14 @@ const boardControls = (
   );
   featureCache.set(id, {
     input,
+    back: !!s.before.length,
+    forward: !!s.after.length,
     canRemove,
     html,
   });
   return html;
 };
-const view = (m: Model): Html<Action> => {
+export const view = (m: Model): Html<Action> => {
   const e = examples[m.index],
     s = m.sessions[m.index];
   if (!e || !s)
@@ -1723,18 +1755,90 @@ const sizeBoard = (model: Model): Model => {
     };
   })(model);
 };
+export const update = (
+  fn: Action,
+  m: Model,
+): [Model, Cmd<Action>] => {
+  const next = sizeBoard(fn(m));
+  const [updated, fileCommand] = fileUpdate(next);
+  const commands = [fileCommand];
+  const sessions = updated.sessions.map(
+    (s, i) => {
+      const d = s.draft;
+      if (
+        !d ||
+        d.busy ||
+        d.saved === s.flow ||
+        isSome(s.flow.drag) ||
+        s.returning
+      )
+        return s;
+      const source = s.flow;
+      commands.push(
+        cmdEffect<Action>(async () => {
+          const result = await writeDrawing(
+            d.name,
+            source,
+            d.revision,
+          );
+          return (model) => ({
+            ...model,
+            sessions: model.sessions.map(
+              (current, index) => {
+                if (
+                  index !== i ||
+                  current.draft?.name !== d.name
+                )
+                  return current;
+                if (result.__tag === "Err") {
+                  const { draft, ...rest } =
+                    current;
+                  return {
+                    ...rest,
+                    files: {
+                      ...rest.files,
+                      report:
+                        "自動保存停止：" +
+                        result.content,
+                    },
+                  };
+                }
+                return {
+                  ...current,
+                  draft: {
+                    ...d,
+                    busy: false,
+                    revision: result.content,
+                    saved: source,
+                  },
+                };
+              },
+            ),
+          });
+        }),
+      );
+      return {
+        ...s,
+        draft: { ...d, busy: true },
+      };
+    },
+  );
+  return [
+    { ...updated, sessions },
+    cmdBatch(commands),
+  ];
+};
+export const init = (): Model => ({
+  index: 0,
+  sessions: examples.map((e) =>
+    session(e.initial(), e.spec().rules),
+  ),
+});
+export { examples };
 const root = document.getElementById("app");
 if (root)
   sandbox<Model, Action>({
-    init: [
-      {
-        index: 0,
-        sessions: examples.map((e) =>
-          session(e.initial(), e.spec().rules),
-        ),
-      },
-      cmdNone(),
-    ],
+    init: [init(), cmdNone()],
     view,
     subscriptions: (m) => {
       const current = m.sessions[m.index];
@@ -1806,76 +1910,5 @@ if (root)
         ),
       ]);
     },
-    update: (fn, m) => {
-      const next = sizeBoard(fn(m));
-      const [updated, fileCommand] =
-        fileUpdate(next);
-      const commands = [fileCommand];
-      const sessions = updated.sessions.map(
-        (s, i) => {
-          const d = s.draft;
-          if (
-            !d ||
-            d.busy ||
-            d.saved === s.flow ||
-            isSome(s.flow.drag) ||
-            s.returning
-          )
-            return s;
-          const source = s.flow;
-          commands.push(
-            cmdEffect<Action>(async () => {
-              const result = await writeDrawing(
-                d.name,
-                source,
-                d.revision,
-              );
-              return (model) => ({
-                ...model,
-                sessions: model.sessions.map(
-                  (current, index) => {
-                    if (
-                      index !== i ||
-                      current.draft?.name !==
-                        d.name
-                    )
-                      return current;
-                    if (result.__tag === "Err") {
-                      const { draft, ...rest } =
-                        current;
-                      return {
-                        ...rest,
-                        files: {
-                          ...rest.files,
-                          report:
-                            "自動保存停止：" +
-                            result.content,
-                        },
-                      };
-                    }
-                    return {
-                      ...current,
-                      draft: {
-                        ...d,
-                        busy: false,
-                        revision: result.content,
-                        saved: source,
-                      },
-                    };
-                  },
-                ),
-              });
-            }),
-          );
-          return {
-            ...s,
-            draft: { ...d, busy: true },
-          };
-        },
-      );
-      return [
-        { ...updated, sessions },
-        cmdBatch(commands),
-      ];
-    },
+    update,
   })(root);

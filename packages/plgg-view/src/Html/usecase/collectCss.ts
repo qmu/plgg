@@ -1,58 +1,7 @@
-import {
-  Option,
-  SoftStr,
-  some,
-  none,
-  pipe,
-  match,
-  fromNullable,
-  matchOption,
-} from "plgg";
-import {
-  Html,
-  text$,
-  raw$,
-  element$,
-  lazy$,
-} from "plgg-view/Html/model/Html";
-import {
-  Attribute,
-  CssRule,
-  attr$,
-  handler$,
-  eventHandler$,
-  host$,
-  anim$,
-  css$,
-  key$,
-} from "plgg-view/Html/model/Attribute";
+import { type SoftStr } from "plgg";
+import { type Html } from "plgg-view/Html/model/Html";
+import { type CssRule } from "plgg-view/Html/model/Attribute";
 import { escapeCss } from "plgg-view/Html/usecase/escape";
-
-/** The atomic {@link CssRule}s an attribute list contributes (only `Css` does). */
-const rulesOf = <Msg>(
-  attributes: ReadonlyArray<Attribute<Msg>>,
-): ReadonlyArray<CssRule> =>
-  attributes.flatMap((attribute) =>
-    match(attribute)(
-      [attr$(), (): ReadonlyArray<CssRule> => []],
-      [
-        handler$(),
-        (): ReadonlyArray<CssRule> => [],
-      ],
-      [
-        eventHandler$(),
-        (): ReadonlyArray<CssRule> => [],
-      ],
-      [host$(), (): ReadonlyArray<CssRule> => []],
-      [anim$(), (): ReadonlyArray<CssRule> => []],
-      [
-        css$(),
-        ({ content }): ReadonlyArray<CssRule> =>
-          content.rules,
-      ],
-      [key$(), (): ReadonlyArray<CssRule> => []],
-    ),
-  );
 
 /**
  * One {@link CssRule} as its stylesheet text. The content-hashed `className` is
@@ -99,84 +48,40 @@ const lazyRuleCache = new WeakMap<
  */
 const rulesOfNode = <Msg>(
   node: Html<Msg>,
-): ReadonlyArray<CssRule> =>
-  match(node)(
-    [text$(), (): ReadonlyArray<CssRule> => []],
-    // a raw passthrough carries no `css()` atoms
-    [raw$(), (): ReadonlyArray<CssRule> => []],
-    [
-      element$(),
-      ({ content }): ReadonlyArray<CssRule> => [
-        ...rulesOf(content.attributes),
-        ...content.children.flatMap(rulesOfNode),
-      ],
-    ],
-    [
-      lazy$(),
-      ({ content }): ReadonlyArray<CssRule> => {
-        const cacheKey: Option<object> =
-          typeof content.arg === "object" &&
-          content.arg !== null
-            ? some(content.arg)
-            : none();
-        const argCache: WeakMap<
-          object,
-          ReadonlyArray<CssRule>
-        > = pipe(
-          fromNullable(
-            lazyRuleCache.get(content.fn),
-          ),
-          matchOption(
-            (): WeakMap<
-              object,
-              ReadonlyArray<CssRule>
-            > => {
-              const created = new WeakMap<
-                object,
-                ReadonlyArray<CssRule>
-              >();
-              lazyRuleCache.set(
-                content.fn,
-                created,
-              );
-              return created;
-            },
-            (
-              existing: WeakMap<
-                object,
-                ReadonlyArray<CssRule>
-              >,
-            ): WeakMap<
-              object,
-              ReadonlyArray<CssRule>
-            > => existing,
-          ),
-        );
-        return matchOption(
-          // non-cacheable (primitive) arg: no memoization seam, recompute.
-          (): ReadonlyArray<CssRule> =>
-            rulesOfNode(content.render()),
-          (key: object): ReadonlyArray<CssRule> =>
-            pipe(
-              fromNullable(argCache.get(key)),
-              matchOption(
-                (): ReadonlyArray<CssRule> => {
-                  const rules = rulesOfNode(
-                    content.render(),
-                  );
-                  argCache.set(key, rules);
-                  return rules;
-                },
-                (
-                  cached: ReadonlyArray<CssRule>,
-                ): ReadonlyArray<CssRule> =>
-                  cached,
-              ),
-            ),
-        )(cacheKey);
-      },
-    ],
-  );
+): ReadonlyArray<CssRule> => {
+  switch (node.__tag) {
+    case "Text":
+    case "Raw":
+      return [];
+    case "Element": {
+      const rules: CssRule[] = [];
+      for (const attribute of node.content
+        .attributes)
+        if (attribute.__tag === "Css")
+          for (const rule of attribute.content
+            .rules)
+            rules.push(rule);
+      for (const child of node.content.children)
+        for (const rule of rulesOfNode(child))
+          rules.push(rule);
+      return rules;
+    }
+    case "Lazy": {
+      const { arg, fn, render } = node.content;
+      if (typeof arg !== "object" || arg === null)
+        return rulesOfNode(render());
+      const cache =
+        lazyRuleCache.get(fn) ??
+        new WeakMap<object, readonly CssRule[]>();
+      const cached = cache.get(arg);
+      if (cached) return cached;
+      const rules = rulesOfNode(render());
+      cache.set(arg, rules);
+      lazyRuleCache.set(fn, cache);
+      return rules;
+    }
+  }
+};
 
 /**
  * Collects the exact {@link CssRule}s an {@link Html} tree's `css()` atoms

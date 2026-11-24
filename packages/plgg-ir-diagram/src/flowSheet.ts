@@ -1,3 +1,5 @@
+import type { Travel } from "plgg-ir-diagram/sheetHistory";
+export * from "plgg-ir-diagram/sheetHistory";
 import {
   sheetProperties,
   propertyCache,
@@ -377,25 +379,25 @@ export const roomFrames = <Action>(
   );
 };
 export const roomsOpening = viewAt(-0.32, 0.26);
-export const optimize: Change = (f) => {
+const arrangeSheet: Change = (f) => {
   if (f.rooms) {
     const { axes, rooms, graph } = planRooms(
       f,
       f.rooms.axes,
     );
-    return fitDemo({
+    return {
       ...f,
       ...graph,
       rooms: { axes, rooms },
-    });
+    };
   }
   // a sheet with groups keeps each group whole: the
   // groups and loose nodes are arranged as units
   if (f.nodes.some((n) => n.group))
-    return fitDemo({
+    return {
       ...f,
       ...arrangeHierarchy(f),
-    });
+    };
   const frame = frameOf(f),
     wide = frame.x - (f.cover ?? 0) >= frame.y;
   // heights the author gave are theirs: depth is only
@@ -441,7 +443,24 @@ export const optimize: Change = (f) => {
         }
       : {}),
   };
-  return fitDemo(laid);
+  return laid;
+};
+export const optimize: Change = (f) =>
+  fitDemo(arrangeSheet(f));
+export const resetSheet: Change = (f) => {
+  const laid = arrangeSheet(
+    viewAt(0, 0)({ ...f, roomMotion: undefined }),
+  );
+  const heights = new Map(
+    f.nodes.map((n) => [n.id, n.position.z]),
+  );
+  const nodes = laid.nodes.map((n) => {
+    const z = heights.get(n.id) ?? n.position.z;
+    return z === n.position.z
+      ? n
+      : { ...n, position: { ...n.position, z } };
+  });
+  return fitDemo({ ...laid, nodes });
 };
 export const observeFrame = <Action>(
   root: Element,
@@ -841,7 +860,9 @@ export const removeButton = <Action>(
     [text("−")],
   );
 export const sheetToolbar = <Action>(
-  reset: Action,
+  navigate: (way: Travel) => Action,
+  back: boolean,
+  forward: boolean,
   change: (fn: Change) => Action,
   rooms: boolean,
   tools: readonly Html<Action>[] = [],
@@ -859,7 +880,95 @@ export const sheetToolbar = <Action>(
     "div",
     [attr("class", "toolbar")],
     [
-      button("リセット", reset),
+      button("リセット", change(resetSheet)),
+      el(
+        "span",
+        [
+          attr("class", "sheet-history"),
+          attr("role", "group"),
+          attr("aria-label", "履歴"),
+        ],
+        (
+          [
+            ["first", "最初に", true, true],
+            ["back", "戻る", true, false],
+            ["next", "次に", false, false],
+            ["last", "最後に", false, true],
+          ] satisfies [
+            Travel,
+            string,
+            boolean,
+            boolean,
+          ][]
+        ).map(([way, label, left, bar]) => {
+          const enabled = left ? back : forward;
+          return el(
+            "button",
+            [
+              attr("type", "button"),
+              attr("title", label),
+              attr("aria-label", label),
+              ...(enabled
+                ? [onClick(navigate(way))]
+                : [attr("disabled", "")]),
+            ],
+            [
+              el(
+                "svg",
+                [
+                  attr("width", "16"),
+                  attr("height", "16"),
+                  attr("viewBox", "0 0 16 16"),
+                  attr("aria-hidden", "true"),
+                ],
+                [
+                  el(
+                    "path",
+                    [
+                      attr(
+                        "d",
+                        left
+                          ? "M12 3L5 8L12 13Z"
+                          : "M4 3L11 8L4 13Z",
+                      ),
+                      attr(
+                        "fill",
+                        "currentColor",
+                      ),
+                    ],
+                    [],
+                  ),
+                  ...(bar
+                    ? [
+                        el<Action>(
+                          "path",
+                          [
+                            attr(
+                              "d",
+                              left
+                                ? "M3 3V13"
+                                : "M13 3V13",
+                            ),
+                            attr(
+                              "stroke",
+                              "currentColor",
+                            ),
+                            attr(
+                              "stroke-width",
+                              "1.5",
+                            ),
+                          ],
+                          [],
+                        ),
+                      ]
+                    : []),
+                ],
+              ),
+            ],
+          );
+        }),
+      ),
+
       ...(rooms
         ? [
             ...(
@@ -889,7 +998,6 @@ export const sheetToolbar = <Action>(
             ),
           ]
         : []),
-      button("最適化", change(optimize)),
       ...tools,
     ],
   );

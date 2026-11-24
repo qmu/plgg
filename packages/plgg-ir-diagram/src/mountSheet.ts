@@ -1,7 +1,9 @@
+import { isSome, some, none } from "plgg";
 import {
   el,
   attr,
   mapHtml,
+  onEvent,
   type Html,
 } from "plgg-view";
 import {
@@ -23,6 +25,12 @@ import {
   type Rule,
 } from "plgg-flow/dsl";
 import {
+  history,
+  record,
+  travel,
+  sheetEdited,
+  type History,
+  type Travel,
   roomFrames,
   sheetHint,
   addButton,
@@ -40,14 +48,51 @@ import {
   readSheetSource,
 } from "plgg-ir-diagram/flowSheet";
 
-type Model = Readonly<{
+type Revision = Readonly<{
   flow: Flow;
   rules: readonly Rule[];
   source: string;
-  help: boolean;
   fitted: boolean;
   error: string;
 }>;
+type Model = Revision &
+  Readonly<{
+    help: boolean;
+    history: History<Revision>;
+    start?: Revision | undefined;
+  }>;
+const revision = ({
+  flow,
+  rules,
+  source,
+  fitted,
+  error,
+}: Revision): Revision => ({
+  flow,
+  rules,
+  source,
+  fitted,
+  error,
+});
+const remember = (
+  m: Model,
+  next: Model,
+  force = false,
+): Model => {
+  const previous = m.start ?? revision(m);
+  if (isSome(next.flow.drag))
+    return { ...next, start: previous };
+  return {
+    ...next,
+    start: undefined,
+    history:
+      force ||
+      sheetEdited(previous.flow, next.flow) ||
+      previous.rules !== next.rules
+        ? record(m.history, previous)
+        : m.history,
+  };
+};
 type Action = (model: Model) => Model;
 const change =
   (fn: Change, fitted = false): Action =>
@@ -55,21 +100,25 @@ const change =
     const flow = fn(m.flow);
     return flow === m.flow
       ? m
-      : {
-          ...m,
-          flow,
-          source:
-            flow.rooms &&
-            flow.nodes === m.flow.nodes &&
-            flow.edges === m.flow.edges
-              ? m.source
-              : printSpec(flow, m.rules),
-          error: "",
-          fitted:
-            fitted ||
-            (m.fitted &&
-              flow.camera === m.flow.camera),
-        };
+      : remember(
+          m,
+          {
+            ...m,
+            flow,
+            source:
+              flow.rooms &&
+              flow.nodes === m.flow.nodes &&
+              flow.edges === m.flow.edges
+                ? m.source
+                : printSpec(flow, m.rules),
+            error: "",
+            fitted:
+              fitted ||
+              (m.fitted &&
+                flow.camera === m.flow.camera),
+          },
+          fitted,
+        );
   };
 const retype =
   (source: string, edited?: Flow): Action =>
@@ -80,14 +129,14 @@ const retype =
       m.rules,
       edited,
     );
-    return {
+    return remember(m, {
       ...m,
       ...draft,
       source,
       fitted:
         m.fitted ||
         draft.flow.camera !== m.flow.camera,
-    };
+    });
   };
 const toggle: Action = (m) => ({
   ...m,
@@ -102,32 +151,52 @@ export const mountSheet = (
   const parsed = parseSpec(code);
   if (parsed.__tag === "Err") return;
   const flow = specFlow(parsed.content);
-  const initial: Model = {
+  const opening: Revision = {
     flow: fitDemo(
       flow.rooms ? roomsOpening(flow) : flow,
     ),
     rules: parsed.content.rules,
     source: code,
     error: "",
-    help: false,
     fitted: true,
   };
-  const reset: Action = (m) => ({
-    ...initial,
-    flow: resizeDemo(
-      initial.flow,
-      m.flow.frame?.y ?? 580,
-      true,
-      m.flow.cover ?? 0,
-    ),
-  });
-  const controls = (current: Flow) =>
-    el<Action>(
+  const initial: Model = {
+    ...opening,
+    help: false,
+    history: history(opening),
+  };
+  const navigate =
+    (way: Travel): Action =>
+    (m) => {
+      const next = travel(
+        m.history,
+        revision(m),
+        way,
+      );
+      const restored = next.current;
+      return {
+        ...m,
+        ...restored,
+        flow: resizeDemo(
+          restored.flow,
+          m.flow.frame?.y ?? 580,
+          restored.fitted,
+          m.flow.cover ?? 0,
+        ),
+        history: next.history,
+        start: undefined,
+      };
+    };
+  const controls = (m: Model) => {
+    const current = m.flow;
+    return el<Action>(
       "div",
       [attr("class", "board-controls")],
       [
         sheetToolbar(
-          reset,
+          navigate,
+          !!m.history.before.length,
+          !!m.history.after.length,
           (fn) => change(fn, true),
           !!current.rooms,
           names.flatMap((name) => {
@@ -144,6 +213,7 @@ export const mountSheet = (
         addButton(change(addSheetNode)),
       ],
     );
+  };
   const frame = observeFrame<Action>(
     root,
     (height, cover) => (m) => ({
@@ -167,11 +237,32 @@ export const mountSheet = (
   const view = (m: Model): Html<Action> =>
     el(
       "div",
-      [attr("class", "flow-sheet")],
+      [
+        attr("class", "flow-sheet"),
+        onEvent<Action>("keydown", (event) => {
+          if (
+            !(event instanceof KeyboardEvent) ||
+            event.isComposing ||
+            !(event.metaKey || event.ctrlKey) ||
+            event.key.toLowerCase() !== "z" ||
+            (event.target instanceof Element &&
+              event.target.closest(
+                "input,textarea,[contenteditable=true]",
+              ))
+          )
+            return none();
+          event.preventDefault();
+          return some(
+            navigate(
+              event.shiftKey ? "next" : "back",
+            ),
+          );
+        }),
+      ],
       [
         sheetStage(
           board(flowView(m.flow)),
-          controls(m.flow),
+          controls(m),
           [
             ...(dsl
               ? [

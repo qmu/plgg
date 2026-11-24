@@ -306,6 +306,10 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     flex-wrap: wrap;
     max-width: calc(100% - 48px);
   }
+  .sheet-history { display: inline-flex; }
+  .toolbar .sheet-history button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--ink); }
+  .toolbar .sheet-history button + button { margin-left: -1px; }
+  .toolbar .sheet-history button:disabled { color: var(--pencil); }
   .board-controls .feature {
     min-height: 0;
     margin: 0;

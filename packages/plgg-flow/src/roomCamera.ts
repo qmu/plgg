@@ -172,7 +172,12 @@ export const faceTable = (flow: Flow): Flow => {
   return {
     ...flow,
     ...plan.graph,
-    rooms: { axes: plan.axes, rooms: plan.rooms },
+    rooms: {
+      axes: plan.axes,
+      tableHidden: flow.rooms.axes[hidden],
+      rooms: plan.rooms,
+      tableAxes: [across, down, hidden],
+    },
     camera: {
       ...flow.camera,
       yaw: 0,
