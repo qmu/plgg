@@ -1265,15 +1265,11 @@ const labelText = (label: string) =>
     ],
     [text(label)],
   );
-// Likewise one node renderer for every board that only
-// shows labels; the computing board needs the live flow.
-const plainNode = (n: FlowNode) =>
-  labelText(n.label);
 const diagram = (id: DemoId, f: Flow) =>
   flowView(
     f,
     id !== "compute"
-      ? plainNode
+      ? undefined
       : (n) =>
           labelText(
             n.label +

@@ -20,6 +20,7 @@ import {
   addNode,
   viewAt,
   roomStack,
+  roomFaceView,
   turnRooms,
   roomLabels,
   nodeSize,
@@ -138,131 +139,62 @@ export const fitDemo = (flow: Flow): Flow => {
   const frame = frameOf(flow),
     open = frame.x - (flow.cover ?? 0),
     margin = 96;
-  // A projected label scales with its edge, while its clearance and
-  // glyphs stay in screen pixels. Fit both parts inside the open frame.
-  const labels = flow.rooms
-    ? roomLabels(flow.rooms, camera)
-    : [];
-  const fitAxis = (
-    low: number,
-    high: number,
-    available: number,
-    axis: "x" | "y",
-  ) => {
-    const spans = [
-      {
-        at: low,
-        lo: axis === "y" ? -stack : 0,
-        hi: 0,
-      },
-      {
-        at: high,
-        lo: 0,
-        hi: axis === "x" ? stack : 0,
-      },
-      ...labels.map((l) => {
+  const measure = (scale: number) => {
+    let left = bounds.left * scale,
+      right = bounds.right * scale + stack,
+      top = bounds.top * scale - stack,
+      bottom = bounds.bottom * scale;
+    if (flow.rooms) {
+      const fitted = { ...camera, scale };
+      const visible = roomFaceView({
+        ...flow,
+        camera: fitted,
+      });
+      for (const l of roomLabels(
+        flow.rooms,
+        fitted,
+        visible.nodes,
+      )) {
         const width = l.value.length * 13;
-        const left =
-          l.dx -
-          (l.anchor === "end"
-            ? width
-            : l.anchor === "middle"
-              ? width / 2
-              : 0);
-        return axis === "x"
-          ? {
-              at: l.x,
-              lo: left,
-              hi: left + width,
-            }
-          : {
-              at: l.y,
-              lo: l.dy - 7,
-              hi: l.dy + 7,
-            };
-      }),
-    ];
-    let scale = face
-      ? 1.5
-      : flow.rooms
-        ? 1.25
-        : 1;
-    for (const a of spans)
-      for (const b of spans)
-        if (b.at > a.at)
-          scale = Math.min(
-            scale,
-            Math.max(
-              1,
-              available - margin - b.hi + a.lo,
-            ) /
-              (b.at - a.at),
-          );
-    const origin = (zoom: number) =>
-      (available -
-        Math.min(
-          ...spans.map((s) => zoom * s.at + s.lo),
-        ) -
-        Math.max(
-          ...spans.map((s) => zoom * s.at + s.hi),
-        )) /
-      2;
-    return { scale, origin };
-  };
-  const x = fitAxis(
-      bounds.left,
-      bounds.right,
-      open,
-      "x",
-    ),
-    y = fitAxis(
-      bounds.top,
-      bounds.bottom,
-      frame.y,
-      "y",
-    );
-  let scale = Math.min(x.scale, y.scale);
-  let origin = {
-    x: x.origin(scale),
-    y: y.origin(scale),
-  };
-  if (flow.rooms) {
-    // Label collisions depend on pixel-sized glyphs at the fitted scale.
-    for (let i = 0; i < 16; i++) {
-      let left = bounds.left * scale,
-        right = bounds.right * scale + stack,
-        top = bounds.top * scale - stack,
-        bottom = bounds.bottom * scale;
-      for (const l of roomLabels(flow.rooms, {
-        ...camera,
-        scale,
-      })) {
-        const w = l.value.length * 13;
         const x =
           l.x +
           l.dx -
-          (l.anchor === "end"
-            ? w
-            : l.anchor === "middle"
-              ? w / 2
+          (l.anchor === "middle"
+            ? width / 2
+            : l.anchor === "end"
+              ? width
               : 0);
         left = Math.min(left, x);
-        right = Math.max(right, x + w);
+        right = Math.max(right, x + width);
         top = Math.min(top, l.y + l.dy - 7);
         bottom = Math.max(bottom, l.y + l.dy + 7);
       }
-      origin = {
+    }
+    return {
+      width: right - left,
+      height: bottom - top,
+      origin: {
         x: (open - left - right) / 2,
         y: (frame.y - top - bottom) / 2,
-      };
-      const ratio = Math.min(
-        (open - margin) / (right - left),
-        (frame.y - margin) / (bottom - top),
-      );
-      if (ratio >= 1 - 1e-8 || i === 15) break;
-      scale *= Math.max(0.1, ratio * 0.99);
-    }
+      },
+    };
+  };
+  let upper = flow.rooms ? 1.25 : 1,
+    lower = 0;
+  let scale = upper;
+  for (let i = 0; i < 18; i++) {
+    const box = measure(scale);
+    if (
+      box.width <= open - margin &&
+      box.height <= frame.y - margin
+    ) {
+      lower = scale;
+      if (scale === upper) break;
+    } else upper = scale;
+    scale = (lower + upper) / 2;
   }
+  scale = lower || scale;
+  const { origin } = measure(scale);
   return {
     ...flow,
     camera: {

@@ -1,7 +1,10 @@
 import { flowView } from "plgg-flow/index";
 import { wireDepthRuns } from "plgg-flow/wireDepth";
 import { wireGraph } from "plgg-flow/wiring";
-import { portPosition } from "plgg-flow/nodeBody";
+import {
+  bodyDepth,
+  portPosition,
+} from "plgg-flow/nodeBody";
 import { project } from "plgg-board";
 import { viewAt } from "plgg-flow/model";
 import {
@@ -334,6 +337,181 @@ test("the stage draws three far faces, ruled walls and outline storeys with axes
     toBe(true),
   );
 });
+test("floor plates and both sides of each partition follow storey boundaries", () => {
+  const f = read(sheet);
+  const stage = renderToString(
+    roomStage(f.rooms!, f.camera, {
+      layer: "app",
+      env: "live",
+    }),
+  );
+  const paths = [
+    ...stage.matchAll(
+      /class="room-ruling" d="([^"]*)"/g,
+    ),
+  ];
+  const counts = ["x", "y", "z"].map(
+    (_, i) =>
+      new Set(
+        f.rooms!.rooms.map((r) => r.index[i]),
+      ).size,
+  );
+  const [x, y, z] = counts;
+  return check(
+    stage.match(/class="room-storeys"/g)
+      ?.length === y &&
+      paths.length === y! + 1 &&
+      paths
+        .slice(0, -1)
+        .every(
+          (p) =>
+            p[1]!.split("M").length - 1 ===
+            x! + z! - 2,
+        ) &&
+      paths[paths.length - 1]?.[1]?.split("M")
+        .length ===
+        1 + 2 * y! * (x! + z! - 2) &&
+      stage.match(/class="room-pinned"/g)
+        ?.length === 6,
+    toBe(true),
+  );
+});
+test("two-block outline edges support their cuboids and axis labels clear cards through a turn", () => {
+  const original = read(
+    sheet
+      .replace(
+        "node A ",
+        "axis region Tokyo Osaka\nview x=layer y=owner z=env column=region\nnode A region=Tokyo ",
+      )
+      .replace("node B ", "node B region=Osaka ")
+      .replace(
+        /node ([CDE]) /g,
+        "node $1 region=Tokyo ",
+      ),
+  );
+  const layout = original.rooms!;
+  const poses = [
+    [-0.6, 0.5],
+    ...Array.from({ length: 8 }, (_, i) =>
+      [0.22, 0.91].map((p) => [
+        (i * Math.PI) / 4,
+        p,
+      ]),
+    ).flat(),
+  ];
+  for (const [yaw, pitch] of poses) {
+    const f = roomFaceView(
+      viewAt(yaw!, pitch!)(original),
+    );
+    const at = project(f.camera);
+    const blocks = [
+      ...new Set(
+        layout.rooms.map((r) => r.block),
+      ),
+    ].map((block) => {
+      const rooms = layout.rooms.filter(
+        (r) => r.block === block,
+      );
+      return rooms.flatMap((r) =>
+        [r.min.x, r.max.x].flatMap((x) =>
+          [r.min.y, r.max.y].flatMap((y) =>
+            [r.min.z, r.max.z].map((z) =>
+              at({ x, y, z }),
+            ),
+          ),
+        ),
+      );
+    });
+    const occupied = f.nodes
+      .filter((n) => !n.hidden)
+      .map((n) => {
+        const { width, height } = nodeSize(n),
+          p = n.position,
+          d = bodyDepth(n);
+        const points = [-1, 1].flatMap((i) =>
+          [-1, 1].flatMap((j) =>
+            [-d, d].map((k) =>
+              at({
+                x: p.x + (i * width) / 2,
+                y: p.y + (j * height) / 2,
+                z: p.z + k,
+              }),
+            ),
+          ),
+        );
+        return {
+          left: Math.min(
+            ...points.map((q) => q.x),
+          ),
+          right: Math.max(
+            ...points.map((q) => q.x),
+          ),
+          top: Math.min(
+            ...points.map((q) => q.y),
+          ),
+          bottom: Math.max(
+            ...points.map((q) => q.y),
+          ),
+        };
+      });
+    const labels = roomLabels(
+      layout,
+      f.camera,
+      f.nodes,
+    );
+    for (const l of [
+      ...labels.filter((l) => !("axis" in l)),
+      ...labels.filter((l) => "axis" in l),
+    ]) {
+      const x = l.x + l.dx,
+        y = l.y + l.dy,
+        w = (l.value.length * 13) / 2;
+      if ("axis" in l) {
+        if (
+          occupied.some(
+            (b) =>
+              x - w < b.right &&
+              x + w > b.left &&
+              y - 7 < b.bottom &&
+              y + 7 > b.top,
+          )
+        )
+          return check(false, toBe(true));
+        const zero = at({ x: 0, y: 0, z: 0 }),
+          unit = at({
+            x: 0,
+            y: 0,
+            z: 0,
+            [l.axis]: 1,
+          });
+        const nx = zero.y - unit.y,
+          ny = unit.x - zero.x;
+        if (
+          !blocks.some((points) => {
+            const dots = points.map(
+              (p) =>
+                (p.x - l.x) * nx +
+                (p.y - l.y) * ny,
+            );
+            return (
+              Math.abs(Math.min(...dots)) <
+                1e-6 ||
+              Math.abs(Math.max(...dots)) < 1e-6
+            );
+          })
+        )
+          return check(false, toBe(true));
+      }
+      occupied.push({
+        left: x - w,
+        right: x + w,
+        top: y - 7,
+        bottom: y + 7,
+      });
+    }
+  }
+  return check(true, toBe(true));
+});
 test("slab selections intersect across attributes", () =>
   check(
     [
@@ -477,20 +655,20 @@ test("hover and selection guide a room node to its three segment midpoints in on
     "y",
     "z",
   ];
+  const labels = roomLabels(
+    layout,
+    camera,
+    flow.nodes,
+  );
   const path = axes
-    .map((axis) => {
-      const q = at({
-        x: Math.max(
-          ...layout.rooms.map((r) => r.max.x),
-        ),
-        y: Math.max(
-          ...layout.rooms.map((r) => r.max.y),
-        ),
-        z: 0,
-        [axis]:
-          (room.min[axis] + room.max[axis]) / 2,
-      });
-      return `M${p.x} ${p.y}L${q.x} ${q.y}`;
+    .map((axis, i) => {
+      const label = labels.find(
+        (l) =>
+          "axis" in l &&
+          l.axis === axis &&
+          l.value === room.values[i],
+      )!;
+      return `M${p.x} ${p.y}L${label.x} ${label.y}`;
     })
     .join("");
   return check(

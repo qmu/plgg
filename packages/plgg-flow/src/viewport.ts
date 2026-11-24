@@ -19,6 +19,7 @@ import { lazyLayer } from "plgg-flow/lazyLayer";
 import {
   grid,
   nodeSize,
+  labelWidth,
 } from "plgg-flow/nodeSize";
 import {
   type Side,
@@ -549,6 +550,30 @@ const defaultLabel = (
     [a("text-anchor", "middle"), a("y", 5)],
     [text(node.label)],
   );
+const roomCaption = (
+  node: FlowNode,
+  scale: number,
+) => {
+  const { width, height } = nodeSize(node);
+  const size = Math.min(
+    Math.max(13, 12 / scale),
+    height - 2,
+    (13 * (width - 4)) /
+      Math.max(1, labelWidth(node.label)),
+  );
+  return el<Change>(
+    "text",
+    [
+      a("text-anchor", "middle"),
+      a("dominant-baseline", "central"),
+      a(
+        "style",
+        `font-size:${Math.max(1, size)}px`,
+      ),
+    ],
+    [text(node.label)],
+  );
+};
 const scrollHint = (hint: number, frame: Point) =>
   el<Change>(
     "g",
@@ -1172,7 +1197,9 @@ export const flowView = (
                       a("data-node-caption", ""),
                       a(
                         "transform",
-                        `matrix(${solid.caption.join(" ")})`,
+                        state.rooms
+                          ? `translate(${solid.caption[4]} ${solid.caption[5]})`
+                          : `matrix(${solid.caption.join(" ")})`,
                       ),
                     ],
                     [
@@ -1203,7 +1230,15 @@ export const flowView = (
                           ),
                           a("overflow", "hidden"),
                         ],
-                        [render(n, state)],
+                        [
+                          state.rooms &&
+                          render === defaultLabel
+                            ? roomCaption(
+                                n,
+                                n.scale,
+                              )
+                            : render(n, state),
+                        ],
                       ),
                     ],
                   )

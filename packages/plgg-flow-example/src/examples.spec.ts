@@ -217,9 +217,13 @@ test("room labels fit with a 48 pixel margin beside the DSL overlay", () => {
     .initial();
   const f = resizeDemo(flow, 580, true, 320),
     open = frameOf(f).x - 320;
-  const labels = roomLabels(f.rooms!, f.camera);
+  const labels = roomLabels(
+    f.rooms!,
+    f.camera,
+    f.nodes,
+  );
   return check(
-    labels.length === 13 &&
+    labels.length === 16 &&
       labels.every((l) => {
         const width = l.value.length * 13;
         const left =
@@ -278,6 +282,7 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
       const boxes = roomLabels(
         table.rooms!,
         table.camera,
+        table.nodes,
       ).map((l) => {
         const width = l.value.length * 13;
         const left =
@@ -317,9 +322,10 @@ test("each room face fills the open frame up to its 48 pixel margin", () => {
           ),
       ];
       return (
-        table.camera.scale <= 1.5 &&
+        table.camera.scale <= 1.25 &&
         Math.min(...margins) >= 47.99 &&
-        Math.min(...margins) <= 60
+        (table.camera.scale === 1.25 ||
+          Math.min(...margins) <= 60)
       );
     }),
     toBe(true),
