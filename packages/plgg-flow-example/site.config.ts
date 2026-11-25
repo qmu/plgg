@@ -13,7 +13,7 @@ export default {
       text: "ガイド",
       items: [
         {
-          text: "DSL の書き方",
+          text: "DSL の構文",
           link: "/guide/dsl",
           items: [],
         },
