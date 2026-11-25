@@ -26,7 +26,8 @@ const root = process.cwd();
 const pages: ReadonlyArray<
   readonly [string, string]
 > = [
-  ["index.html", "main.js"],
+  ["index.html", "catalog.js"],
+  ["reference.html", "main.js"],
   ["forms.html", "forms.js"],
   ["demo1.html", "demo1.js"],
   ["demo2.html", "demo2.js"],

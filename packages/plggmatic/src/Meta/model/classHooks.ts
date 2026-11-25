@@ -67,6 +67,44 @@ export const openedAttr: SoftStr = `data-${cssPrefix}-opened`;
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 
+// --- Shell (Shell/usecase/shell) ---
+
+/** The frame of the framework's standard screen. */
+export const shellClass: SoftStr = hook("shell");
+/** The shell's pinned sidebar column. */
+export const shellSideClass: SoftStr =
+  hook("shell-side");
+/** A column's head bar: what the column is called. */
+export const shellHeadClass: SoftStr =
+  hook("shell-head");
+/** The name in a head bar. */
+export const shellTitleClass: SoftStr = hook(
+  "shell-title",
+);
+/** A column's body: the part that scrolls. */
+export const shellBodyClass: SoftStr =
+  hook("shell-body");
+/** The product's name in the sidebar's head: the way home. */
+export const shellBrandClass: SoftStr = hook(
+  "shell-brand",
+);
+/** The control that folds the sidebar to a strip. */
+export const shellFoldClass: SoftStr =
+  hook("shell-fold");
+/** The foot of the sidebar: the appearance toggle's place. */
+export const shellFootClass: SoftStr =
+  hook("shell-foot");
+/** A document column of the shell. */
+export const shellPageClass: SoftStr =
+  hook("shell-page");
+/** A document column's content: prose, figures, examples. */
+export const docClass: SoftStr = hook("doc");
+/**
+ * Set on the shell (or any ancestor, `<html>` included)
+ * while its sidebar is folded.
+ */
+export const shellMinAttr: SoftStr = `data-${cssPrefix}-shell-min`;
+
 // --- Shared strip (Style/usecase/shareCss) ---
 
 /** A strip whose document columns share the room. */

@@ -13,7 +13,6 @@ import {
   textColor,
   px,
   py,
-  rounded,
   weight,
   medium,
   pointer,
@@ -63,7 +62,6 @@ export const button = <Msg>(
         textColor("surface"),
         px(4),
         py(2),
-        rounded("md"),
         weight(medium),
         focusRing,
         ...(props.disabled

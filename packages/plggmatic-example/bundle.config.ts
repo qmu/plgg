@@ -19,6 +19,9 @@ export default {
     // the reference app — now the DECLARATIVE demo itself
     // (ticket 13 retired the crude scheduler demo entry;
     // the real app IS the vocabulary's proof of value)
+    // the catalog — the design system and its live examples in
+    // the framework's standard screen; what index.html loads
+    { name: "catalog", input: "catalog-main.ts" },
     { name: "main", input: "main.ts" },
     // the ticket-12 forms demo (form + dialog + toasts)
     { name: "forms", input: "forms-main.ts" },

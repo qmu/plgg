@@ -600,3 +600,24 @@ export {
   carouselNextClass,
 } from "plggmatic/Meta/model/classHooks";
 export { carouselInitScript } from "plggmatic/Navigate";
+export {
+  type ShellPage,
+  type ShellProps,
+  shell,
+  shellCss,
+  controlsCss,
+  kitCss,
+} from "plggmatic/Shell";
+export {
+  shellClass,
+  shellSideClass,
+  shellHeadClass,
+  shellTitleClass,
+  shellBodyClass,
+  shellBrandClass,
+  shellFoldClass,
+  shellFootClass,
+  shellPageClass,
+  docClass,
+  shellMinAttr,
+} from "plggmatic/Meta/model/classHooks";

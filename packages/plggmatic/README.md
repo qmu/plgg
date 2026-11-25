@@ -114,6 +114,30 @@ in [`packages/plggmatic-example/`](../plggmatic-example/) (`src/declaration.ts` 
 the design record at
 [`.workaholic/specs/20260704-plggmatic-scheduler-design.md`](../../.workaholic/specs/20260704-plggmatic-scheduler-design.md).
 
+## The standard screen: what "build it with plggmatic" gives you
+
+`shell(props)` draws it and `kitCss(theme)` is its whole stylesheet: a sidebar
+pinned on the left (the product's name, sections as groups that open where
+the reader is, a control that folds it, the appearance toggle at its foot)
+and beside it the open pages sharing the width. One page fills the room; a
+followed link opens its target to the right and the two stand side by side;
+past what the window holds the strip scrolls and the carousel steps it.
+
+```ts
+style.textContent = kitCss(defaultTheme);
+// view:
+shell({ brand, home, atHome, nav, folded, fold, foot, pages });
+```
+
+The look is one hand throughout (`shellCss`, `controlsCss`): separators are
+hairlines in the text colour, nothing is rounded, the current thing is
+inverted and that is the only emphasis, every column is a head bar over a
+body that scrolls on its own. Buttons, fields, the dialog and toasts are
+dressed by the same sheet, so two products on these components look related.
+
+`packages/plggmatic-example` opens on the **catalog** (`index.html`): the
+design system's pages and live examples, shown in this screen.
+
 ## The workspace: a pinned panel, a menu, a strip walked by a trail
 
 What corpd, coop-planner and this package's own reference each wrote by hand

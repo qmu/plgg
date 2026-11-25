@@ -229,6 +229,7 @@ export const sidebarNavCss = (
   border-bottom:1px solid ${cvar("border")};
   font-size:0.875rem;line-height:1.45;
   color:${cvar("text")};
+  text-decoration:none;
 }
 .${c.link}:hover{
   background:${cvar("surface-2")};
