@@ -5,7 +5,6 @@ export default {
   base: "/",
   nav: [],
   sidebarStyle: "numbered",
-  tagline: "plgg-view のための空間ダイアグラム。",
   sidebar: [
     {
       text: "実例",
