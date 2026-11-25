@@ -53,6 +53,7 @@ export {
   trailClass,
   leavingAttr,
   replacingAttr,
+  openedAttr,
   selector,
 } from "plggmatic/Meta/model/classHooks";
 export {

@@ -93,6 +93,7 @@ export {
   trailClass,
   leavingAttr,
   replacingAttr,
+  openedAttr,
 } from "plggmatic/Meta/model/classHooks";
 export {
   type PaneRole,

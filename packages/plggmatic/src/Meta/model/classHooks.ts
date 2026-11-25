@@ -57,6 +57,13 @@ export const leavingAttr: SoftStr = `data-${cssPrefix}-leaving`;
  * not animate it as an arrival: the room was already there.
  */
 export const replacingAttr: SoftStr = `data-${cssPrefix}-replacing`;
+/**
+ * Set on a link whose target is the column standing
+ * immediately to the right of the link's own column: "this
+ * is what opened that". Derived from the strip, not from
+ * the click, so a reloaded or shared address marks it too.
+ */
+export const openedAttr: SoftStr = `data-${cssPrefix}-opened`;
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 

@@ -8,6 +8,7 @@ import {
   foldClass,
   trailClass,
   leavingAttr,
+  openedAttr,
   shareInsetVar,
   shareCss,
   shareOptions,
@@ -731,6 +732,13 @@ ${carouselCss(theme)}
 }
 .vp-content.vp-fill ~ .vp-content.vp-fill{
   animation:vp-col-in .34s cubic-bezier(.2,.7,.2,1);
+}
+/* the link that opened the page to its right stays
+   inverted, the way the sidebar holds the current row */
+.vp-doc a[${openedAttr}]{
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};
+  text-decoration:none;
 }
 /* a page opened in place of another: the room is already
    there, so only the page itself fades in */

@@ -10,6 +10,7 @@ import {
   trailClass,
   leavingAttr,
   replacingAttr,
+  openedAttr,
 } from "plggmatic/Meta/model/classHooks";
 import {
   restParam,
@@ -64,7 +65,7 @@ export const navigationInitScript: SoftStr =
     spanAttr,
   )};` +
   `var FC=${q(foldClass)},TC=${q(trailClass)};` +
-  `var LV=${q(leavingAttr)},RP=${q(replacingAttr)};` +
+  `var LV=${q(leavingAttr)},RP=${q(replacingAttr)},OP=${q(openedAttr)};` +
   // an opened column glides into view unless the reader
   // asked for less motion
   "var R0=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;" +
@@ -276,6 +277,16 @@ export const navigationInitScript: SoftStr =
   // with nothing followed, the page itself is current; a
   // static host may add a trailing slash, so compare bare
   "var bare=function(p){return p.length>1?p.replace(/\\/+$/,''):p;};" +
+  // WHAT OPENED WHAT: in each column, the links that lead to
+  // the column on its right carry the mark; every other
+  // link in it loses it. Read off the strip itself, so it
+  // is right after a click, a Back and a pasted address.
+  "for(var o=0;o<c.length;o++){" +
+  "var nx=c[o+1];var want=nx?bare(B+(nx.getAttribute(C)||'')):null;" +
+  "var as=c[o].querySelectorAll('a[href]');" +
+  "for(var u=0;u<as.length;u++){var k=as[u];" +
+  "if(want!==null&&k.origin===window.location.origin&&bare(k.pathname)===want){k.setAttribute(OP,'');}" +
+  "else if(k.hasAttribute(OP)){k.removeAttribute(OP);}}}" +
   "var r=bare(c.length?B+(c[c.length-1].getAttribute(C)||''):location.pathname);" +
   "var ls=document.querySelectorAll('a[href]');" +
   "for(var m=0;m<ls.length;m++){var l=ls[m];" +
