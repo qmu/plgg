@@ -324,26 +324,51 @@ const packStaged = (
  * staged package's stray lifecycle hook. `--loglevel=warn` quiets the
  * `npm notice` wall.
  */
-const publishStaged = (stage: string): void => {
-  execFileSync(
-    "npm",
-    [
-      "publish",
-      "--tag",
-      "latest",
-      "--ignore-scripts",
-      "--loglevel=warn",
-    ],
-    {
-      cwd: stage,
-      // Inherit stdin (a TTY), not "ignore": npm's interactive 2FA needs a
-      // terminal to prompt for the OTP. With stdin ignored it can't prompt and
-      // fails with EOTP (regressed when this moved out of the shell into a
-      // child process).
-      stdio: "inherit",
-    },
-  );
+const publishStaged = (
+  stage: string,
+): "published" | "held" => {
+  try {
+    execFileSync(
+      "npm",
+      [
+        "publish",
+        "--tag",
+        "latest",
+        "--ignore-scripts",
+        "--loglevel=warn",
+      ],
+      {
+        cwd: stage,
+        // Inherit stdin (a TTY), not "ignore": npm's interactive 2FA needs a
+        // terminal to prompt for the OTP. With stdin ignored it can't prompt and
+        // fails with EOTP (regressed when this moved out of the shell into a
+        // child process). stderr is piped so a refusal can be read, and is
+        // written through below so nothing npm said is lost.
+        stdio: ["inherit", "inherit", "pipe"],
+        encoding: "utf8",
+      },
+    );
+    return "published";
+  } catch (e) {
+    const said = errOutput(e);
+    process.stderr.write(said);
+    // The registry already HOLDS this version from an earlier run: it
+    // accepted the upload but has not listed it yet ("staged"). Uploading
+    // again is refused with a 409; the version is on its way, so this is
+    // not a failure — the verify phase waits for it to appear.
+    if (/previously staged version/.test(said)) {
+      return "held";
+    }
+    throw e;
+  }
 };
+
+/**
+ * How long the verify phase waits for one version to be listed: 300
+ * polls two seconds apart, ten minutes. The registry has been seen to
+ * hold an accepted upload for several minutes before listing it.
+ */
+const RESOLVE_TRIES = 300;
 
 /**
  * Poll the registry until the just-published version resolves, then
@@ -357,11 +382,12 @@ const publishStaged = (stage: string): void => {
 const resolveOnRegistry = async (
   name: string,
   version: string,
+  limit: number = RESOLVE_TRIES,
 ): Promise<{
   tries: number;
   dist: TarballDist;
 }> => {
-  for (let tries = 1; tries <= 30; tries++) {
+  for (let tries = 1; tries <= limit; tries++) {
     if ((await remoteVersion(name)) === version) {
       const dist = distAtRegistry(name, version);
       if (dist === null) {
@@ -375,7 +401,10 @@ const resolveOnRegistry = async (
     await sleep(2000);
   }
   throw new Error(
-    `${name}@${version} not resolvable on the registry after 30 tries`,
+    `${name}@${version} not resolvable on the registry after ${limit} tries ` +
+      `(${(limit * 2) / 60} min). The upload was accepted; the registry has ` +
+      `not listed it yet. Re-run the same command later: published versions ` +
+      `are skipped and the rest are verified.`,
   );
 };
 
@@ -566,7 +595,7 @@ const stageChecked = (
 };
 
 /**
- * Stage → (publish → verify | pack) each package in build order, one
+ * Stage all → (upload all → verify all | pack) in build order, one
  * compact status line per phase, under a single temp stage root that is
  * always cleaned up. `dryRun` stops after `npm pack` — the registry is
  * never touched — so the whole path is exercisable without a live
@@ -595,37 +624,52 @@ const runPublishSet = async (
       const packed = packStaged(stage, stageRoot);
       return { meta, stage, packed };
     });
-    for (const { meta, stage, packed } of staged) {
+    for (const { meta, packed } of staged) {
       const { filename, size, unpackedSize } = packed;
       const sizes = `${kb(unpackedSize)} raw, ${kb(size)} gz`;
-      if (dryRun) {
+      process.stdout.write(
+        dryRun
+          ? `${label(meta)}  staged → packed ${filename} (${sizes})\n`
+          : `${label(meta)}  staged (${sizes})\n`,
+      );
+    }
+    if (!dryRun) {
+      // PHASE 1 — upload everything, back to back. A one-time code lives
+      // for about a minute and an upload takes seconds, so the whole set
+      // fits inside ONE code; waiting for the registry between uploads
+      // (as this loop used to) outlives it after the first package. A
+      // dependent may be uploaded before its dependency is listed: the
+      // registry does not check that at publish time.
+      for (const { meta, stage } of staged) {
+        const outcome = publishStaged(stage);
         process.stdout.write(
-          `${label(meta)}  staged → packed ${filename} (${sizes})\n`,
+          `${label(meta)}  ${
+            outcome === "published"
+              ? "uploaded"
+              : "already held by the registry"
+          }\n`,
         );
-        continue;
       }
-      process.stdout.write(
-        `${label(meta)}  staged (${sizes})\n`,
-      );
-      publishStaged(stage);
-      process.stdout.write(
-        `${label(meta)}  published\n`,
-      );
-      const { tries, dist } = await resolveOnRegistry(
-        meta.name,
-        meta.version,
-      );
-      process.stdout.write(
-        `${label(meta)}  resolved (${tries} tries)\n`,
-      );
-      const smoke = smokeInstall(
-        meta,
-        stageRoot,
-        dist,
-      );
-      process.stdout.write(
-        `${label(meta)}  ${smoke}\n`,
-      );
+      // PHASE 2 — verify everything, in the same (dependency) order, so
+      // each scratch install finds its dependencies already listed.
+      for (const { meta } of staged) {
+        const { tries, dist } =
+          await resolveOnRegistry(
+            meta.name,
+            meta.version,
+          );
+        process.stdout.write(
+          `${label(meta)}  resolved (${tries} tries)\n`,
+        );
+        const smoke = smokeInstall(
+          meta,
+          stageRoot,
+          dist,
+        );
+        process.stdout.write(
+          `${label(meta)}  ${smoke}\n`,
+        );
+      }
     }
     process.stdout.write(
       `${dryRun ? "dry-run" : "published"}: ${metas.length} package(s)\n`,

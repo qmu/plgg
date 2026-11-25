@@ -25,6 +25,12 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # dependency order — a dependency must be on the registry before its dependents'
 # rewritten ranges can resolve).
 #
+# Two phases: every bumped package is UPLOADED first, back to back, and only
+# then is each one verified. A one-time code lives about a minute and the
+# registry can take minutes to list an accepted upload, so verifying between
+# uploads meant one code per package. A version the registry already holds
+# from an earlier run ("previously staged") is treated as uploaded.
+#
 # Per published package:
 #   stage copy (files allowlist; the working tree is NEVER mutated) ->
 #   file:-dep rewrite to ^<local version> -> npm publish ->
