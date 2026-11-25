@@ -1029,6 +1029,44 @@ export const createDslPanel = <Action>(
     return view;
   };
 };
+// Bottom right of the board: the board alone, over the
+// whole window, and back. The corners are drawn; the
+// sheet's script turns `data-max` on the sheet.
+const maximiseButton = el<never>(
+  "button",
+  [
+    attr("type", "button"),
+    attr("class", "maximise"),
+    attr("aria-label", "図を最大化"),
+    attr("aria-pressed", "false"),
+  ],
+  [
+    el(
+      "svg",
+      [
+        attr("width", "14"),
+        attr("height", "14"),
+        attr("viewBox", "0 0 16 16"),
+        attr("aria-hidden", "true"),
+      ],
+      [
+        el(
+          "path",
+          [
+            attr(
+              "d",
+              "M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10",
+            ),
+            attr("fill", "none"),
+            attr("stroke", "currentColor"),
+            attr("stroke-width", "1.2"),
+          ],
+          [],
+        ),
+      ],
+    ),
+  ],
+);
 export const sheetStage = <Action>(
   board: Html<Action>,
   controls: Html<Action>,
@@ -1041,7 +1079,7 @@ export const sheetStage = <Action>(
       el(
         "div",
         [attr("class", "canvas-wrap")],
-        [board, controls],
+        [board, controls, maximiseButton],
       ),
       ...panel,
     ],

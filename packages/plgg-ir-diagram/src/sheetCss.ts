@@ -382,6 +382,11 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .stage .dsl textarea{background:transparent}
   .stage:has(.dsl) .board-controls{right:calc(var(--panel) + 12px)}
   .dsl-handle,.tool-trigger{display:none}
+  .maximise{position:absolute;right:calc(var(--panel) + 12px);bottom:12px;width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid var(--ink);border-radius:50%;background:var(--paper);color:var(--ink);cursor:pointer}
+  .maximise:hover,.maximise[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+  :scope[data-max="true"]{position:fixed;inset:0;z-index:100;height:auto;padding:0;background:var(--paper)}
+  :scope[data-max="true"] .stage{--panel:0px}
+  :scope[data-max="true"] .stage .dsl{display:none}
   .session-tool,.tool-content[popover]{display:contents}
   .tool-content .editing-tools{margin:0;padding:0}
   .toolbar .minimap{width:100px;height:44px}
@@ -652,6 +657,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     [data-folded="false"] .stage{--panel:280px}
   }
   @media(max-width:759px),(orientation:landscape) and (max-height:499px){
+    .maximise{display:none}
     :scope{position:relative}
     :scope{--panel:44px}
     .stage{--panel:inherit;margin:0;border:0}

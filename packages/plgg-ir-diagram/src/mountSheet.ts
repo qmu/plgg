@@ -382,6 +382,39 @@ export const mountSheet = (
           options,
         );
       }
+      const sheet = root.querySelector(
+        ".flow-sheet",
+      );
+      const maximise = (on: boolean) => {
+        sheet?.setAttribute(
+          "data-max",
+          String(on),
+        );
+        root
+          .querySelector(".maximise")
+          ?.setAttribute(
+            "aria-pressed",
+            String(on),
+          );
+      };
+      const maximised = () =>
+        sheet?.getAttribute("data-max") ===
+        "true";
+      root
+        .querySelector(".maximise")
+        ?.addEventListener(
+          "click",
+          () => maximise(!maximised()),
+          options,
+        );
+      window.addEventListener(
+        "keydown",
+        (e) => {
+          if (e.key === "Escape" && maximised())
+            maximise(false);
+        },
+        options,
+      );
       const subtitle = root
         .closest(".vp-shell")
         ?.querySelector(".vp-mobile-description");

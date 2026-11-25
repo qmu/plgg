@@ -278,6 +278,17 @@ export const bestViews = (
         const legibility =
           4 *
           Math.max(0, 11 - captionHeight) ** 2;
+        // A cake is boards with things standing on them: seen
+        // edge-on a board is a line and what stands where on
+        // it is lost. This is not traded against lettering:
+        // a cake is looked at from above its boards.
+        if (data.axes.length === 1 && view.y)
+          score +=
+            100000 *
+            Math.max(
+              0,
+              0.45 - Math.sin(Math.abs(pitch)),
+            );
         for (const f of coveredFractions(drawing))
           if (ids.has(f.id))
             // A node mostly behind another is lost to this view:

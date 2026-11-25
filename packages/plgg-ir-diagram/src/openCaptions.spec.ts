@@ -41,6 +41,8 @@ for (const file of subjects(
         true,
         0,
       );
+      const cake =
+        !!flow.layered?.options.layerAxis;
       const svg = renderToString(flowView(flow));
       const labels = Array.from(
         svg.matchAll(
@@ -56,10 +58,12 @@ for (const file of subjects(
         if (!matrix) throw Error(group);
         const height =
           13 * Math.hypot(matrix[2]!, matrix[3]!);
-        // 10px is the aim; half a pixel is given up
-        // where the only way to keep it is a view that
-        // buries the nodes of the far row.
-        if (!(height >= 9.5))
+        // 10px is the aim. Half a pixel is given up where
+        // keeping it would bury the nodes of the far row.
+        // A cake is looked at from above its boards, never
+        // edge-on, whatever that costs its lettering: four
+        // and five layers come to 8.2px in this frame.
+        if (!(height >= (cake ? 8 : 9.5)))
           throw Error(
             height.toFixed(2) + "px " + group,
           );

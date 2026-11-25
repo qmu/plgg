@@ -2009,3 +2009,31 @@ Not looked at in a browser this round (the extension was not
 connected): where those tags land, and the 7–8px captions the
 rooms get at 900 × 700 away from the opening view (three storeys
 of 256 leave a scale near 0.6).
+
+## Shooting round 9 — maximise, arrowheads, a cake is never edge-on
+
+Owner: the inner border of the example doubles with the column's
+and smears; the sidebars should get out of the way — "a maximise
+icon at the bottom right"; "the arrows are small".
+
+- A sheet that fills its column has no border of its own.
+- **Maximise**: a round button at the board's bottom right puts
+  the sheet over the whole window with the DSL panel gone, and
+  back (also Escape). The picture refits through the measured
+  cover. Not shown on a phone, which is already the board alone.
+- **Arrowheads** are 12 × 9 (were 8 × 6) and are turned about
+  their wire to face the eye; they lay in the XY plane before and
+  went edge-on on wires running in depth.
+- Looking at the cakes in a landscape frame: they opened with the
+  boards **edge-on** — the legibility term had been buying its
+  10px that way. A cake is boards with things standing on them;
+  the view search now refuses any camera lower than sin 0.45 over
+  a cake. Four and five layers then carry 8.2–9.2px captions at
+  900 × 700; the opening-captions spec holds cakes to 8px and the
+  rest to 9.5px and says why. (Open: upright tags at a fixed size
+  when a lying caption falls below 9px.)
+
+Looked at through a headless Chrome over its debugging port (the
+extension was not connected): rooms, both cakes, maximise on / off
+/ Escape, and the tags of nodes behind others from round 8 — they
+stand clear above their nodes with a leader.

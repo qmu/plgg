@@ -199,12 +199,46 @@ export const engineView = (
         dy = toward.y - tip.y,
         dz = toward.z - tip.z,
         length = Math.hypot(dx, dy, dz) || 1;
-      const base = {
-        x: tip.x - (8 * dx) / length,
-        y: tip.y - (8 * dy) / length,
-        z: tip.z - (8 * dz) / length,
+      // The head is 12 long and 9 wide, and it is turned
+      // about its wire to face the eye, so that it reads
+      // as an arrow from any side.
+      const along = {
+        x: dx / length,
+        y: dy / length,
+        z: dz / length,
       };
-      const span = Math.hypot(dx, dy) || 1;
+      const base = {
+        x: tip.x - 12 * along.x,
+        y: tip.y - 12 * along.y,
+        z: tip.z - 12 * along.z,
+      };
+      const eye = {
+        x:
+          -Math.sin(flow.camera.yaw) *
+          Math.cos(flow.camera.pitch),
+        y: Math.sin(flow.camera.pitch),
+        z:
+          Math.cos(flow.camera.yaw) *
+          Math.cos(flow.camera.pitch),
+      };
+      const cross = {
+        x: along.y * eye.z - along.z * eye.y,
+        y: along.z * eye.x - along.x * eye.z,
+        z: along.x * eye.y - along.y * eye.x,
+      };
+      const size = Math.hypot(
+        cross.x,
+        cross.y,
+        cross.z,
+      );
+      const wing =
+        size > 0.2
+          ? {
+              x: (4.5 * cross.x) / size,
+              y: (4.5 * cross.y) / size,
+              z: (4.5 * cross.z) / size,
+            }
+          : { x: 4.5, y: 0, z: 0 };
       sheets.push({
         id,
         style: "arrow",
@@ -212,24 +246,14 @@ export const engineView = (
         points: [
           tip,
           {
-            ...base,
-            x:
-              base.x +
-              3 *
-                (dz && !dx && !dy
-                  ? 1
-                  : -dy / span),
-            y: base.y + (3 * dx) / span,
+            x: base.x + wing.x,
+            y: base.y + wing.y,
+            z: base.z + wing.z,
           },
           {
-            ...base,
-            x:
-              base.x -
-              3 *
-                (dz && !dx && !dy
-                  ? 1
-                  : -dy / span),
-            y: base.y - (3 * dx) / span,
+            x: base.x - wing.x,
+            y: base.y - wing.y,
+            z: base.z - wing.z,
           },
         ],
       });
