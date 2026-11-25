@@ -8,6 +8,10 @@ import {
   foldClass,
   trailClass,
   leavingAttr,
+  shareInsetVar,
+  shareCss,
+  shareOptions,
+  carouselCss,
   replacingAttr,
   selector,
   colorVar,
@@ -596,6 +600,8 @@ html.dark .vp-doc a:focus-visible code{
 @media ${minWidth("lg")}{
   .vp-rail{display:flex}
   .vp-fold-btn{display:inline-flex}
+  .vp-shell:has(.vp-fill){${shareInsetVar}:${mvar("sidebar")}}
+  html.vp-side-min .vp-shell:has(.vp-fill){${shareInsetVar}:3rem}
   .vp-sidebar{transition:width .2s ease}
   html.vp-side-min .vp-sidebar{width:3rem}
   html.vp-side-min .vp-sidebar .vp-wordmark,
@@ -696,20 +702,21 @@ html.dark .vp-sheet{color-scheme:dark}
 /* fill: the open pages share the width right of the
    sidebar; text keeps a reading measure inside it, figures
    and code take the room */
-.vp-content.vp-fill{
-  flex:1 1 0;width:auto;min-width:min(22rem,100vw);
-}
+${shareCss(theme)(shareOptions)}
+${carouselCss(theme)}
 /* the sidebar stays where it is while the pages beside it
    scroll: with pages sharing the width it is the one fixed
    thing, and a new page comes to rest clear of it */
 .vp-app:has(.vp-fill) .vp-sidebar{
   position:sticky;left:0;z-index:3;
 }
+/* the width the pinned sidebar takes from the room: what
+   the columns divide, where a stepped column comes to rest
+   and where the previous-column control stands. Below lg
+   the sidebar is a drawer and takes nothing. */
+.vp-shell{${shareInsetVar}:0px}
 .vp-app:has(.vp-fill){
-  scroll-padding-left:${mvar("sidebar")};
-}
-html.vp-side-min .vp-app:has(.vp-fill){
-  scroll-padding-left:3rem;
+  scroll-padding-left:var(${shareInsetVar});
 }
 /* pages that share the width need no row naming them: each
    one's own head does, and its close control is there */
@@ -717,10 +724,10 @@ html.vp-side-min .vp-app:has(.vp-fill){
 /* a followed page eases in from nothing while the page it
    came from gives up the room; a closed one eases out */
 @keyframes vp-col-in{
-  from{flex-grow:0;min-width:0;opacity:0}
+  from{flex-grow:0;flex-basis:0;opacity:0}
 }
 @keyframes vp-col-out{
-  to{flex-grow:0;min-width:0;opacity:0;border-right-width:0}
+  to{flex-grow:0;flex-basis:0;opacity:0;border-right-width:0}
 }
 .vp-content.vp-fill ~ .vp-content.vp-fill{
   animation:vp-col-in .34s cubic-bezier(.2,.7,.2,1);

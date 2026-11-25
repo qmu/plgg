@@ -133,7 +133,12 @@ export const navigationInitScript: SoftStr =
   // chrome rail, a nav column) keeps its position
   "function place(node,at){var c=cols();var prev=c[at];" +
   "prev.parentNode.insertBefore(node,prev.nextSibling);" +
-  "node.scrollIntoView({inline:'nearest',block:'nearest',behavior:R0?'auto':'smooth'});" +
+  "var see=function(){node.scrollIntoView({inline:'nearest',block:'nearest',behavior:R0?'auto':'smooth'});};" +
+  "see();" +
+  // a stylesheet may ease the column in from no width; at
+  // that moment it is "in view" wherever it stands, so look
+  // again once it has its size
+  "node.addEventListener('animationend',function(ev){if(ev.target===node){see();}},{once:true});" +
   "showMark(node);sync();changed();}" +
   // put a column's highlighted passage under the reader's
   // eyes. The mark is server-rendered — it exists only

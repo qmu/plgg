@@ -21,7 +21,10 @@ import { type Theme } from "plggmatic/Style/model/theme";
  * override (see the metric CSS emitter).
  */
 export type Metric =
-  "shell-max" | "sidebar" | "measure" | "rail";
+  | "shell-max"
+  | "sidebar"
+  | "measure"
+  | "rail";
 
 export const metrics: ReadonlyArray<Metric> = [
   "shell-max",

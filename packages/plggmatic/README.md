@@ -144,6 +144,16 @@ offers; the rest is the framework's.
 
 `packages/plggmatic-example` demo 4 (`demo4.html`) runs all of it together.
 
+- **Shared strip** (`shareCss`, `shareClass`, `spanTwoClass`): the open
+  document columns divide the room right of whatever is pinned
+  (`shareInsetVar`), up to what the window holds — one column from the start,
+  two from 960px, three from 1760px. One column fills the room; a column past
+  the capacity does not squeeze the others, the strip scrolls. A `span-2`
+  column takes two columns' worth.
+- **Carousel** (`carouselInitScript`, `carouselCss`): two controls at the
+  strip's edges that step it a column at a time, each shown only while there
+  is something its way.
+
 A product that already draws its own columns takes the logic alone from
 `plggmatic/columns` — the trail and its address, the geometry, the reveal and
 the preference, about 21 KiB, reaching only `plgg`. The package root gathers

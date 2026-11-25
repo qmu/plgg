@@ -18,7 +18,10 @@
  * CSS strings (media blocks) where an atom cannot reach.
  */
 export type ZBand =
-  "content" | "chrome" | "backdrop" | "overlay";
+  | "content"
+  | "chrome"
+  | "backdrop"
+  | "overlay";
 
 export const zBands: ReadonlyArray<ZBand> = [
   "content",

@@ -29,6 +29,8 @@ import {
   strip,
   documentColumn,
   sidebarNavClass,
+  shareClass,
+  spanTwoClass,
 } from "plggmatic";
 import {
   type SiteConfig,
@@ -362,6 +364,11 @@ export type PageColumn = Readonly<{
   body: Html<never>;
 }>;
 
+/** Whether the site's pages share the width. */
+const fills = (config: SiteConfig): boolean =>
+  config.contentWidth?.__tag === "Some" &&
+  config.contentWidth.content === "fill";
+
 /**
  * ONE document column. Every content column renders
  * IDENTICALLY whether it is the composition's first
@@ -379,10 +386,18 @@ const contentColumn = (
   documentColumn(
     content.route,
     content.span,
+    // a sheet is one large figure: among pages that share
+    // the width it takes two columns' worth
     content.sheet
-      ? ["vp-content", "vp-sheet"]
-      : config.contentWidth?.__tag === "Some" &&
-          config.contentWidth.content === "fill"
+      ? fills(config)
+        ? [
+            "vp-content",
+            "vp-sheet",
+            "vp-fill",
+            spanTwoClass,
+          ]
+        : ["vp-content", "vp-sheet"]
+      : fills(config)
         ? ["vp-content", "vp-fill"]
         : ["vp-content"],
     [
@@ -479,7 +494,9 @@ export const page = (
       ),
       backdrop,
       strip(
-        ["vp-app"],
+        fills(config)
+          ? ["vp-app", shareClass]
+          : ["vp-app"],
         [
           sectionsColumn(
             config,

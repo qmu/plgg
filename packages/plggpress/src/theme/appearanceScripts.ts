@@ -8,6 +8,7 @@ import {
   appearanceStorageKey,
   injectAppearanceScript,
   sidebarNavRevealScript,
+  carouselInitScript,
 } from "plggpress/themeSupport/styleEntry";
 
 /** Where the folded/open choice of the sidebar is kept. */
@@ -61,6 +62,7 @@ const bodyWiringScript: SoftStr =
   ",m?'min':'open');}catch(e){}});}" +
   "})();" +
   sidebarNavRevealScript +
+  carouselInitScript +
   "</script>";
 
 /**

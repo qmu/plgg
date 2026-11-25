@@ -57,7 +57,10 @@ export type SemanticRole =
   | "info";
 
 export type Variant =
-  "base" | "text" | "surface" | "border";
+  | "base"
+  | "text"
+  | "surface"
+  | "border";
 
 export type Neutral =
   | "surface"
@@ -67,7 +70,8 @@ export type Neutral =
   | "border";
 
 export type Color =
-  `${SemanticRole}-${Variant}` | Neutral;
+  | `${SemanticRole}-${Variant}`
+  | Neutral;
 
 export const semanticRoles: ReadonlyArray<SemanticRole> =
   [

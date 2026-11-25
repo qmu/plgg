@@ -22,7 +22,11 @@ import {
  * weight 400 (regular), no letter-spacing.
  */
 export type TypeRole =
-  "h1" | "h2" | "h3" | "h4" | "body";
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "body";
 
 export const typeRoles: ReadonlyArray<TypeRole> =
   ["h1", "h2", "h3", "h4", "body"];

@@ -60,3 +60,4 @@ export {
   printSteps,
   parseSteps,
 } from "plggmatic/Navigate/usecase/trailUrl";
+export { carouselInitScript } from "plggmatic/Navigate/usecase/carouselScript";

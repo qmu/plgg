@@ -60,6 +60,29 @@ export const replacingAttr: SoftStr = `data-${cssPrefix}-replacing`;
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 
+// --- Shared strip (Style/usecase/shareCss) ---
+
+/** A strip whose document columns share the room. */
+export const shareClass: SoftStr = hook("share");
+/** A document column that takes two columns' worth. */
+export const spanTwoClass: SoftStr =
+  hook("span-2");
+/**
+ * The custom property a host sets on a shared strip to
+ * the width pinned over it (a sticky sidebar), so the
+ * columns divide only the room that is left.
+ */
+export const shareInsetVar: SoftStr = `--${cssPrefix}-share-inset`;
+
+/** The control that brings the previous column into view. */
+export const carouselPrevClass: SoftStr = hook(
+  "carousel-prev",
+);
+/** The control that brings the next column into view. */
+export const carouselNextClass: SoftStr = hook(
+  "carousel-next",
+);
+
 // --- Workspace (Layout/usecase/workspace) ---
 
 /** The frame a pinned panel and a strip share. */
