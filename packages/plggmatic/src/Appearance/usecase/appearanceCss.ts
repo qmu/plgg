@@ -64,7 +64,7 @@ export const appearanceCss =
     return `
 .${p}-shell{background:${surface};color:${text};font-family:${a.font};font-size:${a.size};line-height:${a.leading};-webkit-font-smoothing:antialiased}
 .${p}-shell .${p}-col{background:${surface};border-right:${rule}}
-.${p}-shell-head{gap:.5rem;height:${a.head};padding:0 .5rem 0 ${a.gutter};border-bottom:${rule};font-size:.875rem;line-height:1.25rem;font-weight:600}
+.${p}-shell-head{gap:.5rem;height:${a.head};padding:0 .5rem 0 ${a.gutter};border-bottom:${rule};font-size:.875rem;line-height:1.25rem;font-weight:500}
 .${p}-shell-body{scroll-behavior:smooth}
 ${side}{transition:width ${a.arrive} ${a.ease}}
 ${side} .${p}-shell-body{font-size:.875rem}
@@ -92,7 +92,6 @@ ${page} ~ ${page}{animation:${p}-page-in ${a.arrive} ${a.ease}}
 .${p}-shell ${page}${page}[data-${p}-replacing]{animation:${p}-page-swap ${a.swap} ease-out}
 .${p}-shell ${page}${page}[data-${p}-leaving]{animation:${p}-page-out ${a.leave} cubic-bezier(.4,0,.6,1) forwards}
 ${doc} h1{font-size:1.375rem;font-weight:600;letter-spacing:-.01em;line-height:1.3;margin:0 0 1rem}
-${doc} h1 + p{color:${muted}}
 ${doc} h2{font-size:1.0625rem;font-weight:600;line-height:1.4;margin:2.5rem 0 .75rem}
 ${doc} h3{font-size:.9375rem;font-weight:600;line-height:1.5;margin:1.75rem 0 .5rem}
 ${doc} h4{font-size:.875rem;font-weight:600;line-height:1.5;color:${muted};margin:1.25rem 0 .5rem}
@@ -133,8 +132,8 @@ ${link}:focus-visible{${mark(a.press)};text-decoration:none;outline:0}
 ${link}[aria-current] .${p}-nav-label{${mark(a.current)}}
 .${p}-nav-flat{padding:.5rem ${a.gutter};border-bottom:${hair};font-size:.875rem;line-height:1.45;color:${muted}}
 .${p}-nav-subgroup{margin:0}
-.${p}-nav-subgroup-title{padding:.5rem ${a.gutter};font-size:.875rem;line-height:1.45;border-bottom:${hair};font-weight:600;color:${text}}
-${group} summary{padding:.7rem ${a.gutter};font-size:.875rem;font-weight:600;color:${text};${quick("background-color", "color")}}
+.${p}-nav-subgroup-title{padding:.5rem ${a.gutter};font-size:.875rem;line-height:1.45;border-bottom:${hair};font-weight:500;color:${text}}
+${group} summary{padding:.7rem ${a.gutter};font-size:.875rem;font-weight:400;color:${text};${quick("background-color", "color")}}
 ${group} summary::after{content:"";width:.4rem;height:.4rem;margin-right:.2rem;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(-45deg);transition:transform ${a.quick} ease}
 ${group}[open] summary::after{transform:rotate(45deg)}
 ${group}[open] summary{color:${text}}

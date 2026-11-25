@@ -268,7 +268,7 @@ html.dark .vp-sheet{color-scheme:dark}
 
 .vp-content.vp-sheet{flex:1 0 0;min-width:min(28rem,100vw);align-self:stretch}
 .vp-sheet .vp-col-head{align-items:baseline;gap:1rem;overflow:hidden}
-.vp-description{color:${cvar("muted")};overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.vp-description{font-weight:400;color:${cvar("muted")};overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .vp-content.vp-sheet .vp-col-body{padding:0;overflow:hidden;min-height:0}
 .vp-sheet .vp-main,.vp-sheet-body,.vp-sheet-body div:has([data-fill]){display:flex;flex-direction:column;flex:1;min-height:0}
 .vp-sheet .vp-col-body,.vp-sheet-body{display:flex;flex-direction:column}
