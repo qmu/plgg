@@ -463,7 +463,9 @@ export const roomFrames = <Action>(
 };
 const layerViews = [
   roomViews[0]!,
-  ["上", -Math.PI / 4, -1.2],
+  // from above, but no steeper than leaves each board
+  // mostly clear of the one over it
+  ["上", -0.22, -0.9],
   ["立体", -Math.PI / 6, -0.55],
 ] satisfies [string, number, number][];
 const firstBlock = (flow: Flow): Flow => {

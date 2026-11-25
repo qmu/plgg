@@ -2037,3 +2037,11 @@ Looked at through a headless Chrome over its debugging port (the
 extension was not connected): rooms, both cakes, maximise on / off
 / Escape, and the tags of nodes behind others from round 8 — they
 stand clear above their nodes with a leader.
+
+Named views shot after that: rooms at 上 and 横 read (every node
+named, pencil tags inside the block). The cake at 上 did not: at
+yaw −π/4, elevation 1.2 the boards lay two-thirds over one another
+and the lower layers were grey tags under a board. A cake's 上 is
+now yaw −0.22, elevation 0.9 — from above, but no steeper than
+leaves each board mostly clear of the one over it; all eleven
+nodes of the three-layer shop are seen and named.
