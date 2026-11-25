@@ -121,6 +121,7 @@ ${root}[data-fill] figure{height:100%;display:flex;flex-direction:column;min-hei
 ${root}[data-fill] figure .flow-board{flex:1;min-height:0}
 ${root}[data-fill] details{max-height:45%;overflow:auto}
 ${root}:not([data-fill]) .flow-sheet{height:26rem}
+${root}[data-fill] .flow-sheet .stage{border:0;margin:0}
 ${root} .flow-sheet{height:100%;display:flex;flex-direction:column;min-height:0;padding-bottom:8px}
 ${sheetCss}
 `;
