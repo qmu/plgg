@@ -39,6 +39,15 @@ export {
   themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
 export {
+  type NavGroup,
+  type SidebarNavProps,
+  sidebarNav,
+  sidebarNavClass,
+  sidebarNavCss,
+  sidebarNavRevealScript,
+} from "plggmatic/Component/usecase/sidebarNav";
+export { type NavItem } from "plggmatic/Component/model/navItem";
+export {
   colClass,
   foldClass,
   trailClass,

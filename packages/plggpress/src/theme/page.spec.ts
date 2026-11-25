@@ -162,11 +162,11 @@ test("includes the sidebar with always-open section headers and an active-marked
       ),
     ),
     // top-level sections are always-open headers (no
-    // collapse), so the group is a .vp-group-title,
+    // collapse), so the group is a .pm-nav-group-title,
     // not a <details>/<summary>
     check(
       rendered,
-      toContain('class="vp-group-title"'),
+      toContain('class="pm-nav-group-title"'),
     ),
     check(
       rendered,

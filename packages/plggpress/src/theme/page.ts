@@ -28,6 +28,7 @@ import {
   column,
   strip,
   documentColumn,
+  sidebarNavClass,
 } from "plggmatic";
 import {
   type SiteConfig,
@@ -202,7 +203,7 @@ const sectionsColumn = (
     return matchOption<SoftStr, Flow<never>>(
       () =>
         span(
-          [class_("vp-sidebar-flat")],
+          [class_(sidebarNavClass.flat)],
           [text(group.text)],
         ),
       (link: SoftStr) =>
@@ -211,11 +212,11 @@ const sectionsColumn = (
             ? [
                 attr("href", hrefOf(link)),
                 attr("aria-current", "page"),
-                class_("vp-sidebar-link"),
+                class_(sidebarNavClass.link),
               ]
             : [
                 attr("href", hrefOf(link)),
-                class_("vp-sidebar-link"),
+                class_(sidebarNavClass.link),
               ],
           [text(group.text)],
         ),
@@ -255,10 +256,11 @@ const sectionsColumn = (
                 "Some" &&
                 config.sidebarGroups.content ===
                   "toggle",
+              true,
             )
           : nav(
               [
-                class_("vp-sidebar-nav"),
+                class_(sidebarNavClass.nav),
                 attr("aria-label", "Sections"),
               ],
               config.sidebar.map(groupEntry),

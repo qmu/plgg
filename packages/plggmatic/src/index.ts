@@ -487,6 +487,14 @@ export {
   moonClass,
   themeToggleCss,
 } from "plggmatic/Component/usecase/themeToggle";
+export {
+  type NavGroup,
+  type SidebarNavProps,
+  sidebarNav,
+  sidebarNavClass,
+  sidebarNavCss,
+  sidebarNavRevealScript,
+} from "plggmatic/Component/usecase/sidebarNav";
 // The Pragmatic brand substance plggmatic owns (A3): the
 // branded default Theme + palette-override API.
 export {

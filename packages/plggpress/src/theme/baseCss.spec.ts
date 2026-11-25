@@ -154,7 +154,7 @@ test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
     ),
     check(
       css,
-      toContain(".vp-sidebar-link:focus-visible"),
+      toContain(".pm-nav-link:focus-visible"),
     ),
     check(
       css,
@@ -251,7 +251,7 @@ test("no per-page 目次 panel styles remain (widget removed, 2026-07-03)", () =
     check(
       css,
       toContain(
-        "details.vp-group{counter-reset:sample;interpolate-size:allow-keywords}",
+        "details.pm-nav-group{counter-reset:sample;interpolate-size:allow-keywords}",
       ),
     ),
   ]));

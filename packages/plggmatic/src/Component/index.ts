@@ -39,6 +39,14 @@ export {
 export { type NavItem } from "plggmatic/Component/model/navItem";
 export { navTree } from "plggmatic/Component/usecase/navTree";
 export {
+  type NavGroup,
+  type SidebarNavProps,
+  sidebarNav,
+  sidebarNavClass,
+  sidebarNavCss,
+  sidebarNavRevealScript,
+} from "plggmatic/Component/usecase/sidebarNav";
+export {
   type ColHeadProps,
   colHead,
 } from "plggmatic/Component/usecase/colHead";
