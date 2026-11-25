@@ -168,10 +168,24 @@ test("hrefFrom resolves a page's relative links from the page's own place", () =
       hrefFrom("/", "/guide/")("./dsl.md"),
       toBe("/guide/dsl"),
     ),
-    // going above the root stops at the root
+    // a link that climbs above the site names something
+    // outside it (a neighbouring package in the
+    // repository), so it is left as written
     check(
       hrefFrom("/", "/a")("../../b.md"),
-      toBe("/b"),
+      toBe("../../b.md"),
+    ),
+    check(
+      hrefFrom("/", "/README")("../plggpress/"),
+      toBe("../plggpress/"),
+    ),
+    // a link with its own scheme is not a path
+    check(
+      hrefFrom(
+        "/",
+        "/guide/dsl",
+      )("mailto:a@b.test"),
+      toBe("mailto:a@b.test"),
     ),
     // the deployed base is applied after resolving
     check(

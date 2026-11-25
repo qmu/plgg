@@ -113,6 +113,34 @@ const normalize = (path: SoftStr): SoftStr =>
   (path.endsWith("/") && path !== "/" ? "/" : "");
 
 /**
+ * Whether a relative path, read from `dir`, climbs
+ * above the site's root — more `..` than there are
+ * folders to leave. Such a link names something outside
+ * the site (a neighbouring package in the repository the
+ * page was written in), so it is not a site address.
+ */
+const climbsOut = (path: SoftStr): boolean =>
+  path
+    .split("/")
+    .reduce<number>(
+      (depth, part) =>
+        depth < 0
+          ? depth
+          : part === "" || part === "."
+            ? depth
+            : part === ".."
+              ? depth - 1
+              : depth + 1,
+      0,
+    ) < 0;
+
+/**
+ * A link that carries its own scheme without `//`
+ * (`mailto:`, `tel:`, `data:`): not a path at all.
+ */
+const SCHEMED = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
  * {@link href} for a link written INSIDE the page at
  * `route`: a relative target (`./camera.md`,
  * `../samples/space.md`) is resolved against that page's
@@ -133,17 +161,22 @@ export const hrefFrom =
     path.startsWith("#") ||
     path.startsWith("/")
       ? href(base)(path)
-      : pipe(
-          splitFragment(path),
-          ([body, fragment]: readonly [
-            SoftStr,
-            SoftStr,
-          ]): SoftStr =>
-            href(base)(
-              normalize(dirOf(route) + body) +
-                fragment,
-            ),
-        );
+      : SCHEMED.test(path) ||
+          path === "" ||
+          path.startsWith("?") ||
+          climbsOut(dirOf(route) + path)
+        ? path
+        : pipe(
+            splitFragment(path),
+            ([body, fragment]: readonly [
+              SoftStr,
+              SoftStr,
+            ]): SoftStr =>
+              href(base)(
+                normalize(dirOf(route) + body) +
+                  fragment,
+              ),
+          );
 
 /**
  * The inverse of {@link href} for a root-absolute path:
