@@ -107,6 +107,31 @@ export const chromeRail = (
   );
 
 /**
+ * The same controls for a site that keeps NO rail
+ * (`controls: "head"`): the appearance toggle and the
+ * social links in one row, placed at the right of the
+ * sidebar's head beside the wordmark. Shown on lg+ only —
+ * below lg the mobile bar already carries both.
+ */
+export const headControls = (
+  config: SiteConfig,
+): Html<never, "div"> =>
+  div(
+    [class_("vp-head-controls")],
+    [
+      socialLinks(config, "vp-head-social"),
+      staticThemeToggle,
+    ],
+  );
+
+/** Whether the site asked for its controls in the head. */
+export const controlsInHead = (
+  config: SiteConfig,
+): boolean =>
+  config.controls?.__tag === "Some" &&
+  config.controls.content === "head";
+
+/**
  * The sticky MOBILE BAR (below lg only): the `☰` menu
  * button (a label targeting the layout's hidden
  * `#vp-menu-toggle` checkbox — the CSS-only drawer), the

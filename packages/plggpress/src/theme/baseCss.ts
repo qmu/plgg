@@ -313,6 +313,13 @@ ${selector(trailClass)} button:hover{
   background-repeat:no-repeat;
 }
 
+/* controls in the sidebar's head (a site with no rail):
+   one row at the head's right edge, lg+ only */
+.vp-head-controls{
+  display:none;margin-left:auto;
+  align-items:center;gap:0.4rem;flex:none;
+}
+.vp-head-social{display:flex;align-items:center}
 /* the sections column's head bar holds the wordmark home
    link */
 .vp-wordmark{
@@ -566,6 +573,7 @@ html.dark .vp-doc a:focus-visible code{
 
 @media ${minWidth("lg")}{
   .vp-rail{display:flex}
+  .vp-head-controls{display:flex}
 }
 
 /* below lg: no rail; a sticky mobile bar + an off-canvas

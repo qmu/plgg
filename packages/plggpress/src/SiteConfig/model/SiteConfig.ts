@@ -99,6 +99,14 @@ export type SiteConfig = Readonly<{
    * disclosure, open only where the current page lives.
    */
   sidebarGroups?: Option<"open" | "toggle">;
+  /**
+   * Where the appearance toggle and the social links
+   * stand: `rail` (the default) is a narrow column of its
+   * own at the far right; `head` puts them in the
+   * sidebar's head beside the wordmark, and the strip has
+   * no rail column at all.
+   */
+  controls?: Option<"rail" | "head">;
   tagline?: Option<string>;
   footerLink?: Option<NavItem>;
   social: ReadonlyArray<SocialLink>;
@@ -293,6 +301,7 @@ export type SiteConfigInput = Readonly<{
   sidebar: ReadonlyArray<SidebarGroupInput>;
   sidebarStyle?: "plain" | "numbered";
   sidebarGroups?: "open" | "toggle";
+  controls?: "rail" | "head";
   tagline?: string;
   footerLink?: NavItemInput;
   social: ReadonlyArray<SocialLinkInput>;
@@ -348,6 +357,20 @@ export const asSiteConfig = (
               invalidError({
                 message:
                   "sidebarStyle must be plain or numbered",
+              }),
+            ),
+    ),
+    forOptionProp(
+      "controls",
+      (
+        value: unknown,
+      ): Result<"rail" | "head", InvalidError> =>
+        value === "rail" || value === "head"
+          ? ok(value)
+          : err(
+              invalidError({
+                message:
+                  "controls must be rail or head",
               }),
             ),
     ),

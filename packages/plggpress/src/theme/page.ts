@@ -37,6 +37,8 @@ import {
 } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,
+  headControls,
+  controlsInHead,
   mobileBar,
 } from "plggpress/theme/navBar";
 import { sidebarTree } from "plggpress/theme/sidebarTree";
@@ -229,6 +231,9 @@ const sectionsColumn = (
     [
       colHead([
         a(wordmarkAttrs, [text(config.title)]),
+        ...(controlsInHead(config)
+          ? [headControls(config)]
+          : []),
       ]),
       ...(config.tagline?.__tag === "Some"
         ? [
@@ -484,7 +489,9 @@ export const page = (
             (content: PageColumn): Html<never> =>
               contentColumn(config, content),
           ),
-          chromeRail(config),
+          ...(controlsInHead(config)
+            ? []
+            : [chromeRail(config)]),
         ],
       ),
     ],
