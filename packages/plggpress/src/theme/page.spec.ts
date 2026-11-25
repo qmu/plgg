@@ -6,6 +6,7 @@ import {
   toContain,
   not,
 } from "plgg-test";
+import { sidebarNavClass } from "plggmatic";
 import { some, none } from "plgg";
 import {
   type Html,
@@ -166,7 +167,11 @@ test("includes the sidebar with always-open section headers and an active-marked
     // not a <details>/<summary>
     check(
       rendered,
-      toContain('class="pm-nav-group-title"'),
+      toContain(
+        'class="' +
+          sidebarNavClass.groupTitle +
+          '"',
+      ),
     ),
     check(
       rendered,

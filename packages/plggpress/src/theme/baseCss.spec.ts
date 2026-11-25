@@ -6,6 +6,7 @@ import {
   toBe,
   not,
 } from "plgg-test";
+import { sidebarNavClass } from "plggmatic";
 import {
   colorVar,
   metricVar,
@@ -154,7 +155,11 @@ test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
     ),
     check(
       css,
-      toContain(".pm-nav-link:focus-visible"),
+      toContain(
+        "." +
+          sidebarNavClass.link +
+          ":focus-visible",
+      ),
     ),
     check(
       css,
@@ -251,7 +256,9 @@ test("no per-page 目次 panel styles remain (widget removed, 2026-07-03)", () =
     check(
       css,
       toContain(
-        "details.pm-nav-group{counter-reset:sample;interpolate-size:allow-keywords}",
+        "details." +
+          sidebarNavClass.group +
+          "{counter-reset:sample;interpolate-size:allow-keywords}",
       ),
     ),
   ]));

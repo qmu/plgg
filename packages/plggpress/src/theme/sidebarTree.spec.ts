@@ -6,6 +6,7 @@ import {
   toContain,
   not,
 } from "plgg-test";
+import { sidebarNavClass } from "plggmatic";
 import { some, none } from "plgg";
 import { renderToString } from "plggpress/framework";
 import { type SidebarGroup } from "plggpress/SiteConfig/model/SiteConfig";
@@ -67,7 +68,11 @@ test("renders an always-expanded tree — no <details> collapse, no script", () 
     // the top-level group is a plain always-visible header
     check(
       rendered,
-      toContain('class="pm-nav-group-title"'),
+      toContain(
+        'class="' +
+          sidebarNavClass.groupTitle +
+          '"',
+      ),
     ),
     // no disclosure widgets, no client script
     check(rendered, not(toContain("<details"))),
@@ -102,7 +107,9 @@ test("marks exactly the active leaf current with the inverted-pill class", () =>
     ),
     check(
       rendered,
-      toContain('class="pm-nav-link"'),
+      toContain(
+        'class="' + sidebarNavClass.link + '"',
+      ),
     ),
     // only one entry carries the active marker
     check(

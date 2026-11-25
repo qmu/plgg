@@ -47,6 +47,35 @@ export const foldClass: SoftStr = hook("fold");
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 
+// --- Sidebar (Component/usecase/sidebarNav) ---
+
+/** The sidebar's `<nav>`. */
+export const navClass: SoftStr = hook("nav");
+/** The sidebar counting its rows 01, 02, …. */
+export const navNumberedClass: SoftStr = hook(
+  "nav-numbered",
+);
+/** One titled group of rows. */
+export const navGroupClass: SoftStr =
+  hook("nav-group");
+/** A group's title (its `<summary>` when it toggles). */
+export const navGroupTitleClass: SoftStr = hook(
+  "nav-group-title",
+);
+/** A row that is a link. */
+export const navLinkClass: SoftStr =
+  hook("nav-link");
+/** A row that is plain text. */
+export const navFlatClass: SoftStr =
+  hook("nav-flat");
+/** A nested group inside a group. */
+export const navSubgroupClass: SoftStr = hook(
+  "nav-subgroup",
+);
+/** A nested group's title. */
+export const navSubgroupTitleClass: SoftStr =
+  hook("nav-subgroup-title");
+
 // --- Appearance toggle (Component/usecase/themeToggle) ---
 
 export const themeToggleClass: SoftStr = hook(
