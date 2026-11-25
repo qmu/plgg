@@ -161,15 +161,8 @@ export const sidebarNav = (
     props.toggle
       ? details(
           holdsCurrent(g.items)
-            ? [
-                class_(c.group),
-                attr("name", c.group),
-                attr("open", ""),
-              ]
-            : [
-                class_(c.group),
-                attr("name", c.group),
-              ],
+            ? [class_(c.group), attr("open", "")]
+            : [class_(c.group)],
           [
             summary(
               [class_(c.groupTitle)],

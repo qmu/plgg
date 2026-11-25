@@ -168,6 +168,28 @@ export const shellBackdropClass: SoftStr = hook(
  */
 export const shellOpenAttr: SoftStr = `data-${cssPrefix}-shell-open`;
 
+/**
+ * A callout in a page's prose: a boxed aside — a note, a
+ * tip, a warning. {@link calloutToneClass} says which.
+ */
+export const calloutClass: SoftStr =
+  hook("callout");
+/** A callout's heading line. */
+export const calloutTitleClass: SoftStr = hook(
+  "callout-title",
+);
+/** The tones a callout comes in. */
+export type CalloutTone =
+  | "info"
+  | "note"
+  | "tip"
+  | "warning"
+  | "danger";
+/** The class that gives a callout its tone. */
+export const calloutToneClass = (
+  tone: CalloutTone,
+): SoftStr => hook("callout-" + tone);
+
 // --- Shared strip (Style/usecase/shareCss) ---
 
 /** A strip whose document columns share the room. */

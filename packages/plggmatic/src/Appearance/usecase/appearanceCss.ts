@@ -1,6 +1,7 @@
 import { type SoftStr } from "plgg";
 import { type Theme } from "plggmatic/Style/model/theme";
 import { colorVar } from "plggmatic/Style/model/token";
+import { themeToggleClass } from "plggmatic/Component/usecase/themeToggle";
 import {
   type Appearance,
   type Mark,
@@ -113,6 +114,16 @@ ${doc} th,${doc} td{text-align:left;padding:.5rem 1.25rem .5rem 0;border-bottom:
 ${doc} th{border-bottom:${rule};font-weight:600}
 ${doc} hr{border:none;border-top:${hair};margin:1.5rem 0}
 ${doc} :is(h1,h2,h3,h4){scroll-margin-top:1rem}
+.${p}-callout{margin:1.25rem 0;padding:.75rem 1rem;border:${a.ruleWidth} solid transparent;border-radius:${a.radius};font-size:.875rem;line-height:1.625}
+.${p}-callout-title{font-weight:600;margin:0 0 .35rem}
+.${p}-callout p{margin:.35rem 0}
+.${p}-callout-info,.${p}-callout-note{background:${surface};border-color:${cvar(a.rule)};color:${text}}
+.${p}-callout-tip{background:${cvar("success-surface")};border-color:${cvar("success-border")};color:${cvar("success-text")}}
+.${p}-callout-warning{background:${cvar("warning-surface")};border-color:${cvar("warning-border")};color:${cvar("warning-text")}}
+.${p}-callout-danger{background:${cvar("danger-surface")};border-color:${cvar("danger-border")};color:${cvar("danger-text")}}
+.${themeToggleClass}{border-radius:${a.radius === "0" ? "0" : "50%"};border:${hair}}
+.${themeToggleClass}:hover{border-color:${cvar(a.rule)}}
+.${themeToggleClass}:focus-visible{outline:${rule};outline-offset:2px}
 .${p}-nav-group{margin:0}
 .${p}-nav-group-title{padding:1.1rem ${a.gutter} .4rem;font-size:.75rem;line-height:1.25rem;font-weight:500;color:${muted};border-bottom:${hair}}
 ${link}{padding:.5rem ${a.gutter};border-bottom:${hair};font-size:.875rem;line-height:1.45;color:${text};text-decoration:none}
@@ -123,7 +134,7 @@ ${link}[aria-current] .${p}-nav-label{${mark(a.current)}}
 .${p}-nav-flat{padding:.5rem ${a.gutter};border-bottom:${hair};font-size:.875rem;line-height:1.45;color:${muted}}
 .${p}-nav-subgroup{margin:0}
 .${p}-nav-subgroup-title{padding:.5rem ${a.gutter};font-size:.875rem;line-height:1.45;border-bottom:${hair};font-weight:600;color:${text}}
-${group} summary{padding:.7rem ${a.gutter};font-size:.8rem;${quick("background-color", "color")}}
+${group} summary{padding:.7rem ${a.gutter};font-size:.875rem;font-weight:600;color:${text};${quick("background-color", "color")}}
 ${group} summary::after{content:"";width:.4rem;height:.4rem;margin-right:.2rem;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(-45deg);transition:transform ${a.quick} ease}
 ${group}[open] summary::after{transform:rotate(45deg)}
 ${group}[open] summary{color:${text}}
@@ -132,8 +143,12 @@ ${group} summary:focus-visible{${mark(a.press)};outline:0}
 ${group} summary:active{opacity:.8}
 ${group}::details-content{transition:block-size ${a.leave} ease,content-visibility ${a.leave} allow-discrete}
 ${group} ${link}{${quick("background-color", "color", "padding-left")}}
-${group} ${link}:hover{padding-left:calc(${a.gutter} + .25rem)}
-${group} ${link}[aria-current]:hover{padding-left:${a.gutter}}
+${group}{border-bottom:${hair}}
+${group} ${link},${group} .${p}-nav-flat,${group} .${p}-nav-subgroup-title{padding-top:.4rem;padding-bottom:.4rem;padding-left:calc(${a.gutter} + .9rem);border-bottom:0;font-size:.8125rem}
+${group}[open] summary{padding-bottom:.45rem}
+${group}[open]::details-content{padding-bottom:.5rem}
+${group} ${link}:hover{padding-left:calc(${a.gutter} + 1.15rem)}
+${group} ${link}[aria-current]:hover{padding-left:calc(${a.gutter} + .9rem)}
 ${car}{width:2.25rem;height:2.25rem;margin-top:-1.125rem;padding:0;border:${rule};border-radius:${a.radius};background:${surface};color:${text};box-shadow:${a.elevation};${quick("background-color", "color")}}
 ${carEach("::before")}{content:"";width:.5rem;height:.5rem;border-top:1.5px solid currentColor;border-right:1.5px solid currentColor}
 .${p}-carousel-prev::before{transform:translateX(.12rem) rotate(-135deg)}

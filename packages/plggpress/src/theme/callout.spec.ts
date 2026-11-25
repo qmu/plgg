@@ -51,31 +51,31 @@ test("tags each kind with its own vp-callout class (accent owned by baseCss)", (
     check(
       renderToString(callout("info", body)),
       toContain(
-        'class="vp-callout vp-callout-info"',
+        'class=\"vp-callout vp-callout-info ',
       ),
     ),
     check(
       renderToString(callout("note", body)),
       toContain(
-        'class="vp-callout vp-callout-note"',
+        'class=\"vp-callout vp-callout-note ',
       ),
     ),
     check(
       renderToString(callout("tip", body)),
       toContain(
-        'class="vp-callout vp-callout-tip"',
+        'class=\"vp-callout vp-callout-tip ',
       ),
     ),
     check(
       renderToString(callout("warning", body)),
       toContain(
-        'class="vp-callout vp-callout-warning"',
+        'class=\"vp-callout vp-callout-warning ',
       ),
     ),
     check(
       renderToString(callout("danger", body)),
       toContain(
-        'class="vp-callout vp-callout-danger"',
+        'class=\"vp-callout vp-callout-danger ',
       ),
     ),
   ]));

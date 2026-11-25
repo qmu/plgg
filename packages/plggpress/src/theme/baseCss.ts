@@ -35,7 +35,7 @@ import {
  *   "measure"`), the drilled section column, the trail row
  *   and the far-right chrome rail;
  * - the sheet page (one figure filling its column);
- * - callouts, the footer, social links.
+ * - the footer and the social links.
  *
  * Its own rules read the same appearance (rule colour,
  * marks, type), so they change with the kit.
@@ -199,43 +199,6 @@ ${selector(trailClass)} button:hover{
 }
 .vp-footer-text{
   margin:0;font-size:13px;color:${cvar("muted")};
-}
-/* callouts — qmu's tinted model (VitePress-style), now on
-   the D9 role matrix: tip=success, warning, danger each a
-   role surface + text + border that reschemes per light/
-   dark on the token layer (so the separate html.dark
-   blocks collapse away); info/note stay the monochrome
-   ink-on-neutral panel with a primary edge. Metrics follow
-   qmu: my-5, rounded-md, border-l-4, px-4 py-3, text-sm
-   leading-relaxed, semibold title inheriting the callout's
-   text colour. */
-.vp-callout{
-  margin:1.25rem 0;padding:0.75rem 1rem;
-  border:1px solid transparent;
-  border-left-width:1px;
-  font-size:0.875rem;line-height:1.625;
-}
-.vp-callout-title{font-weight:600;margin:0 0 0.35rem}
-.vp-callout p{margin:0.35rem 0}
-.vp-callout-info,.vp-callout-note{
-  background:${cvar("surface")};
-  border-color:${cvar("primary-base")};
-  color:${cvar("text")};
-}
-.vp-callout-tip{
-  background:${cvar("success-surface")};
-  border-color:${cvar("success-border")};
-  color:${cvar("success-text")};
-}
-.vp-callout-warning{
-  background:${cvar("warning-surface")};
-  border-color:${cvar("warning-border")};
-  color:${cvar("warning-text")};
-}
-.vp-callout-danger{
-  background:${cvar("danger-surface")};
-  border-color:${cvar("danger-border")};
-  color:${cvar("danger-text")};
 }
 
 /* below sm (qmu's 639px block): the prose headings render

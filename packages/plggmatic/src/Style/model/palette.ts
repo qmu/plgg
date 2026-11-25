@@ -113,14 +113,18 @@ const DEFAULT_RAW: Record<
     "info-border": "#2563eb",
   },
   dark: {
-    surface: "#000000",
-    "surface-2": "#141414",
-    text: "#ffffff",
-    muted: "#a8a8a8",
-    border: "#2a2a2a",
-    "primary-base": "#ffffff",
-    "primary-text": "#ffffff",
-    "primary-surface": "#141414",
+    // matte, not pitch: a dark grey sheet and off-white
+    // ink. Pure black under pure white is the harshest
+    // pair a screen can show, and every rule here is drawn
+    // in the ink colour.
+    surface: "#1b1b1b",
+    "surface-2": "#262626",
+    text: "#e2e2e2",
+    muted: "#9d9d9d",
+    border: "#353535",
+    "primary-base": "#e2e2e2",
+    "primary-text": "#e2e2e2",
+    "primary-surface": "#262626",
     "primary-border": "#8a8a8a",
     "success-base": "#34d399",
     "success-text": "#34d399",

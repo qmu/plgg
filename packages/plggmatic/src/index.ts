@@ -635,6 +635,10 @@ export {
   shellMenuId,
   shellBackdropClass,
   shellOpenAttr,
+  calloutClass,
+  calloutTitleClass,
+  type CalloutTone,
+  calloutToneClass,
 } from "plggmatic/Meta/model/classHooks";
 export {
   type ChoiceProps,

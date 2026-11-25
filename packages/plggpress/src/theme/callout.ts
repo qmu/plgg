@@ -1,4 +1,9 @@
 import {
+  calloutClass,
+  calloutTitleClass,
+  calloutToneClass,
+} from "plggmatic";
+import {
   type Html,
   div,
   p,
@@ -57,10 +62,24 @@ export const callout = (
   body: Html<never>,
 ): Html<never, "div"> =>
   div(
-    [class_("vp-callout vp-callout-" + kind)],
+    [
+      class_(
+        "vp-callout vp-callout-" +
+          kind +
+          " " +
+          calloutClass +
+          " " +
+          calloutToneClass(kind),
+      ),
+    ],
     [
       p(
-        [class_("vp-callout-title")],
+        [
+          class_(
+            "vp-callout-title " +
+              calloutTitleClass,
+          ),
+        ],
         [text(LABEL[kind])],
       ),
       slot([], [body]),

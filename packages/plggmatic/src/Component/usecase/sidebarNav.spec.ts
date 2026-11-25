@@ -121,13 +121,13 @@ test("toggle groups are named disclosures, open only where the current page live
         .join(),
       toBe("false,true"),
     ),
+    // groups open independently: none carries a shared
+    // `name`, which would close the others (an accordion)
     check(
-      opened.every((d) =>
-        d
-          .split(">")[0]!
-          .includes('name="pm-nav-group"'),
+      opened.some((d) =>
+        d.split(">")[0]!.includes("name="),
       ),
-      toBe(true),
+      toBe(false),
     ),
   ]);
 });

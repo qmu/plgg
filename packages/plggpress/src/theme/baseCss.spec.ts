@@ -78,30 +78,30 @@ test("callouts ride the D9 role matrix, not hardcoded hexes", () =>
   all([
     // tip=success, warning, danger onto role surface/text/border
     check(
-      own,
+      css,
       toContain(
         "background:" + cvar("success-surface"),
       ),
     ),
     check(
-      own,
+      css,
       toContain("color:" + cvar("success-text")),
     ),
     check(
-      own,
+      css,
       toContain(
         "border-color:" + cvar("warning-border"),
       ),
     ),
     check(
-      own,
+      css,
       toContain(
         "background:" + cvar("danger-surface"),
       ),
     ),
     // info/note stay neutral with a primary edge
     check(
-      own,
+      css,
       toContain(
         "border-color:" + cvar("primary-base"),
       ),
@@ -122,7 +122,7 @@ test("scheme scroll motion is framework-owned; plggpress keeps its link-fade res
     // the html/main scroll reset moved to plggmatic's
     // reducedMotionCss — not re-authored here
     check(
-      css,
+      own,
       not(toContain("scroll-behavior:auto")),
     ),
     // but plggpress's own link-hover fade is still killed
