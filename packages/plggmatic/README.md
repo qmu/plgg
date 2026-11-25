@@ -114,6 +114,36 @@ in [`packages/plggmatic-example/`](../plggmatic-example/) (`src/declaration.ts` 
 the design record at
 [`.workaholic/specs/20260704-plggmatic-scheduler-design.md`](../../.workaholic/specs/20260704-plggmatic-scheduler-design.md).
 
+## The workspace: a pinned panel, a menu, a strip walked by a trail
+
+What corpd, coop-planner and this package's own reference each wrote by hand
+is one capability here. A product supplies its records and what each column
+offers; the rest is the framework's.
+
+- **Trail** (`Navigate`): `resolveTrail(resolver)(trail)` walks the steps
+  through the product's resolver and stops at the first step a column does
+  not offer, so a stale address folds to the deepest state it still names.
+  `foldTrail`, `stepFrom` and `restep` are the only ways a trail changes. The
+  address is `?x=<step>.<step>.…` (`decodeTrail`, `encodeTrail`,
+  `trailQuery`), spelled as corpd spells it; a step's meaning stays the
+  product's (`StepCodec`).
+- **Geometry** (`Layout`): `stripGeometry(stripMetrics)(viewport, scroll,
+  menu)` gives the menu, column, pinned-panel and seam widths; `stripStyle`
+  writes them as custom properties (`stripVar`).
+- **Frame**: `workspace` / `pinnedPanel` / `browser` / `menuColumn` /
+  `widthColumn("fit" | "wide" | "read")`, laid out by
+  `workspaceCss(theme)(workspaceOptions)` — the menu folds to a rail under
+  `menuCompactAttr`, and below `sm` the strip snaps one column per swipe.
+- **Reveal**: `revealTarget` decides where a column comes to rest;
+  `revealColumn(strip, column, options)` glides there and yields to the
+  reader's first touch, wheel or key.
+- **Sidebar**: `sidebarNav` with `sidebarNavCss` — ruled rows in titled
+  groups, the current row inverted, optional numbering and toggle groups.
+- **Preference**: `readPreference` / `savePreference` remember a yes/no (the
+  rail) and read as "no" when storage refuses.
+
+`packages/plggmatic-example` demo 4 (`demo4.html`) runs all of it together.
+
 ## Palette override & scheme persistence
 
 The color system is a closed role×variant matrix with a **monochrome default**.

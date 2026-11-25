@@ -29,3 +29,39 @@ export {
   mainPane,
   asidePane,
 } from "plggmatic/Layout/usecase/combinators";
+export {
+  type StripMetrics,
+  type MenuTrack,
+  type StripGeometry,
+  stripMetrics,
+  stripGeometry,
+  stripVar,
+  stripStyle,
+  visibleColumnStart,
+  reachableScroll,
+} from "plggmatic/Layout/model/geometry";
+export {
+  type Span,
+  revealTarget,
+  glideEase,
+} from "plggmatic/Layout/model/reveal";
+export {
+  type RevealOptions,
+  revealOptions,
+  revealColumn,
+} from "plggmatic/Layout/usecase/revealColumn";
+export {
+  type WorkspaceState,
+  type ColumnWidth,
+  workspace,
+  workspaceWith,
+  pinnedPanel,
+  browser,
+  menuColumn,
+  widthColumn,
+} from "plggmatic/Layout/usecase/workspace";
+export {
+  type PreferenceStore,
+  readPreference,
+  savePreference,
+} from "plggmatic/Layout/usecase/preference";

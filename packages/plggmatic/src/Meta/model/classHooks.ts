@@ -47,6 +47,36 @@ export const foldClass: SoftStr = hook("fold");
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 
+// --- Workspace (Layout/usecase/workspace) ---
+
+/** The frame a pinned panel and a strip share. */
+export const workspaceClass: SoftStr =
+  hook("workspace");
+/** The panel pinned to the frame's left edge. */
+export const pinnedClass: SoftStr =
+  hook("pinned");
+/** The strip beside the pinned panel: menu, columns, seam. */
+export const browserClass: SoftStr =
+  hook("browser");
+/** The strip's menu track. */
+export const menuClass: SoftStr = hook("menu");
+/** The spacer after the last column. */
+export const seamClass: SoftStr = hook("seam");
+/** Set on the workspace while its menu is shown. */
+export const menuOpenAttr: SoftStr = `data-${cssPrefix}-menu-open`;
+/** Set on the workspace while its menu is a narrow rail. */
+export const menuCompactAttr: SoftStr = `data-${cssPrefix}-menu-compact`;
+/** Set on the workspace when the window holds one column. */
+export const phoneAttr: SoftStr = `data-${cssPrefix}-phone`;
+/**
+ * Set on the workspace while the framework itself is
+ * scrolling it, so a stylesheet can lift scroll-snap for
+ * the length of the glide.
+ */
+export const programmaticScrollAttr: SoftStr = `data-${cssPrefix}-programmatic-scroll`;
+/** A strip column's width kind (`fit`/`wide`/`read`). */
+export const widthAttr: SoftStr = `data-${cssPrefix}-width`;
+
 // --- Sidebar (Component/usecase/sidebarNav) ---
 
 /** The sidebar's `<nav>`. */

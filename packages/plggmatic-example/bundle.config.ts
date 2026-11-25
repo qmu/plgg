@@ -29,6 +29,8 @@ export default {
     { name: "demo2", input: "demo2-main.ts" },
     // demo 3 — scheduler query + derived URL codec (application)
     { name: "demo3", input: "demo3-main.ts" },
+    // demo 4 — the workspace: pinned panel, rail, trail strip
+    { name: "demo4", input: "demo4-main.ts" },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",

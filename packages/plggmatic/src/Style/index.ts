@@ -141,3 +141,8 @@ export {
   syntaxVar,
 } from "plggmatic/Style/model/syntax";
 export { syntaxCss } from "plggmatic/Style/usecase/syntaxCss";
+export {
+  type WorkspaceOptions,
+  workspaceOptions,
+  workspaceCss,
+} from "plggmatic/Style/usecase/workspaceCss";

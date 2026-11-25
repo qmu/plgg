@@ -11,7 +11,9 @@ import { type SoftStr } from "plgg";
  * more roles arrive one at a time with a consumer.
  */
 export type PaneRole =
-  "navigation" | "main" | "complementary";
+  | "navigation"
+  | "main"
+  | "complementary";
 
 /**
  * The semantic element each {@link PaneRole} renders as.

@@ -4,7 +4,8 @@
     "exclude": [
       "/index.ts",
       "/styleEntry.ts",
-      "/Render/usecase/advanceColumns.ts"
+      "/Render/usecase/advanceColumns.ts",
+      "/Layout/usecase/revealColumn.ts"
     ]
   }
 }

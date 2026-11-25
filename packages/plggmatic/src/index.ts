@@ -517,3 +517,64 @@ export {
   pragmaticTheme,
   pragmaticThemeWithPalette,
 } from "plggmatic/brand";
+export {
+  type StripMetrics,
+  type MenuTrack,
+  type StripGeometry,
+  stripMetrics,
+  stripGeometry,
+  stripVar,
+  stripStyle,
+  visibleColumnStart,
+  reachableScroll,
+} from "plggmatic/Layout";
+export {
+  type WorkspaceOptions,
+  workspaceOptions,
+  workspaceCss,
+} from "plggmatic/Style/usecase/workspaceCss";
+export {
+  workspaceClass,
+  pinnedClass,
+  browserClass,
+  menuClass,
+  seamClass,
+  menuOpenAttr,
+  menuCompactAttr,
+  phoneAttr,
+  programmaticScrollAttr,
+  widthAttr,
+  navClass,
+  navNumberedClass,
+  navGroupClass,
+  navGroupTitleClass,
+  navLinkClass,
+  navFlatClass,
+  navSubgroupClass,
+  navSubgroupTitleClass,
+} from "plggmatic/Meta/model/classHooks";
+export {
+  type Span,
+  revealTarget,
+  glideEase,
+} from "plggmatic/Layout";
+export {
+  type RevealOptions,
+  revealOptions,
+  revealColumn,
+} from "plggmatic/Layout";
+export {
+  type WorkspaceState,
+  type ColumnWidth,
+  workspace,
+  workspaceWith,
+  pinnedPanel,
+  browser,
+  menuColumn,
+  widthColumn,
+} from "plggmatic/Layout";
+export {
+  type PreferenceStore,
+  readPreference,
+  savePreference,
+} from "plggmatic/Layout";
