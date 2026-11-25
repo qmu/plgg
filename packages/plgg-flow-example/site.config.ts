@@ -8,6 +8,26 @@ export default {
   sidebarGroups: "toggle",
   sidebar: [
     {
+      text: "ガイド",
+      items: [
+        {
+          text: "DSL の書き方",
+          link: "/guide/dsl",
+          items: [],
+        },
+        {
+          text: "図の実例",
+          link: "/guide/gallery",
+          items: [],
+        },
+        {
+          text: "配置と視点",
+          link: "/guide/camera",
+          items: [],
+        },
+      ],
+    },
+    {
       text: "基礎機能",
       items: [
         {
@@ -278,31 +298,6 @@ export default {
         {
           text: "Webサービスの層",
           link: "/subjects/tiers",
-          items: [],
-        },
-      ],
-    },
-    {
-      text: "ガイド",
-      items: [
-        {
-          text: "はじめに",
-          link: "/",
-          items: [],
-        },
-        {
-          text: "DSL の書き方",
-          link: "/guide/dsl",
-          items: [],
-        },
-        {
-          text: "図の実例",
-          link: "/guide/gallery",
-          items: [],
-        },
-        {
-          text: "配置と視点",
-          link: "/guide/camera",
           items: [],
         },
       ],
