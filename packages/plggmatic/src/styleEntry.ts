@@ -51,6 +51,8 @@ export {
   colClass,
   foldClass,
   trailClass,
+  leavingAttr,
+  replacingAttr,
   selector,
 } from "plggmatic/Meta/model/classHooks";
 export {

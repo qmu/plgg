@@ -91,6 +91,8 @@ export {
   selector,
   foldClass,
   trailClass,
+  leavingAttr,
+  replacingAttr,
 } from "plggmatic/Meta/model/classHooks";
 export {
   type PaneRole,

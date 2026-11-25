@@ -7,6 +7,7 @@ import {
 import {
   href,
   unbase,
+  hrefFrom,
   samePath,
 } from "plggpress/Href/usecase/href";
 
@@ -136,5 +137,65 @@ test("unbase is the inverse of href for a deployed base", () =>
     check(
       unbase("/plgg/")("/concepts/"),
       toBe("/concepts/"),
+    ),
+  ]));
+
+test("hrefFrom resolves a page's relative links from the page's own place", () =>
+  all([
+    // a sibling and a cousin, from a page inside a folder
+    check(
+      hrefFrom("/", "/guide/dsl")("./camera.md"),
+      toBe("/guide/camera"),
+    ),
+    check(
+      hrefFrom(
+        "/",
+        "/guide/dsl",
+      )("../samples/space.md"),
+      toBe("/samples/space"),
+    ),
+    // a bare relative name is a sibling too
+    check(
+      hrefFrom("/", "/guide/dsl")("gallery.md#x"),
+      toBe("/guide/gallery#x"),
+    ),
+    // a route that names a directory is that directory
+    check(
+      hrefFrom("/", "/")("./guide/dsl.md"),
+      toBe("/guide/dsl"),
+    ),
+    check(
+      hrefFrom("/", "/guide/")("./dsl.md"),
+      toBe("/guide/dsl"),
+    ),
+    // going above the root stops at the root
+    check(
+      hrefFrom("/", "/a")("../../b.md"),
+      toBe("/b"),
+    ),
+    // the deployed base is applied after resolving
+    check(
+      hrefFrom(
+        "/plgg/",
+        "/guide/dsl",
+      )("../samples/space.md"),
+      toBe("/plgg/samples/space"),
+    ),
+    // absolute, fragment-only and external targets are
+    // exactly what href makes of them
+    check(
+      hrefFrom("/plgg/", "/guide/dsl")("/x.md"),
+      toBe("/plgg/x"),
+    ),
+    check(
+      hrefFrom("/", "/guide/dsl")("#top"),
+      toBe("#top"),
+    ),
+    check(
+      hrefFrom(
+        "/",
+        "/guide/dsl",
+      )("https://example.com/a.md"),
+      toBe("https://example.com/a.md"),
     ),
   ]));

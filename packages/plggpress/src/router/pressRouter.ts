@@ -9,6 +9,7 @@ import {
   type Part,
 } from "plggpress/SiteConfig/usecase/diagramFence";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import {
   type SoftStr,
@@ -61,6 +62,7 @@ import { buildRouter } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   href,
+  hrefFrom,
   unbase,
 } from "plggpress/Href/usecase/href";
 import { injectAppearanceScripts } from "plggpress/theme/appearanceScripts";
@@ -110,6 +112,32 @@ export const candidateFiles = (
             join(contentDir, ...segs) + ".md",
             join(contentDir, ...segs, "index.md"),
           ],
+  );
+
+/**
+ * The place a route's page is WRITTEN from, in the form
+ * {@link hrefFrom} reads: `/guide/dsl` (no trailing slash)
+ * for a page that is its own file, `/guide/` for a
+ * folder's `index.md`. The route alone cannot tell —
+ * `foo.md` and `foo/index.md` are the same route — and the
+ * two resolve `./x` differently, so the file on disk
+ * decides, by the same precedence {@link candidateFiles}
+ * reads in.
+ */
+export const linkPlace = (
+  contentDir: SoftStr,
+  route: SoftStr,
+): SoftStr =>
+  pipe(
+    splitPath(route),
+    (segs: ReadonlyArray<SoftStr>): SoftStr =>
+      segs.length === 0
+        ? "/"
+        : existsSync(
+              join(contentDir, ...segs) + ".md",
+            )
+          ? "/" + segs.join("/")
+          : "/" + segs.join("/") + "/",
   );
 
 /**
@@ -242,7 +270,16 @@ const renderColumn =
               pressRenderOptions(
                 config,
                 asHighlighter(),
-                href(base),
+                // a page's relative links are written
+                // from its own place, not from wherever
+                // its column happens to be shown
+                hrefFrom(
+                  base,
+                  linkPlace(
+                    contentDir,
+                    unbase(base)(column.route),
+                  ),
+                ),
                 parts,
                 (message) =>
                   console.warn(

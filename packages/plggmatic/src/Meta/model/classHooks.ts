@@ -44,6 +44,19 @@ export const paneClass: SoftStr = hook("pane");
 
 /** A placed column's close control. */
 export const foldClass: SoftStr = hook("fold");
+/**
+ * Set on a column the runtime is closing, for as long as
+ * its leaving animation runs. A stylesheet animates on it;
+ * with no animation the column is removed at once.
+ */
+export const leavingAttr: SoftStr = `data-${cssPrefix}-leaving`;
+/**
+ * Set on a column that was opened IN PLACE of another —
+ * the reader chose a different link from the same column.
+ * The strip's shape did not change, so a stylesheet should
+ * not animate it as an arrival: the room was already there.
+ */
+export const replacingAttr: SoftStr = `data-${cssPrefix}-replacing`;
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 

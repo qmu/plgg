@@ -8,7 +8,7 @@
 node 名前 at x y [z] [group] [in 親] [label "表示名"] [value 数] [width 幅]
 ```
 
-`at` は位置です。z を書くと奥行きが付きます。空白を含む名前は `"` で囲みます。
+`at` は位置です。z を書くと奥行きが付きます（[配置と視点](./camera.md)）。空白を含む名前は `"` で囲みます。
 
 ```plgg-flow
 node Source at -220 -50
@@ -36,7 +36,7 @@ Route -> Backup "障害時" step
 
 ## 規則
 
-図全体に効く指定です。
+図全体に効く指定です。それぞれの動きは、実例で試せます：[循環の防止](../samples/cycles.md)、[出力数の制限](../samples/limit.md)、[グリッド吸着](../samples/snap.md)。
 
 | 書き方 | 意味 |
 | --- | --- |
@@ -55,3 +55,10 @@ Process -> Result
 ```
 
 Result から Source へ線を引こうとしても、循環になるので拒否されます。
+
+## 次に読む
+
+- [図の実例](./gallery.md) — 立体交差、グループ、計算ノード
+- [配置と視点](./camera.md) — 奥行きと視点の回し方
+- 接続の書き分けは実例で：[エッジの経路](../samples/routes.md)、[エッジのラベル](../samples/labels.md)、[フローのアニメーション](../samples/motion.md)
+- 位置を書かずに並べる：[自動配置](../samples/layered.md)、[レイヤーに分ける](../samples/layers.md)、[部屋に分ける](../samples/rooms.md)

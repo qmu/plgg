@@ -8,6 +8,8 @@ import {
 import {
   foldClass,
   trailClass,
+  leavingAttr,
+  replacingAttr,
 } from "plggmatic/Meta/model/classHooks";
 import {
   restParam,
@@ -62,6 +64,7 @@ export const navigationInitScript: SoftStr =
     spanAttr,
   )};` +
   `var FC=${q(foldClass)},TC=${q(trailClass)};` +
+  `var LV=${q(leavingAttr)},RP=${q(replacingAttr)};` +
   // an opened column glides into view unless the reader
   // asked for less motion
   "var R0=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;" +
@@ -102,14 +105,29 @@ export const navigationInitScript: SoftStr =
   "var a=h?h.getAttribute(C)||'':'';var p=window.location.pathname;" +
   "return a&&p.length>a.length&&p.slice(p.length-a.length)===a" +
   "?p.slice(0,p.length-a.length):'';})();" +
-  "function cols(){return document.querySelectorAll('['+C+']');}" +
+  // a column on its way out is no longer part of the
+  // strip: the URL, the trail and the next open must not
+  // count it
+  "function cols(){return document.querySelectorAll('['+C+']:not(['+LV+'])');}" +
   // drop every column to the right of `at`. The strip is
   // what you are reading now, not a log of everywhere you
   // have been: opening from a middle column closes what
   // stood beyond it.
   "function changed(){if(document.dispatchEvent){document.dispatchEvent(new Event('plgg:columns'));}}" +
-  "function truncate(at){var c=cols();" +
-  "for(var i=c.length-1;i>at;i--){c[i].remove();}sync();changed();}" +
+  // CLOSE one column: mark it, and let whatever animation
+  // the stylesheet starts on that mark run before the node
+  // goes. No animation (none declared, or the reader asked
+  // for less motion) means it goes now.
+  "function leave(n){n.setAttribute(LV,'');" +
+  "var a=R0||!n.getAnimations?[]:n.getAnimations();" +
+  "if(!a.length){n.remove();return;}" +
+  "var done=function(){n.remove();};" +
+  "Promise.all(a.map(function(x){return x.finished;})).then(done,done);}" +
+  // `now` drops them without their leaving animation: used
+  // when another column is about to stand exactly where
+  // they stood, so nothing should be seen to go
+  "function truncate(at,now){var c=cols();" +
+  "for(var i=c.length-1;i>at;i--){if(now){c[i].remove();}else{leave(c[i]);}}sync();changed();}" +
   // place a fetched column immediately after the one it
   // was opened from, so whatever else the strip holds (a
   // chrome rail, a nav column) keeps its position
@@ -155,7 +173,12 @@ export const navigationInitScript: SoftStr =
   "function openFrom(at,route,span){" +
   "var url=urlFor(entries().slice(0,at).concat([entryOf(route,span)]));" +
   "return fetchCol(route,span).then(function(col){" +
-  "truncate(at);place(col,at);" +
+  // opening from a column that already has one to its
+  // right REPLACES it: same place, same room. Mark the
+  // newcomer so it is not animated as an arrival.
+  "var rep=cols().length>at+1;" +
+  "if(rep){col.setAttribute(RP,'');}" +
+  "truncate(at,rep);place(col,at);" +
   "window.history.pushState(null,'',url);return true;}).catch(function(){" +
   "window.location.assign(url);return false;});}" +
   // the strip's rightmost column — where an open with no
@@ -209,7 +232,12 @@ export const navigationInitScript: SoftStr =
   "var e=t[i];var at=i-1;i++;" +
   "return fetchCol(routeOf(e),spanOf(e)).then(function(col){" +
   "place(col,at);return step();});};" +
-  "return step().catch(function(){window.location.reload();});}" +
+  // A column that cannot be fetched is not worth a reload:
+  // the reload would ask for the same column and fail the
+  // same way, forever. Keep what did open and make the
+  // address say exactly that.
+  "return step().catch(function(){" +
+  "window.history.replaceState(null,'',urlFor(current().slice(1)));sync();});}" +
   // CLOSE a column and everything beyond it
   "function fold(at){truncate(at-1);" +
   "window.history.pushState(null,'',urlFor(entries().slice(0,at-1)));}" +

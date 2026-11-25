@@ -7,6 +7,8 @@ import {
   colClass,
   foldClass,
   trailClass,
+  leavingAttr,
+  replacingAttr,
   selector,
   colorVar,
   metricVar,
@@ -709,12 +711,39 @@ html.dark .vp-sheet{color-scheme:dark}
 html.vp-side-min .vp-app:has(.vp-fill){
   scroll-padding-left:3rem;
 }
+/* pages that share the width need no row naming them: each
+   one's own head does, and its close control is there */
+.vp-shell:has(.vp-fill) ${selector(trailClass)}{display:none}
+/* a followed page eases in from nothing while the page it
+   came from gives up the room; a closed one eases out */
+@keyframes vp-col-in{
+  from{flex-grow:0;min-width:0;opacity:0}
+}
+@keyframes vp-col-out{
+  to{flex-grow:0;min-width:0;opacity:0;border-right-width:0}
+}
+.vp-content.vp-fill ~ .vp-content.vp-fill{
+  animation:vp-col-in .34s cubic-bezier(.2,.7,.2,1);
+}
+/* a page opened in place of another: the room is already
+   there, so only the page itself fades in */
+@keyframes vp-col-swap{from{opacity:0}}
+.vp-app .vp-content.vp-fill.vp-fill[${replacingAttr}]{
+  animation:vp-col-swap .18s ease-out;
+}
+.vp-app .vp-content.vp-fill.vp-fill[${leavingAttr}]{
+  animation:vp-col-out .26s cubic-bezier(.4,0,.6,1) forwards;
+  pointer-events:none;
+}
 .vp-fill .vp-doc{max-width:none}
 .vp-fill .vp-doc :is(p,li,h1,h2,h3,h4,h5,h6,blockquote,dl){
   max-width:${mvar("measure")};
 }
 @media (prefers-reduced-motion:reduce){
   .vp-sidebar,.vp-fold-btn{transition:none}
+  .vp-content.vp-fill ~ .vp-content.vp-fill,
+  .vp-app .vp-content.vp-fill.vp-fill[${replacingAttr}],
+  .vp-app .vp-content.vp-fill.vp-fill[${leavingAttr}]{animation:none}
 }
 .vp-tagline,.vp-footer-link{padding:.75rem 1.25rem;font-size:.8rem}
 .vp-tagline{color:${cvar("muted")};margin:0}

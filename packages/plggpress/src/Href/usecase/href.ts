@@ -85,6 +85,67 @@ export const href =
         );
 
 /**
+ * The directory a route's own relative links are written
+ * from: a route that names a directory (`/`, `/guide/`) is
+ * that directory, any other route (`/guide/dsl`) is the
+ * directory holding it.
+ */
+const dirOf = (route: SoftStr): SoftStr =>
+  route.endsWith("/")
+    ? route
+    : route.slice(0, route.lastIndexOf("/") + 1);
+
+/** Fold `.` and `..` out of an absolute path. */
+const normalize = (path: SoftStr): SoftStr =>
+  "/" +
+  path
+    .split("/")
+    .reduce<ReadonlyArray<SoftStr>>(
+      (kept, part) =>
+        part === "" || part === "."
+          ? kept
+          : part === ".."
+            ? kept.slice(0, -1)
+            : [...kept, part],
+      [],
+    )
+    .join("/") +
+  (path.endsWith("/") && path !== "/" ? "/" : "");
+
+/**
+ * {@link href} for a link written INSIDE the page at
+ * `route`: a relative target (`./camera.md`,
+ * `../samples/space.md`) is resolved against that page's
+ * own directory first, so what is emitted is always a
+ * site-absolute, base-prefixed address.
+ *
+ * A relative `href` cannot survive the two things this
+ * site does with a page. A static host serves `/guide/dsl`
+ * as `/guide/dsl/`, which moves every `../` one level; and
+ * a page opened as a column sits under ANOTHER page's
+ * address, which moves them all. An absolute address means
+ * the same thing wherever the column stands.
+ */
+export const hrefFrom =
+  (base: SoftStr, route: SoftStr) =>
+  (path: SoftStr): SoftStr =>
+    isExternalHref(path) ||
+    path.startsWith("#") ||
+    path.startsWith("/")
+      ? href(base)(path)
+      : pipe(
+          splitFragment(path),
+          ([body, fragment]: readonly [
+            SoftStr,
+            SoftStr,
+          ]): SoftStr =>
+            href(base)(
+              normalize(dirOf(route) + body) +
+                fragment,
+            ),
+        );
+
+/**
  * The inverse of {@link href} for a root-absolute path:
  * drop the deploy `base` prefix, so a link the browser
  * carries (always base-prefixed) names the ROUTE the

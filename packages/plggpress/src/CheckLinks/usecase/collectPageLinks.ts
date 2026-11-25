@@ -25,8 +25,11 @@ import {
 } from "plggpress/framework";
 import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { pressRenderOptions } from "plggpress/SiteConfig/usecase/renderSeams";
-import { href } from "plggpress/Href/usecase/href";
-import { candidateFiles } from "plggpress/router/pressRouter";
+import { hrefFrom } from "plggpress/Href/usecase/href";
+import {
+  candidateFiles,
+  linkPlace,
+} from "plggpress/router/pressRouter";
 import {
   type PageLinks,
   pageLinks,
@@ -106,7 +109,10 @@ const collectOne =
               pressRenderOptions(
                 config,
                 plainHighlighter,
-                href(base),
+                hrefFrom(
+                  base,
+                  linkPlace(contentDir, route),
+                ),
                 parts,
               ),
             )(source),
