@@ -1,10 +1,18 @@
 import { type SoftStr } from "plgg";
 import {
+  sidebarFoldClass,
+  sidebarMinClass,
+} from "plggpress/theme/navBar";
+import {
   themeToggleClass,
   appearanceStorageKey,
   injectAppearanceScript,
   sidebarNavRevealScript,
 } from "plggpress/themeSupport/styleEntry";
+
+/** Where the folded/open choice of the sidebar is kept. */
+export const sidebarStorageKey: SoftStr =
+  "plggpress-sidebar";
 
 /**
  * The appearance-toggle WIRING script, injected at the END
@@ -36,9 +44,37 @@ const bodyWiringScript: SoftStr =
   ".toggle('dark');try{localStorage.setItem(" +
   JSON.stringify(appearanceStorageKey) +
   ",d?'dark':'light');}catch(e){}});}" +
+  // the sidebar's fold control: flip the state on the
+  // root, remember it, and tell assistive tech
+  "var f=document.querySelectorAll(" +
+  JSON.stringify("." + sidebarFoldClass) +
+  "),h=document.documentElement,M=" +
+  JSON.stringify(sidebarMinClass) +
+  ";function s(){for(var i=0;i<f.length;i++)" +
+  "f[i].setAttribute('aria-expanded'," +
+  "h.classList.contains(M)?'false':'true');}s();" +
+  "for(var j=0;j<f.length;j++){" +
+  "f[j].addEventListener('click',function(){" +
+  "var m=h.classList.toggle(M);s();" +
+  "try{localStorage.setItem(" +
+  JSON.stringify(sidebarStorageKey) +
+  ",m?'min':'open');}catch(e){}});}" +
   "})();" +
   sidebarNavRevealScript +
   "</script>";
+
+/**
+ * Restores a folded sidebar BEFORE first paint (in
+ * `<head>`), so a reader who folded it does not watch it
+ * open and close on every page. No effect on a site with
+ * no fold control: nothing ever stores the key.
+ */
+const sidebarInitScript: SoftStr =
+  "<script>try{if(localStorage.getItem(" +
+  JSON.stringify(sidebarStorageKey) +
+  ")==='min')document.documentElement.classList.add(" +
+  JSON.stringify(sidebarMinClass) +
+  ");}catch(e){}</script>";
 
 /**
  * Inject the appearance scripts into a rendered page at the
@@ -55,7 +91,13 @@ const bodyWiringScript: SoftStr =
 export const injectAppearanceScripts = (
   html: SoftStr,
 ): SoftStr => {
-  const withHead = injectAppearanceScript(html);
+  const themed = injectAppearanceScript(html);
+  const withHead = themed.includes("</head>")
+    ? themed.replace(
+        "</head>",
+        sidebarInitScript + "</head>",
+      )
+    : themed;
   return withHead.includes("</body>")
     ? withHead.replace(
         "</body>",

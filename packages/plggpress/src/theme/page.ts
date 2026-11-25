@@ -37,8 +37,9 @@ import {
 } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   chromeRail,
-  headControls,
-  controlsInHead,
+  sidebarFold,
+  sidebarFoot,
+  controlsInSidebar,
   mobileBar,
 } from "plggpress/theme/navBar";
 import { sidebarTree } from "plggpress/theme/sidebarTree";
@@ -231,8 +232,8 @@ const sectionsColumn = (
     [
       colHead([
         a(wordmarkAttrs, [text(config.title)]),
-        ...(controlsInHead(config)
-          ? [headControls(config)]
+        ...(controlsInSidebar(config)
+          ? [sidebarFold]
           : []),
       ]),
       ...(config.tagline?.__tag === "Some"
@@ -291,6 +292,9 @@ const sectionsColumn = (
               ],
             ),
           ]
+        : []),
+      ...(controlsInSidebar(config)
+        ? [sidebarFoot(config)]
         : []),
     ],
   );
@@ -377,7 +381,10 @@ const contentColumn = (
     content.span,
     content.sheet
       ? ["vp-content", "vp-sheet"]
-      : ["vp-content"],
+      : config.contentWidth?.__tag === "Some" &&
+          config.contentWidth.content === "fill"
+        ? ["vp-content", "vp-fill"]
+        : ["vp-content"],
     [
       colHead([
         colTitle(content.title),
@@ -489,7 +496,7 @@ export const page = (
             (content: PageColumn): Html<never> =>
               contentColumn(config, content),
           ),
-          ...(controlsInHead(config)
+          ...(controlsInSidebar(config)
             ? []
             : [chromeRail(config)]),
         ],

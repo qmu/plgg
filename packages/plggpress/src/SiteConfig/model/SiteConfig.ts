@@ -102,11 +102,19 @@ export type SiteConfig = Readonly<{
   /**
    * Where the appearance toggle and the social links
    * stand: `rail` (the default) is a narrow column of its
-   * own at the far right; `head` puts them in the
-   * sidebar's head beside the wordmark, and the strip has
-   * no rail column at all.
+   * own at the far right; `sidebar` puts them at the foot
+   * of the sidebar, gives the sidebar's head a control
+   * that folds the sidebar to a narrow strip, and leaves
+   * the strip with no rail column at all.
    */
-  controls?: Option<"rail" | "head">;
+  controls?: Option<"rail" | "sidebar">;
+  /**
+   * How wide a page column is: `measure` (the default) is
+   * a reading measure; `fill` shares the whole width
+   * right of the sidebar among the open pages, so one
+   * page fills it and a second halves it.
+   */
+  contentWidth?: Option<"measure" | "fill">;
   tagline?: Option<string>;
   footerLink?: Option<NavItem>;
   social: ReadonlyArray<SocialLink>;
@@ -301,7 +309,8 @@ export type SiteConfigInput = Readonly<{
   sidebar: ReadonlyArray<SidebarGroupInput>;
   sidebarStyle?: "plain" | "numbered";
   sidebarGroups?: "open" | "toggle";
-  controls?: "rail" | "head";
+  controls?: "rail" | "sidebar";
+  contentWidth?: "measure" | "fill";
   tagline?: string;
   footerLink?: NavItemInput;
   social: ReadonlyArray<SocialLinkInput>;
@@ -364,13 +373,33 @@ export const asSiteConfig = (
       "controls",
       (
         value: unknown,
-      ): Result<"rail" | "head", InvalidError> =>
-        value === "rail" || value === "head"
+      ): Result<
+        "rail" | "sidebar",
+        InvalidError
+      > =>
+        value === "rail" || value === "sidebar"
           ? ok(value)
           : err(
               invalidError({
                 message:
-                  "controls must be rail or head",
+                  "controls must be rail or sidebar",
+              }),
+            ),
+    ),
+    forOptionProp(
+      "contentWidth",
+      (
+        value: unknown,
+      ): Result<
+        "measure" | "fill",
+        InvalidError
+      > =>
+        value === "measure" || value === "fill"
+          ? ok(value)
+          : err(
+              invalidError({
+                message:
+                  "contentWidth must be measure or fill",
               }),
             ),
     ),

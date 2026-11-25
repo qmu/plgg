@@ -7,6 +7,7 @@ import {
   div,
   a,
   span,
+  button,
   label,
   text,
   attr,
@@ -107,29 +108,56 @@ export const chromeRail = (
   );
 
 /**
- * The same controls for a site that keeps NO rail
- * (`controls: "head"`): the appearance toggle and the
- * social links in one row, placed at the right of the
- * sidebar's head beside the wordmark. Shown on lg+ only —
- * below lg the mobile bar already carries both.
+ * The class of the control that folds the sidebar, and of
+ * the state it sets on `<html>`. Named once: the page, the
+ * stylesheet and the wiring script all read them here.
  */
-export const headControls = (
+export const sidebarFoldClass: SoftStr =
+  "vp-fold-btn";
+export const sidebarMinClass: SoftStr =
+  "vp-side-min";
+
+/**
+ * The control that folds the sidebar to a narrow strip and
+ * back (`controls: "sidebar"`), at the right of the
+ * sidebar's head. A real `<button>` the wiring script
+ * binds; with no script it does nothing and the sidebar
+ * simply stays open. lg+ only — below lg the sidebar is
+ * the drawer, which has its own control.
+ */
+export const sidebarFold: Html<never, "button"> =
+  button(
+    [
+      attr("type", "button"),
+      class_(sidebarFoldClass),
+      attr("aria-label", "Fold the sidebar"),
+      attr("aria-expanded", "true"),
+    ],
+    [span([class_("vp-fold-icon")], [])],
+  );
+
+/**
+ * The foot of the sidebar for the same site: the
+ * appearance toggle and the social links, in one row at
+ * the bottom of the column.
+ */
+export const sidebarFoot = (
   config: SiteConfig,
 ): Html<never, "div"> =>
   div(
-    [class_("vp-head-controls")],
+    [class_("vp-sidebar-foot")],
     [
-      socialLinks(config, "vp-head-social"),
       staticThemeToggle,
+      socialLinks(config, "vp-foot-social"),
     ],
   );
 
-/** Whether the site asked for its controls in the head. */
-export const controlsInHead = (
+/** Whether the site keeps its controls in the sidebar. */
+export const controlsInSidebar = (
   config: SiteConfig,
 ): boolean =>
   config.controls?.__tag === "Some" &&
-  config.controls.content === "head";
+  config.controls.content === "sidebar";
 
 /**
  * The sticky MOBILE BAR (below lg only): the `☰` menu

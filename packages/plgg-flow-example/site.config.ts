@@ -6,7 +6,8 @@ export default {
   nav: [],
   sidebarStyle: "numbered",
   sidebarGroups: "toggle",
-  controls: "head",
+  controls: "sidebar",
+  contentWidth: "fill",
   sidebar: [
     {
       text: "ガイド",

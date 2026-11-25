@@ -313,13 +313,33 @@ ${selector(trailClass)} button:hover{
   background-repeat:no-repeat;
 }
 
-/* controls in the sidebar's head (a site with no rail):
-   one row at the head's right edge, lg+ only */
-.vp-head-controls{
-  display:none;margin-left:auto;
-  align-items:center;gap:0.4rem;flex:none;
+/* a site that keeps its controls in the sidebar: a fold
+   control in the head, the appearance toggle at the foot */
+.vp-fold-btn{
+  display:none;margin-left:auto;flex:none;
+  width:1.9rem;height:1.9rem;padding:0;border:0;
+  background:none;color:${cvar("text")};cursor:pointer;
+  align-items:center;justify-content:center;
+  transition:background-color .15s ease,color .15s ease;
 }
-.vp-head-social{display:flex;align-items:center}
+.vp-fold-btn:hover,.vp-fold-btn:focus-visible{
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};outline:0;
+}
+.vp-fold-icon{
+  position:relative;display:block;box-sizing:border-box;
+  width:1rem;height:.8rem;border:1.5px solid currentColor;
+}
+.vp-fold-icon::before{
+  content:"";position:absolute;top:0;bottom:0;left:.25rem;
+  border-left:1.5px solid currentColor;
+}
+.vp-sidebar-foot{
+  flex:none;margin-top:auto;display:flex;
+  align-items:center;gap:.5rem;padding:.6rem 1.25rem;
+  border-top:1px solid ${cvar("text")};
+}
+.vp-foot-social{display:flex;align-items:center}
 /* the sections column's head bar holds the wordmark home
    link */
 .vp-wordmark{
@@ -573,7 +593,21 @@ html.dark .vp-doc a:focus-visible code{
 
 @media ${minWidth("lg")}{
   .vp-rail{display:flex}
-  .vp-head-controls{display:flex}
+  .vp-fold-btn{display:inline-flex}
+  .vp-sidebar{transition:width .2s ease}
+  html.vp-side-min .vp-sidebar{width:3rem}
+  html.vp-side-min .vp-sidebar .vp-wordmark,
+  html.vp-side-min .vp-sidebar .vp-col-body,
+  html.vp-side-min .vp-sidebar .vp-tagline,
+  html.vp-side-min .vp-sidebar .vp-footer-link,
+  html.vp-side-min .vp-sidebar .vp-foot-social{display:none}
+  html.vp-side-min .vp-sidebar .vp-col-head{
+    padding:0;justify-content:center;
+  }
+  html.vp-side-min .vp-fold-btn{margin:0}
+  html.vp-side-min .vp-sidebar-foot{
+    padding:.6rem 0;justify-content:center;
+  }
 }
 
 /* below lg: no rail; a sticky mobile bar + an off-canvas
@@ -657,6 +691,31 @@ html.dark .vp-sheet{color-scheme:dark}
 
 .vp-sheet .vp-col-title{flex:0 0 auto;max-width:65%}
 .vp-sheet .vp-col-head{padding-top:.75rem}
+/* fill: the open pages share the width right of the
+   sidebar; text keeps a reading measure inside it, figures
+   and code take the room */
+.vp-content.vp-fill{
+  flex:1 1 0;width:auto;min-width:min(22rem,100vw);
+}
+/* the sidebar stays where it is while the pages beside it
+   scroll: with pages sharing the width it is the one fixed
+   thing, and a new page comes to rest clear of it */
+.vp-app:has(.vp-fill) .vp-sidebar{
+  position:sticky;left:0;z-index:3;
+}
+.vp-app:has(.vp-fill){
+  scroll-padding-left:${mvar("sidebar")};
+}
+html.vp-side-min .vp-app:has(.vp-fill){
+  scroll-padding-left:3rem;
+}
+.vp-fill .vp-doc{max-width:none}
+.vp-fill .vp-doc :is(p,li,h1,h2,h3,h4,h5,h6,blockquote,dl){
+  max-width:${mvar("measure")};
+}
+@media (prefers-reduced-motion:reduce){
+  .vp-sidebar,.vp-fold-btn{transition:none}
+}
 .vp-tagline,.vp-footer-link{padding:.75rem 1.25rem;font-size:.8rem}
 .vp-tagline{color:${cvar("muted")};margin:0}
 .vp-footer-link{border-top:1px solid ${cvar("text")}}

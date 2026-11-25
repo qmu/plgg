@@ -21,8 +21,9 @@ const PAGE =
 test("inserts the no-FOUC script before </head> and the toggle before </body>", () => {
   const out = injectAppearanceScripts(PAGE);
   return all([
-    // two scripts total: head no-FOUC + body toggle wiring
-    check(occurrences(out, "<script"), toBe(2)),
+    // three scripts total: head no-FOUC, head sidebar-fold
+    // restore, body wiring (toggle + fold + reveal)
+    check(occurrences(out, "<script"), toBe(3)),
     // the preserved persistence key survives in the output
     // (sourced from plggmatic's appearanceStorageKey; the
     // needle is split so this spec stays clean of the raw
@@ -48,7 +49,8 @@ test("passes a document missing </head> and </body> through unchanged", () =>
       injectAppearanceScripts("<main>x</main>"),
       toBe("<main>x</main>"),
     ),
-    // only the </head> half applies when </body> is absent
+    // only the </head> half applies when </body> is absent:
+    // the no-FOUC script and the sidebar-fold restore
     check(
       occurrences(
         injectAppearanceScripts(
@@ -56,6 +58,6 @@ test("passes a document missing </head> and </body> through unchanged", () =>
         ),
         "<script",
       ),
-      toBe(1),
+      toBe(2),
     ),
   ]));
