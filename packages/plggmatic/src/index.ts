@@ -575,6 +575,8 @@ export {
 } from "plggmatic/Layout";
 export {
   type PreferenceStore,
+  type PreferenceReader,
+  type PreferenceWriter,
   readPreference,
   savePreference,
 } from "plggmatic/Layout";

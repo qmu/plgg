@@ -1,3 +1,4 @@
+import { type SoftStr } from "plgg";
 import {
   revealTarget,
   glideEase,
@@ -16,6 +17,12 @@ export type RevealOptions = Readonly<{
   behavior: "smooth" | "auto";
   sticky: Element | null;
   duration: number;
+  /**
+   * The attribute the strip carries while the glide runs.
+   * The framework's own by default; a product whose
+   * stylesheet already keys on another name passes that.
+   */
+  marker: SoftStr;
 }>;
 
 /** A 280ms glide with nothing pinned over the strip. */
@@ -23,6 +30,7 @@ export const revealOptions: RevealOptions = {
   behavior: "smooth",
   sticky: null,
   duration: 280,
+  marker: programmaticScrollAttr,
 };
 
 // One glide per strip: starting another ends the one
@@ -40,7 +48,7 @@ const glides = new WeakMap<
  * The glide belongs to the reader: a pointer press, a
  * touch, a wheel turn or a key press on the strip ends it
  * where it stands. While it runs the strip carries
- * {@link programmaticScrollAttr}, so a stylesheet can lift
+ * {@link RevealOptions.marker}, so a stylesheet can lift
  * scroll-snap — a mandatory snap fights a scripted scroll
  * frame by frame.
  *
@@ -78,7 +86,7 @@ export const revealColumn = (
     options.behavior !== "smooth" ||
     Math.abs(target - strip.scrollLeft) < 1
   ) {
-    strip.removeAttribute(programmaticScrollAttr);
+    strip.removeAttribute(options.marker);
     strip.scrollTo({
       left: target,
       behavior: "auto",
@@ -89,10 +97,10 @@ export const revealColumn = (
   const from = strip.scrollLeft;
   const start = performance.now();
   glides.set(strip, controller);
-  strip.setAttribute(programmaticScrollAttr, "");
+  strip.setAttribute(options.marker, "");
   const end = (): void => {
     controller.abort();
-    strip.removeAttribute(programmaticScrollAttr);
+    strip.removeAttribute(options.marker);
   };
   [
     "pointerdown",

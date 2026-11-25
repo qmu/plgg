@@ -62,6 +62,8 @@ export {
 } from "plggmatic/Layout/usecase/workspace";
 export {
   type PreferenceStore,
+  type PreferenceReader,
+  type PreferenceWriter,
   readPreference,
   savePreference,
 } from "plggmatic/Layout/usecase/preference";

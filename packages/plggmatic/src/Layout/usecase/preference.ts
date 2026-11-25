@@ -17,6 +17,16 @@ export type PreferenceStore = () => Pick<
   Storage,
   "getItem" | "setItem"
 >;
+/** The reading half of a {@link PreferenceStore}. */
+export type PreferenceReader = () => Pick<
+  Storage,
+  "getItem"
+>;
+/** The writing half of a {@link PreferenceStore}. */
+export type PreferenceWriter = () => Pick<
+  Storage,
+  "setItem"
+>;
 
 /**
  * A remembered yes/no — a menu folded to its rail, a panel
@@ -26,7 +36,7 @@ export type PreferenceStore = () => Pick<
  */
 export const readPreference = (
   key: SoftStr,
-  store: PreferenceStore = () => localStorage,
+  store: PreferenceReader = () => localStorage,
 ): boolean =>
   pipe(
     tryCatch(() => store().getItem(key) === "1")(
@@ -45,7 +55,7 @@ export const readPreference = (
 export const savePreference = (
   key: SoftStr,
   on: boolean,
-  store: PreferenceStore = () => localStorage,
+  store: PreferenceWriter = () => localStorage,
 ): boolean =>
   pipe(
     tryCatch(() => {

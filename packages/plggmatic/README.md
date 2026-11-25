@@ -144,6 +144,13 @@ offers; the rest is the framework's.
 
 `packages/plggmatic-example` demo 4 (`demo4.html`) runs all of it together.
 
+A product that already draws its own columns takes the logic alone from
+`plggmatic/columns` — the trail and its address, the geometry, the reveal and
+the preference, about 21 KiB, reaching only `plgg`. The package root gathers
+the whole framework into one file, which a bundler that inlines dependencies
+whole would carry into the page (measured on corpd: +490 KiB per entry from
+the root, +27 KiB from `plggmatic/columns`).
+
 ## Palette override & scheme persistence
 
 The color system is a closed role×variant matrix with a **monochrome default**.

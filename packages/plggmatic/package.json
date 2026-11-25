@@ -1,6 +1,6 @@
 {
   "name": "plggmatic",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "A column-oriented UI design framework on the plgg family: pane alignment, a typed light/dark color scheme, and fundamental components as pure functions returning plgg-view Html",
   "type": "module",
   "main": "dist/index.es.js",
@@ -13,6 +13,10 @@
     "./style": {
       "types": "./dist/styleEntry.d.ts",
       "default": "./dist/styleEntry.es.js"
+    },
+    "./columns": {
+      "types": "./dist/columnsEntry.d.ts",
+      "default": "./dist/columnsEntry.es.js"
     }
   },
   "types": "dist/index.d.ts",

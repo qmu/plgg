@@ -17,6 +17,12 @@ export default {
       name: "styleEntry",
       input: "styleEntry.ts",
     },
+    // the strip's logic alone, for a product that draws
+    // its own columns — see src/columnsEntry.ts
+    {
+      name: "columnsEntry",
+      input: "columnsEntry.ts",
+    },
   ],
   formats: ["es"],
   fileNamePattern: "[name].[format].js",
