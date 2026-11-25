@@ -597,6 +597,10 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     margin: 0;
     padding: 6px 0 10px;
   }
+  /* The property list: one setting a row, its name on
+     the left, its control on the right — the form the
+     design system (plggmatic's propertyList) records.
+     Colours stay this sheet's own ink and paper. */
   .dsl-properties {
     flex: 0 1 auto;
     max-height: 45%;
@@ -604,22 +608,27 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     border-top: 1px solid var(--ink);
     color: var(--ink);
     font-size: 13px;
+    line-height: 1.3;
   }
   .dsl-properties strong {
     display: block;
-    padding: 4px 14px 6px;
+    padding: 8px 14px;
     font-weight: 600;
   }
   .property-row {
     display: grid;
-    grid-template-columns: 7.5em minmax(0, 1fr);
+    grid-template-columns:
+      minmax(5.5em, 2fr)
+      minmax(0, 3fr);
     align-items: center;
-    height: 28px;
+    column-gap: 12px;
+    min-height: 36px;
     box-sizing: border-box;
     border-top: 1px solid var(--trace);
-    padding: 0 14px;
+    padding: 4px 14px;
   }
   .property-row > span {
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -628,31 +637,134 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     display: flex;
     min-width: 0;
     align-items: center;
+    gap: 6px;
   }
   .dsl-properties :is(input, select, button) {
     min-width: 0;
     max-width: 100%;
-    border: 1px solid var(--ink);
+    height: 26px;
+    box-sizing: border-box;
+    border: 1px solid var(--pencil);
     border-radius: 0;
     box-shadow: none;
     background: var(--paper);
     color: var(--ink);
     font: inherit;
-    padding: 1px 4px;
+    padding: 0 8px;
+    transition:
+      border-color 0.12s ease,
+      background-color 0.12s ease;
   }
   .dsl-properties :is(input, select) {
-    flex: 1;
+    flex: 1 1 0;
+    width: 100%;
   }
-  .dsl .dsl-properties button[aria-pressed='true'],
-  .dsl .dsl-properties button[aria-pressed='true']:hover {
+  .dsl-properties select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 24px;
+    background-image:
+      linear-gradient(
+        45deg,
+        transparent 50%,
+        currentColor 50%
+      ),
+      linear-gradient(
+        135deg,
+        currentColor 50%,
+        transparent 50%
+      );
+    background-position:
+      calc(100% - 13px) 50%,
+      calc(100% - 8px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .dsl-properties button {
+    flex: none;
+    cursor: pointer;
+  }
+  .dsl-properties
+    :is(input, select, button):hover:not(:disabled) {
+    border-color: var(--ink);
+  }
+  .dsl-properties
+    :is(input, select, button):focus-visible {
+    border-color: var(--ink);
+  }
+  .dsl-properties :disabled {
+    cursor: not-allowed;
+  }
+  .dsl
+    .dsl-properties
+    button[aria-pressed='true']:not([data-switch]),
+  .dsl
+    .dsl-properties
+    button[aria-pressed='true']:not(
+      [data-switch]
+    ):hover {
     background: var(--ink);
+    border-color: var(--ink);
     color: var(--paper);
+  }
+  /* A yes/no setting is a switch: the track and its
+     thumb are drawn before the word, and the pressed
+     state moves the thumb. */
+  .dsl .dsl-properties button[data-switch] {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    padding: 0;
+    background: none;
+    color: var(--ink);
+  }
+  .dsl-properties button[data-switch]::before {
+    content: '';
+    flex: none;
+    width: 34px;
+    height: 18px;
+    box-sizing: border-box;
+    border: 1px solid var(--pencil);
+    background:
+      linear-gradient(var(--ink), var(--ink)) 3px
+        50% / 10px 10px no-repeat,
+      var(--paper);
+    transition:
+      background-position 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .dsl-properties
+    button[data-switch][aria-pressed='true']::before {
+    border-color: var(--ink);
+    background:
+      linear-gradient(var(--paper), var(--paper))
+        19px 50% / 10px 10px no-repeat,
+      var(--ink);
+  }
+  .dsl-properties
+    button[data-switch][aria-pressed='mixed']::before {
+    background:
+      linear-gradient(var(--pencil), var(--pencil))
+        11px 50% / 10px 10px no-repeat,
+      var(--paper);
+  }
+  .dsl-properties
+    button[data-switch]:focus-visible::before {
+    border-color: var(--ink);
+    box-shadow: inset 0 -1px 0 var(--ink);
   }
   .dsl-properties [data-mixed],
   .dsl-properties small,
   .dsl-properties input::placeholder,
   .dsl-properties :disabled {
     color: var(--pencil);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dsl-properties :is(input, select, button),
+    .dsl-properties button[data-switch]::before {
+      transition: none;
+    }
   }
   .flow-board .dsl-hover {
     filter: drop-shadow(0 0 2px var(--graphite));
