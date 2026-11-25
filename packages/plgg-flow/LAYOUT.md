@@ -2045,3 +2045,24 @@ and the lower layers were grey tags under a board. A cake's 上 is
 now yaw −0.22, elevation 0.9 — from above, but no steeper than
 leaves each board mostly clear of the one over it; all eleven
 nodes of the three-layer shop are seen and named.
+
+## Plumb wires between layers (2026-11-25)
+
+A user reading the four-layer TCP/IP cake asked for plain wires: joined at
+the floor and the roof of a node, not at its flanks. Until now a wire between
+two boards left a flank, ran to the rim or to the front of the stack, dropped
+there and came back in from a flank.
+
+Now a wire between two layers is tried first as a plumb line: out of the floor
+of the upper node, a jog in the gap between the boards (x or z, one of five
+levels around the middle), into the roof of the lower node. Sockets fan along
+x in steps of 8 when the centre is taken. A run down through a board inside
+the footprint of its own end node is not charged as a pierced board. A plumb
+line that crosses another is kept over a detour that crosses nothing; the rim
+and flank routes remain only for a wire whose every plumb candidate is blocked.
+
+Measured on the audit set: sev3 0, sev2 0, crossings 99 to 103, bends 632 to
+625. The added crossings are jogs in a gap that cross another wire's drop; the
+clean-architecture sample shows them in its first gap, where the order of the
+adapters does not follow the order of the frameworks above. Ordering a layer
+by the layer above it is the open remedy.

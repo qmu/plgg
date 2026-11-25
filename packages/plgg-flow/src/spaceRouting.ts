@@ -231,8 +231,14 @@ export const routeAssignment = (
                 Math.max(start.y, end.y),
           )
         ) {
-          const rank =
-            start.z > stack.max.z
+          const plumb = [a, b].some(
+            (q) =>
+              Math.abs(start.x - q.p.x) < q.x &&
+              start.z === q.p.z,
+          );
+          const rank = plumb
+            ? 0
+            : start.z > stack.max.z
               ? 0
               : start.x < stack.min.x
                 ? 1
@@ -390,8 +396,51 @@ export const routeAssignment = (
           }
         }
     };
-    candidates(a.p, b.p, false);
-    if (stack && a.p.y !== b.p.y) {
+    // Between two layers the plain wire is a plumb line: out of the
+    // floor of one node, into the roof of the other, jogging in the gap.
+    if (drop) {
+      const middle = (a.p.y + b.p.y) / 2;
+      const sockets = [0, 8, -8, 16, -16];
+      for (const from of sockets) {
+        if (Math.abs(from) >= a.x) continue;
+        for (const to of sockets) {
+          if (Math.abs(to) >= b.x) continue;
+          const s = shift(a.p, "x", a.p.x + from),
+            t = shift(b.p, "x", b.p.x + to);
+          for (const lift of [
+            0, -16, 16, -32, 32,
+          ]) {
+            const top = shift(
+                s,
+                "y",
+                middle + lift,
+              ),
+              bottom = shift(
+                t,
+                "y",
+                middle + lift,
+              );
+            for (const l of ["x", "z"] satisfies (
+              | "x"
+              | "z"
+            )[])
+              consider([
+                s,
+                top,
+                shift(top, l, bottom[l]),
+                bottom,
+                t,
+              ]);
+          }
+          if (best && cost < 1000000) break;
+        }
+        if (best && cost < 1000000) break;
+      }
+    }
+    // A plumb line that crosses another is still plainer than a detour.
+    const settled = drop && !!best;
+    if (!settled) candidates(a.p, b.p, false);
+    if (!settled && stack && a.p.y !== b.p.y) {
       for (const z of [
         stack.max.z + 8,
         stack.max.z + 16,
@@ -427,7 +476,10 @@ export const routeAssignment = (
           }
       }
     }
-    if (!best || drop || cost >= 1000000)
+    if (
+      !settled &&
+      (!best || drop || cost >= 1000000)
+    )
       candidates(a.p, b.p, true);
     if (stack && a.p.y !== b.p.y && !best) {
       for (const k of ["x", "z"] satisfies (
@@ -553,7 +605,10 @@ export const routeAssignment = (
     }
     // Leave each endpoint on a flank before changing depth. Independent
     // end choices also let a crowded socket use the next lane on its flank.
-    if (!best || (initial && cost >= 1000000)) {
+    if (
+      !settled &&
+      (!best || (initial && cost >= 1000000))
+    ) {
       const exits = (
         box: typeof a,
         offset: number,

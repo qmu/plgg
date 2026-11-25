@@ -604,3 +604,53 @@ for (const file of subjects("subjects")) {
     },
   );
 }
+for (const page of [
+  "samples/layers",
+  "architectures/tcpip",
+  "architectures/clean",
+]) {
+  test(
+    page +
+      " wires between layers leave a floor and land on a roof",
+    () => {
+      const source = readFileSync(
+        "../plgg-flow-example/markdown/" +
+          page +
+          ".md",
+        "utf8",
+      )
+        .split(/^```plgg-flow[^\n]*\n/m)[1]!
+        .split("\n```")[0]!;
+      const spec = parseSpec(source);
+      if (spec.__tag === "Err")
+        throw Error(spec.content);
+      const f = specFlow(spec.content);
+      const at = new Map(
+        f.nodes.map((n) => [n.id, n.position]),
+      );
+      const plumb = (a?: Point3, b?: Point3) =>
+        !!a && !!b && a.x === b.x && a.z === b.z;
+      const between = f.edges.filter(
+        (e) =>
+          at.get(e.source)?.y !==
+          at.get(e.target)?.y,
+      );
+      const sideways = between.filter(
+        (e) =>
+          !plumb(e.path?.[0], e.path?.[1]) ||
+          !plumb(
+            e.path?.[e.path.length - 2],
+            e.path?.[e.path.length - 1],
+          ),
+      );
+      return check(
+        between.length +
+          " between, " +
+          sideways
+            .map((e) => e.source + ">" + e.target)
+            .join(" "),
+        toBe(between.length + " between, "),
+      );
+    },
+  );
+}
