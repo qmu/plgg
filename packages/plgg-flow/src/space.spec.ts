@@ -611,7 +611,7 @@ for (const page of [
 ]) {
   test(
     page +
-      " wires between layers leave a floor and land on a roof",
+      " wires between layers leave a floor and land on a roof, and a layer reads left to right",
     () => {
       const source = readFileSync(
         "../plgg-flow-example/markdown/" +
@@ -635,6 +635,22 @@ for (const page of [
           at.get(e.source)?.y !==
           at.get(e.target)?.y,
       );
+      const back = f.edges.filter((e) => {
+        const a = at.get(e.source),
+          b = at.get(e.target);
+        return (
+          !!a && !!b && a.y === b.y && a.x > b.x
+        );
+      });
+      if (back.length)
+        throw Error(
+          "reads right to left: " +
+            back
+              .map(
+                (e) => e.source + ">" + e.target,
+              )
+              .join(" "),
+        );
       const sideways = between.filter(
         (e) =>
           !plumb(e.path?.[0], e.path?.[1]) ||

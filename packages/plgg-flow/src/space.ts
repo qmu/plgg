@@ -359,24 +359,6 @@ export const planSpace = (
       ? []
       : [{ a, b }];
   });
-  const swaps = cells.flatMap((cell) =>
-    cell.nodes.flatMap((a, i) =>
-      cell.nodes.slice(i + 1).flatMap((b) => {
-        const p = positions.get(a.id)!,
-          q = positions.get(b.id)!;
-        return cake &&
-          p.x - sizes(a).width / 2 !==
-            q.x - sizes(b).width / 2
-          ? []
-          : [
-              [
-                ids.get(a.id)!,
-                ids.get(b.id)!,
-              ] satisfies [number, number],
-            ];
-      }),
-    ),
-  );
   // Score a slot exchange cheaply before spending time assigning lanes.
   const slots = nodes.map((n) => n.position);
   const evaluate = (assignment: Point3[]) => {
@@ -493,15 +475,213 @@ export const planSpace = (
       cells,
       sizes,
     );
-  let chosen = slots,
-    result = routed(slots);
+  // Stand a row's nodes in a new order, keeping the gaps the row had.
+  const pack = (
+    at: readonly Point3[],
+    before: readonly number[],
+    after: readonly number[],
+  ) => {
+    const half = (i: number) =>
+      sizes(nodes[i]!).width / 2;
+    const first = before[0],
+      end = before[before.length - 1];
+    if (first === undefined || end === undefined)
+      return undefined;
+    let cursor = at[first]!.x - half(first);
+    const packed = after.map((i, j) => {
+      const prior = before[j - 1],
+        slot = before[j]!;
+      const gap =
+        prior === undefined
+          ? 0
+          : at[slot]!.x -
+            half(slot) -
+            at[prior]!.x -
+            half(prior);
+      const left =
+        Math.ceil((cursor + gap) / 16) * 16;
+      cursor = left + 2 * half(i);
+      return { i, x: left + half(i) };
+    });
+    return cursor > at[end]!.x + half(end) + 16
+      ? undefined
+      : packed;
+  };
+  const rowsOf = (at: readonly Point3[]) => {
+    const rows = new Map<string, number[]>();
+    at.forEach((p, i) => {
+      const k = p.y + "/" + p.z;
+      rows.set(k, [...(rows.get(k) ?? []), i]);
+    });
+    return [...rows.values()].map((row) =>
+      row.sort((a, b) => at[a]!.x - at[b]!.x),
+    );
+  };
+  // A wire inside one layer reads left to right; one that runs back costs
+  // more than a crossing, so the mirror image of a tidy row is not chosen.
+  const reading = (at: readonly Point3[]) =>
+    evaluate(at.slice()) +
+    50000 *
+      links.filter(
+        ({ a, b }) =>
+          at[a]!.y === at[b]!.y &&
+          at[a]!.x > at[b]!.x,
+      ).length;
+  const mirror = (assignment: Point3[]) => {
+    const next = assignment.slice();
+    for (const row of rowsOf(assignment)) {
+      const packed = pack(
+        assignment,
+        row,
+        row.slice().reverse(),
+      );
+      if (!packed) return assignment;
+      for (const { i, x } of packed)
+        next[i] = { ...next[i]!, x };
+    }
+    return next;
+  };
+  // Then exchange neighbours in a row while the estimate still falls.
+  const polish = (assignment: Point3[]) => {
+    let current = assignment,
+      cost = reading(current);
+    for (let round = 0; round < 4; round++) {
+      let improved = false;
+      for (const row of rowsOf(current))
+        for (let j = 1; j < row.length; j++) {
+          const now = rowsOf(current).find((r) =>
+              r.includes(row[j]!),
+            )!,
+            k = now.indexOf(row[j]!);
+          if (k < 1) continue;
+          const after = now.slice();
+          after[k - 1] = now[k]!;
+          after[k] = now[k - 1]!;
+          const packed = pack(
+            current,
+            now,
+            after,
+          );
+          if (!packed) continue;
+          const trial = current.slice();
+          for (const { i, x } of packed)
+            trial[i] = { ...trial[i]!, x };
+          const price = reading(trial);
+          if (price < cost) {
+            current = trial;
+            cost = price;
+            improved = true;
+          }
+        }
+      if (!improved) break;
+    }
+    return current;
+  };
+  // On a cake a row follows the layer it hangs from: each node takes the
+  // mean x of its neighbours there as its place in the row, and the row is
+  // packed again in that order with the gaps it had.
+  const sweep = (
+    assignment: Point3[],
+    down: boolean,
+  ) => {
+    const next = assignment.slice();
+    const levels = [
+      ...new Set(next.map((p) => p.y)),
+    ].sort((a, b) => (down ? a - b : b - a));
+    const done = new Set<number>();
+    for (const y of levels) {
+      const rows = new Map<number, number[]>();
+      next.forEach((p, i) => {
+        if (p.y === y)
+          rows.set(p.z, [
+            ...(rows.get(p.z) ?? []),
+            i,
+          ]);
+      });
+      for (const row of rows.values()) {
+        const before = row
+          .slice()
+          .sort(
+            (a, b) => next[a]!.x - next[b]!.x,
+          );
+        const key = new Map(
+          before.map((i) => {
+            const xs = links.flatMap((l) =>
+              l.a === i && done.has(next[l.b]!.y)
+                ? [next[l.b]!.x]
+                : l.b === i &&
+                    done.has(next[l.a]!.y)
+                  ? [next[l.a]!.x]
+                  : [],
+            );
+            return [
+              i,
+              xs.length
+                ? xs.reduce((a, b) => a + b, 0) /
+                  xs.length
+                : next[i]!.x,
+            ];
+          }),
+        );
+        const after = before
+          .slice()
+          .sort(
+            (a, b) => key.get(a)! - key.get(b)!,
+          );
+        if (
+          after.every((i, j) => i === before[j])
+        )
+          continue;
+        const packed = pack(next, before, after);
+        if (packed)
+          for (const { i, x } of packed)
+            next[i] = { ...next[i]!, x };
+      }
+      done.add(y);
+    }
+    return next;
+  };
+  const start = cake
+    ? [sweep(slots, true), sweep(slots, false)]
+        .flatMap((t) => [t, mirror(t)])
+        .concat([mirror(slots)])
+        .map(polish)
+        .reduce(
+          (best, trial) =>
+            reading(trial) < reading(best)
+              ? trial
+              : best,
+          polish(slots),
+        )
+    : slots;
+  const swaps = cells.flatMap((cell) =>
+    cell.nodes.flatMap((a, i) =>
+      cell.nodes.slice(i + 1).flatMap((b) => {
+        const p = start[ids.get(a.id)!]!,
+          q = start[ids.get(b.id)!]!;
+        return cake &&
+          p.x - sizes(a).width / 2 !==
+            q.x - sizes(b).width / 2
+          ? []
+          : [
+              [
+                ids.get(a.id)!,
+                ids.get(b.id)!,
+              ] satisfies [number, number],
+            ];
+      }),
+    ),
+  );
+  let chosen = start,
+    result = routed(start);
   if (
     swaps.length &&
     links.length &&
     result.cost >= 1000000
   ) {
-    let trial = slots;
-    let estimate = evaluate(trial);
+    let trial = chosen;
+    const price = cake ? reading : evaluate;
+    let estimate = price(trial);
     for (
       let round = 0;
       round < (links.length > 32 ? 2 : 4);
@@ -510,7 +690,7 @@ export const planSpace = (
       let next = trial;
       for (const [a, b] of swaps) {
         const alt = exchange(trial, a, b),
-          cost = evaluate(alt);
+          cost = price(alt);
         if (cost < estimate) {
           estimate = cost;
           next = alt;
@@ -519,7 +699,7 @@ export const planSpace = (
       if (next === trial) break;
       trial = next;
     }
-    if (trial !== slots) {
+    if (trial !== chosen) {
       const candidate = routed(trial);
       if (candidate.cost < result.cost) {
         chosen = trial;
@@ -532,8 +712,13 @@ export const planSpace = (
         links.length > 24 ? 2 : 4,
       )) {
         if (result.cost < 1000000) break;
-        const alt = exchange(chosen, a, b),
-          candidate = routed(alt);
+        const alt = exchange(chosen, a, b);
+        if (
+          price(alt) - evaluate(alt) >
+          price(chosen) - evaluate(chosen)
+        )
+          continue;
+        const candidate = routed(alt);
         if (candidate.cost < result.cost) {
           chosen = alt;
           result = candidate;

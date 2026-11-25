@@ -2061,8 +2061,30 @@ the footprint of its own end node is not charged as a pierced board. A plumb
 line that crosses another is kept over a detour that crosses nothing; the rim
 and flank routes remain only for a wire whose every plumb candidate is blocked.
 
-Measured on the audit set: sev3 0, sev2 0, crossings 99 to 103, bends 632 to
-625. The added crossings are jogs in a gap that cross another wire's drop; the
+Measured on the audit set: sev3 0, sev2 0, crossings 99 to 109, bends 632 to
+623. (The first figure written here, 103, was read from a build made before
+the last change of that round; the audit reads `dist`, so build before it.) The added crossings are jogs in a gap that cross another wire's drop; the
 clean-architecture sample shows them in its first gap, where the order of the
 adapters does not follow the order of the frameworks above. Ordering a layer
 by the layer above it is the open remedy.
+
+## A row follows the layer it hangs from (2026-11-25)
+
+The plumb wires showed what the order of a row costs: where the adapters did
+not stand in the order of the frameworks above, every jog crossed a drop.
+
+A cake now orders its rows before routing. A sweep down and a sweep up give
+each node the mean x of its neighbours in the layer already ordered; the row
+is packed again in that order with the gaps it had, left edges on the 16 grid.
+Neighbours in a row are then exchanged while the estimate falls. The estimate
+is the old one (length, plus 10000 a crossing in each plane) plus 50000 for a
+wire inside one layer that runs right to left, so a tidy mirror image does not
+turn 商品ページ → カート → 注文フォーム around. The exchange of slots between
+rows that follows uses the same estimate and refuses a swap that adds a
+backward wire.
+
+Measured: crossings 109 to 102, bends 623 to 618, sev3 0, sev2 0. The wide
+random cake fell from 14 to 7 (it was 2 with the rim routes). At a charge of
+20000 the total was 100 but the shop sample read backward; at 100000 the wide
+cake rose to 20. The clean-architecture sample has no crossing left in its
+first gap; its second gap still has three wires converging on one node.
