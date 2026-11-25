@@ -195,7 +195,7 @@ test("monochrome is one ink, square and inverted; soft answers every one of thos
     check(
       mono,
       toContain(
-        ".pm-shell .pm-col{background:var(--pm-surface);border-right:1px solid var(--pm-text)}",
+        ".pm-shell .pm-col{background:var(--pm-surface);border-right:1px solid var(--pm-primary-border)}",
       ),
     ),
     check(

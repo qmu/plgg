@@ -1,7 +1,7 @@
 import { boardCss } from "plgg-ir-diagram/boardCss";
 const root = '[data-island="plgg-diagram"]';
 export const diagramCss = `
-${root}{--ink:var(--pm-text);--paper:var(--pm-surface);--graphite:var(--pm-muted);--trace:var(--pm-border);--body:system-ui,sans-serif;--wash:var(--pm-surface-2);}
+${root}{--ink:var(--pm-text);--rule:var(--pm-primary-border,var(--pm-text));--paper:var(--pm-surface);--graphite:var(--pm-muted);--trace:var(--pm-border);--body:system-ui,sans-serif;--wash:var(--pm-surface-2);}
 ${root} figure{margin:0}
 ${root} figcaption,${root} summary{padding:.45rem;font-weight:600}
 ${root} summary,${root} button{cursor:pointer}

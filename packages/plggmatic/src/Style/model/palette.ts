@@ -94,7 +94,10 @@ const DEFAULT_RAW: Record<
     "primary-base": "#000000",
     "primary-text": "#000000",
     "primary-surface": "#f4f4f4",
-    "primary-border": "#767676",
+    // the frame's rule: a step under the ink — still a
+    // drawn line, not a grey one, but not the full black
+    // the text is set in
+    "primary-border": "#3d3d3d",
     "success-base": "#047857",
     "success-text": "#065f46",
     "success-surface": "#ecfdf5",
@@ -125,7 +128,9 @@ const DEFAULT_RAW: Record<
     "primary-base": "#e2e2e2",
     "primary-text": "#e2e2e2",
     "primary-surface": "#262626",
-    "primary-border": "#8a8a8a",
+    // the frame's rule: a step under the ink here too; a
+    // full-strength line on a dark sheet glares
+    "primary-border": "#8c8c8c",
     "success-base": "#34d399",
     "success-text": "#34d399",
     "success-surface": "#022c22",

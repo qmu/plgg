@@ -36,7 +36,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   :where(:scope) > div button,
   .editing-tools button {
     padding: 6px 14px;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     background: var(--paper);
     border-radius: 0;
     font-size: 13px;
@@ -93,7 +93,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     accent-color: var(--ink);
     font: inherit;
     color: inherit;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     border-radius: 0;
     background: var(--paper);
   }
@@ -116,14 +116,14 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .canvas-wrap::before {
     top: -6px;
     left: -6px;
-    border-top: 1px solid var(--ink);
-    border-left: 1px solid var(--ink);
+    border-top: 1px solid var(--rule, var(--ink));
+    border-left: 1px solid var(--rule, var(--ink));
   }
   .canvas-wrap::after {
     bottom: -6px;
     right: -6px;
-    border-bottom: 1px solid var(--ink);
-    border-right: 1px solid var(--ink);
+    border-bottom: 1px solid var(--rule, var(--ink));
+    border-right: 1px solid var(--rule, var(--ink));
   }
   .add-node {
     position: absolute;
@@ -132,7 +132,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     background: var(--paper);
     color: var(--ink);
     font: 400 22px/1 var(--display);
@@ -150,7 +150,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     background: var(--ink);
     color: var(--paper);
     font: 400 20px/1 var(--display);
@@ -163,7 +163,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     inset: auto auto 14px 14px;
     background: var(--paper);
     color: var(--ink);
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     padding: 2px 10px;
     font-size: 12px;
   }
@@ -173,7 +173,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .minimap {
     background: var(--paper);
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     width: 180px;
     height: 85px;
   }
@@ -193,7 +193,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .editing-tools {
     margin-top: 18px;
-    border-top: 1px solid var(--ink);
+    border-top: 1px solid var(--rule, var(--ink));
     padding-top: 12px;
   }
   .editing-tools summary {
@@ -250,7 +250,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
         280px,
         28%
       );
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     margin: 0 0 18px;
   }
   .stage .canvas-wrap {
@@ -319,7 +319,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     margin: 0;
     padding: 4px 10px;
     background: var(--paper);
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     font-size: 13px;
   }
   .board-controls .feature:empty {
@@ -332,7 +332,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     display: flex;
     flex-direction: column;
     min-width: 0;
-    border-left: 1px solid var(--ink);
+    border-left: 1px solid var(--rule, var(--ink));
     background: var(--paper);
   }
   .dsl-head {
@@ -340,7 +340,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     justify-content: space-between;
     align-items: baseline;
     padding: 10px 14px;
-    border-bottom: 1px solid var(--ink);
+    border-bottom: 1px solid var(--rule, var(--ink));
   }
   .dsl-head strong {
     font: 600 14px var(--display);
@@ -367,7 +367,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .dsl-status {
     padding: 8px 14px;
-    border-top: 1px solid var(--ink);
+    border-top: 1px solid var(--rule, var(--ink));
     font-size: 12px;
     line-height: 1.6;
     color: var(--graphite);
@@ -378,11 +378,11 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .stage {--panel:320px;position:relative;display:block;flex:1;min-height:0; margin:0}
   .stage .canvas-wrap {height:100%;aspect-ratio:auto}
-  .stage .dsl {position:absolute;inset:0 0 0 auto;width:var(--panel);background:color-mix(in srgb,var(--paper) 82%,transparent);border-left:1px solid var(--ink);contain:none}
+  .stage .dsl {position:absolute;inset:0 0 0 auto;width:var(--panel);background:color-mix(in srgb,var(--paper) 82%,transparent);border-left:1px solid var(--rule, var(--ink));contain:none}
   .stage .dsl textarea{background:transparent}
   .stage:has(.dsl) .board-controls{right:calc(var(--panel) + 12px)}
   .dsl-handle,.tool-trigger{display:none}
-  .maximise{position:absolute;right:calc(var(--panel) + 12px);bottom:12px;width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid var(--ink);border-radius:50%;background:var(--paper);color:var(--ink);cursor:pointer}
+  .maximise{position:absolute;right:calc(var(--panel) + 12px);bottom:12px;width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid var(--rule, var(--ink));border-radius:50%;background:var(--paper);color:var(--ink);cursor:pointer}
   .maximise:hover,.maximise[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
   :scope[data-max="true"]{position:fixed;inset:0;z-index:100;height:auto;padding:0;background:var(--paper)}
   :scope[data-max="true"] .stage{--panel:0px}
@@ -397,7 +397,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     width: 22px;
     height: 22px;
     padding: 0;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     border-radius: 50%;
     background: var(--paper);
     font: 500 12px/1 var(--display);
@@ -417,7 +417,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     max-height: calc(100vh - 32px);
     overflow: auto;
     padding: 16px 18px;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     background: var(--paper);
     text-align: left;
     font-size: 13px;
@@ -441,7 +441,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
       );
     gap: 8px 16px;
     padding: 10px 0;
-    border-top: 1px solid var(--ink);
+    border-top: 1px solid var(--rule, var(--ink));
     border-bottom: 1px solid var(--trace);
   }
   .help-rows code {
@@ -528,7 +528,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     height: 22px;
     display: grid;
     place-items: center;
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
     border-radius: 50%;
     background: var(--paper);
     cursor: pointer;
@@ -591,7 +591,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
       monospace;
     background: var(--paper);
     color: var(--ink);
-    border: 1px solid var(--ink);
+    border: 1px solid var(--rule, var(--ink));
   }
   .dsl .dsl-properties {
     margin: 0;
@@ -605,7 +605,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     flex: 0 1 auto;
     max-height: 45%;
     overflow: auto;
-    border-top: 1px solid var(--ink);
+    border-top: 1px solid var(--rule, var(--ink));
     color: var(--ink);
     font-size: 13px;
     line-height: 1.3;
@@ -686,11 +686,11 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .dsl-properties
     :is(input, select, button):hover:not(:disabled) {
-    border-color: var(--ink);
+    border-color: var(--rule, var(--ink));
   }
   .dsl-properties
     :is(input, select, button):focus-visible {
-    border-color: var(--ink);
+    border-color: var(--rule, var(--ink));
   }
   .dsl-properties :disabled {
     cursor: not-allowed;
@@ -704,7 +704,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
       [data-switch]
     ):hover {
     background: var(--ink);
-    border-color: var(--ink);
+    border-color: var(--rule, var(--ink));
     color: var(--paper);
   }
   /* A yes/no setting is a switch: the track and its
@@ -736,7 +736,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .dsl-properties
     button[data-switch][aria-pressed='true']::before {
-    border-color: var(--ink);
+    border-color: var(--rule, var(--ink));
     background:
       linear-gradient(var(--paper), var(--paper))
         19px 50% / 10px 10px no-repeat,
@@ -751,7 +751,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .dsl-properties
     button[data-switch]:focus-visible::before {
-    border-color: var(--ink);
+    border-color: var(--rule, var(--ink));
     box-shadow: inset 0 -1px 0 var(--ink);
   }
   .dsl-properties [data-mixed],
@@ -789,7 +789,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     .stage{--panel:inherit;margin:0;border:0}
     :scope[data-level="half"]{--panel:45%}
     :scope[data-level="full"]{--panel:85%}
-    .stage .dsl{inset:auto 0 0;width:auto;height:var(--panel);padding:0;background:var(--paper);border:0;border-top:1px solid var(--ink)}
+    .stage .dsl{inset:auto 0 0;width:auto;height:var(--panel);padding:0;background:var(--paper);border:0;border-top:1px solid var(--rule, var(--ink))}
     .dsl-handle{position:static;display:block;width:100%;flex:0 0 44px;font:inherit;font-size:14px;border:0;background:var(--paper);touch-action:none}
     .dsl-head{order:-2;flex:0 0 44px;padding:0;min-width:0}
     .dsl-head strong{display:none}
@@ -798,7 +798,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     .stage .canvas-wrap{touch-action:auto}
     .board-controls .tool-trigger{display:block}
     .tool-content[popover]{display:none}
-    .tool-content:popover-open{display:grid;gap:8px;position:fixed;inset:auto 0 env(safe-area-inset-bottom);margin:0 auto;box-sizing:border-box;width:min(100%,32rem);max-height:70dvh;overflow:auto;padding:12px;background:var(--paper);color:var(--ink);border:1px solid var(--ink);white-space:normal}
+    .tool-content:popover-open{display:grid;gap:8px;position:fixed;inset:auto 0 env(safe-area-inset-bottom);margin:0 auto;box-sizing:border-box;width:min(100%,32rem);max-height:70dvh;overflow:auto;padding:12px;background:var(--paper);color:var(--ink);border:1px solid var(--rule, var(--ink));white-space:normal}
     .tool-content:popover-open::backdrop{background:color-mix(in srgb,var(--ink) 16%,transparent)}
     .tool-content:popover-open :is(button,input,select,summary){min-height:44px;font-size:14px}
     .tool-content:popover-open .minimap{width:100%;height:150px}

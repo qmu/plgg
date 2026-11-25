@@ -390,7 +390,8 @@ test("the strip is one frame, one strip, one column shape", () =>
     check(
       css,
       toContain(
-        "border-right:1px solid " + cvar("text"),
+        "border-right:1px solid " +
+          cvar("primary-border"),
       ),
     ),
     check(

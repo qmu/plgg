@@ -70,8 +70,10 @@ export type Appearance = Readonly<{
 }>;
 
 /**
- * THE DEFAULT: monochrome. One ink — the frame is drawn in
- * the text colour, not shaded in grey. Square. The only
+ * THE DEFAULT: monochrome. One ink — the frame is drawn,
+ * not shaded in grey, in a rule the palette holds one step
+ * under the text colour (full black on white, or white on
+ * dark, is harsher than a frame needs to be). Square. The only
  * emphasis is inversion: the current thing swaps text and
  * surface, and so does whatever is being pressed. Calm
  * type on a 15px body.
@@ -85,7 +87,7 @@ export const monochrome: Appearance = {
   mono: "ui-monospace,SFMono-Regular,Menlo,monospace",
   size: "15px",
   leading: "1.75",
-  rule: "text",
+  rule: "primary-border",
   hairline: "border",
   ruleWidth: "1px",
   radius: "0",
