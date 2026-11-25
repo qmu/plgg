@@ -1984,3 +1984,28 @@ elevation 0.20 with every node of the far row clear above the near
 row, at 560, 1250 and 1700 wide. At 900 × 700 this costs 0.3px of
 caption (9.7px); the opening-captions spec gives up half a pixel
 for it and says why.
+
+## Shooting round 8 — counted, not looked at: every node named from nine sides
+
+Every space subject was rendered from nine cameras (front, top,
+side, three-quarter, from the right, from behind, steeply above,
+from the left, low) and its nodes counted against its captions and
+tags. **Nodes lost their names**: on the cakes, a node whose
+caption point fell behind another node had neither caption nor tag
+(通販の3層 at 正面: 注文受付 and 決済; ネットワークのゾーン steeply
+above: three). The engine drops a label behind opaque ink, so that
+nothing shows through a node — right for other things' lettering,
+wrong for the hidden node's own name.
+
+A label may now say what it becomes behind opaque ink (`behind`):
+kept, upright, in that style. Node captions become tags, which the
+sheet already sets clear of other nodes with a leader. Counted
+again: 20 subjects × 9 cameras, 0 nodes without a name
+(`namesEveryView.spec.ts` keeps it so). With 「隠れ線」 off, what a
+board covers is not drawn and not named; that is what the switch
+means.
+
+Not looked at in a browser this round (the extension was not
+connected): where those tags land, and the 7–8px captions the
+rooms get at 900 × 700 away from the opening view (three storeys
+of 256 leave a scale near 0.6).

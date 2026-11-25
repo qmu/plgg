@@ -466,6 +466,8 @@ export const engineView = (
       id,
       style: tag ? "tag" : "caption",
       clear: true,
+      // a node behind another keeps its name, on a tag
+      behind: "tag",
       text: n.label,
       point,
       size: { x: width, y: 16 },

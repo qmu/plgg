@@ -456,23 +456,32 @@ export const render = (
         covered(vertex(m.point)),
     });
   for (const l of scene.labels) {
-    const transform = matrix(l.point, l.axes),
+    const buried = covered(vertex(l.point), true);
+    if (buried && l.behind === undefined)
+      continue;
+    const transform = matrix(
+        l.point,
+        buried ? undefined : l.axes,
+      ),
       [a, b, c, d, x, y] = transform,
       { x: width, y: height } = l.size ?? {
         x: l.text.length * 8,
         y: 16,
       };
-    if (covered(vertex(l.point), true)) continue;
     drawing.labels.push({
       id: l.id,
-      style: l.style,
+      style:
+        buried && l.behind !== undefined
+          ? l.behind
+          : l.style,
       text: l.text,
       ...(l.clear && { clear: true }),
       point: vertex(l.point),
       matrix: transform,
       covered:
-        near(l.point) < 0 ||
-        covered(vertex(l.point)),
+        !buried &&
+        (near(l.point) < 0 ||
+          covered(vertex(l.point))),
       box: bounds(
         [0, width].flatMap((u) =>
           [0, -height].map((v) => ({

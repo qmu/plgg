@@ -31,6 +31,11 @@ export type Label = Mark &
     text: string;
     clear?: boolean;
     size?: Point;
+    // A label whose point lies behind opaque ink is not
+    // drawn through it. With `behind` it is kept instead,
+    // upright and in this style, for the caller to set
+    // clear of what covers it; without, it is dropped.
+    behind?: string;
   }>;
 export type Scene = Readonly<{
   solids: readonly Solid[];
