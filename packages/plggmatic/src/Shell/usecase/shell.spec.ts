@@ -51,6 +51,7 @@ const props = (
     label: "Sections",
   },
   folded,
+  drawer: none(),
   fold: [],
   foot: [text("foot")],
   pages: [
@@ -255,5 +256,52 @@ test("the kit is the system half then the appearance half, and the appearance ha
       toBe(false),
     ),
     check(/[<>&]/.test(css), toBe(false)),
+  ]);
+});
+
+test("a narrow window gets a bar, a menu control and a drawer the page itself holds", () => {
+  const html = renderToString(
+    shell(props(false)),
+  );
+  const css = systemCss(defaultTheme);
+  return all([
+    // the checkbox and the two labels that flip it
+    check(html, toContain('id="pm-shell-menu"')),
+    check(
+      html.split('for="pm-shell-menu"').length,
+      toBe(3),
+    ),
+    check(html, toContain("pm-shell-bar")),
+    // the sidebar leaves the strip and the room is whole
+    check(
+      css,
+      toContain(
+        ".pm-shell-menu:checked ~ .pm-row .pm-shell-side",
+      ),
+    ),
+    check(
+      css,
+      toContain("@media (max-width:1023px)"),
+    ),
+  ]);
+});
+
+test("a program can hold the drawer instead: a button, and the open state on the shell", () => {
+  const html = renderToString(
+    shell({
+      ...props(false),
+      drawer: some({ open: true, toggle: [] }),
+    }),
+  );
+  return all([
+    check(html, toContain("data-pm-shell-open")),
+    check(
+      html,
+      toContain('aria-expanded="true"'),
+    ),
+    check(
+      html.split('id="pm-shell-menu"').length,
+      toBe(1),
+    ),
   ]);
 });

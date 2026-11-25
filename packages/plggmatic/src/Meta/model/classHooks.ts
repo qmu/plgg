@@ -134,6 +134,40 @@ export const docClass: SoftStr = hook("doc");
  */
 export const shellMinAttr: SoftStr = `data-${cssPrefix}-shell-min`;
 
+/**
+ * The bar a narrow window shows above the strip: the menu
+ * control and the product's name.
+ */
+export const shellBarClass: SoftStr =
+  hook("shell-bar");
+/** The product's name in that bar: the way home. */
+export const shellBarBrandClass: SoftStr = hook(
+  "shell-bar-brand",
+);
+/** The control that opens the sidebar as a drawer. */
+export const shellMenuButtonClass: SoftStr = hook(
+  "shell-menu-btn",
+);
+/**
+ * The hidden checkbox that holds the drawer's state on a
+ * page with no program: its label is the menu control,
+ * and the stylesheet reads `:checked`.
+ */
+export const shellMenuClass: SoftStr =
+  hook("shell-menu");
+/** That checkbox's id, which its labels point at. */
+export const shellMenuId: SoftStr = `${cssPrefix}-shell-menu`;
+/** What dims the page behind an open drawer. */
+export const shellBackdropClass: SoftStr = hook(
+  "shell-backdrop",
+);
+/**
+ * Set on the shell while its drawer is open, by a program
+ * that holds that state itself (the alternative to the
+ * checkbox).
+ */
+export const shellOpenAttr: SoftStr = `data-${cssPrefix}-shell-open`;
+
 // --- Shared strip (Style/usecase/shareCss) ---
 
 /** A strip whose document columns share the room. */

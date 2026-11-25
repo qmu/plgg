@@ -39,6 +39,13 @@ import {
   shellPageClass,
   docClass,
   shellMinAttr,
+  shellBarClass,
+  shellBarBrandClass,
+  shellMenuButtonClass,
+  shellMenuClass,
+  shellMenuId,
+  shellBackdropClass,
+  shellOpenAttr,
 } from "plggmatic/Meta/model/classHooks";
 import { none } from "plgg";
 
@@ -74,6 +81,12 @@ export type ShellPage<Msg> = Readonly<{
  * - `foot` — what stands at the sidebar's foot: the
  *   appearance toggle.
  * - `pages` — the open document columns, left to right.
+ * - `drawer` — who holds the narrow window's drawer.
+ *   `none()` is the page itself: a hidden checkbox and its
+ *   labels, no program needed (a static page). A program
+ *   that re-renders holds it instead ({@link ShellDrawer})
+ *   so it can close the drawer when the reader picks a
+ *   row.
  */
 export type ShellProps<Msg> = Readonly<{
   brand: SoftStr;
@@ -84,6 +97,17 @@ export type ShellProps<Msg> = Readonly<{
   fold: ReadonlyArray<Attribute<Msg>>;
   foot: ReadonlyArray<Html<Msg>>;
   pages: ReadonlyArray<ShellPage<Msg>>;
+  drawer: Option<ShellDrawer<Msg>>;
+}>;
+
+/**
+ * A drawer whose state a program holds: whether it is
+ * `open`, and the attributes (`onClick`) of what flips it
+ * — the menu control and the backdrop.
+ */
+export type ShellDrawer<Msg> = Readonly<{
+  open: boolean;
+  toggle: ReadonlyArray<Attribute<Msg>>;
 }>;
 
 const head = <Msg>(
@@ -141,6 +165,116 @@ const page = <Msg>(
     ],
   );
 
+const brandAttrs = <Msg>(
+  props: ShellProps<Msg>,
+  cls: SoftStr,
+): ReadonlyArray<Attribute<Msg>> =>
+  props.atHome
+    ? [
+        href(props.home),
+        class_(cls),
+        attr("aria-current", "page"),
+      ]
+    : [href(props.home), class_(cls)];
+
+/**
+ * What a narrow window adds around the strip: the hidden
+ * checkbox (when the page holds the drawer itself), the
+ * bar with the menu control and the product's name, and
+ * the backdrop that closes the drawer.
+ */
+const narrowChrome = <Msg>(
+  props: ShellProps<Msg>,
+): ReadonlyArray<Html<Msg>> =>
+  matchOption<
+    ShellDrawer<Msg>,
+    ReadonlyArray<Html<Msg>>
+  >(
+    () => [
+      el(
+        "input",
+        [
+          class_(shellMenuClass),
+          attr("type", "checkbox"),
+          attr("id", shellMenuId),
+          attr("aria-hidden", "true"),
+        ],
+        [],
+      ),
+      el(
+        "header",
+        [class_(shellBarClass)],
+        [
+          el(
+            "label",
+            [
+              attr("for", shellMenuId),
+              class_(shellMenuButtonClass),
+              attr("role", "button"),
+              attr("aria-label", "メニュー"),
+            ],
+            [],
+          ),
+          a(
+            brandAttrs(props, shellBarBrandClass),
+            [text(props.brand)],
+          ),
+        ],
+      ),
+      el(
+        "label",
+        [
+          attr("for", shellMenuId),
+          class_(shellBackdropClass),
+          attr("aria-hidden", "true"),
+        ],
+        [],
+      ),
+    ],
+    (d: ShellDrawer<Msg>) => [
+      el(
+        "header",
+        [class_(shellBarClass)],
+        [
+          button<Msg>(
+            [
+              attr("type", "button"),
+              class_(shellMenuButtonClass),
+              attr("aria-label", "メニュー"),
+              attr(
+                "aria-expanded",
+                d.open ? "true" : "false",
+              ),
+              ...d.toggle,
+            ],
+            [],
+          ),
+          a(
+            brandAttrs(props, shellBarBrandClass),
+            [text(props.brand)],
+          ),
+        ],
+      ),
+      el(
+        "div",
+        [
+          class_(shellBackdropClass),
+          attr("aria-hidden", "true"),
+          ...d.toggle,
+        ],
+        [],
+      ),
+    ],
+  )(props.drawer);
+
+const drawerOpen = <Msg>(
+  props: ShellProps<Msg>,
+): boolean =>
+  matchOption<ShellDrawer<Msg>, boolean>(
+    () => false,
+    (d: ShellDrawer<Msg>) => d.open,
+  )(props.drawer);
+
 /**
  * THE STANDARD SCREEN. What "build it with plggmatic"
  * means when nothing else is said: a sidebar pinned on the
@@ -152,7 +286,8 @@ const page = <Msg>(
  * One page fills the room. A link followed from it opens
  * its target to the right and the two stand side by side;
  * past what the window holds the strip scrolls and the
- * carousel steps it. Every column is the same thing: a
+ * carousel steps it. In a narrow window the sidebar is a
+ * drawer under a bar that carries the menu control. Every column is the same thing: a
  * head bar that names it and a body that scrolls on its
  * own. Ruled in the text colour, square-cornered, the
  * current thing inverted — {@link shellCss} is the look.
@@ -167,13 +302,17 @@ export const shell = <Msg>(
 ): Html<Msg> =>
   el(
     "div",
-    props.folded
-      ? [
-          class_(shellClass),
-          attr(shellMinAttr, ""),
-        ]
-      : [class_(shellClass)],
     [
+      class_(shellClass),
+      ...(props.folded
+        ? [attr(shellMinAttr, "")]
+        : []),
+      ...(drawerOpen(props)
+        ? [attr(shellOpenAttr, "")]
+        : []),
+    ],
+    [
+      ...narrowChrome(props),
       strip<Msg>(
         [shareClass],
         [
@@ -187,19 +326,10 @@ export const shell = <Msg>(
             [
               head<Msg>([
                 a(
-                  props.atHome
-                    ? [
-                        href(props.home),
-                        class_(shellBrandClass),
-                        attr(
-                          "aria-current",
-                          "page",
-                        ),
-                      ]
-                    : [
-                        href(props.home),
-                        class_(shellBrandClass),
-                      ],
+                  brandAttrs(
+                    props,
+                    shellBrandClass,
+                  ),
                   [text(props.brand)],
                 ),
                 button<Msg>(

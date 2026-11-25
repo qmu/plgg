@@ -603,6 +603,7 @@ export { carouselInitScript } from "plggmatic/Navigate";
 export {
   type ShellPage,
   type ShellProps,
+  type ShellDrawer,
   shell,
   kitCss,
   kitSystemCss,
@@ -627,6 +628,13 @@ export {
   shellPageClass,
   docClass,
   shellMinAttr,
+  shellBarClass,
+  shellBarBrandClass,
+  shellMenuButtonClass,
+  shellMenuClass,
+  shellMenuId,
+  shellBackdropClass,
+  shellOpenAttr,
 } from "plggmatic/Meta/model/classHooks";
 export {
   type ChoiceProps,

@@ -2,7 +2,10 @@ import { type SoftStr } from "plgg";
 import { type Theme } from "plggmatic/Style/model/theme";
 import { metricVar } from "plggmatic/Style/model/metric";
 import { zValue } from "plggmatic/Style/model/zIndex";
-import { minWidth } from "plggmatic/Style/model/breakpoint";
+import {
+  minWidth,
+  maxWidth,
+} from "plggmatic/Style/model/breakpoint";
 import {
   shareCss,
   shareOptions,
@@ -27,6 +30,12 @@ import {
  *   measure and stands in the middle of its column; a
  *   page that asks for two columns is a figure or a whole
  *   screen and takes the room.
+ * - **A narrow window.** Below the `lg` breakpoint the
+ *   sidebar is a drawer: off the left edge until a menu
+ *   control in a bar above the strip brings it over the
+ *   page, which a backdrop dims. The drawer's state is a
+ *   hidden checkbox (no program needed) or an attribute a
+ *   program sets. The strip shows a page at a time.
  * - **States.** The sidebar folds to a strip (where it is
  *   a column: from the `lg` breakpoint up). A sidebar
  *   group is a disclosure. A page can be arriving, leaving
@@ -72,6 +81,21 @@ ${M} ${side} .${p}-shell-brand,${M} ${side} .${p}-shell-body{display:none}
 ${M} ${side} .${p}-shell-head{justify-content:center}
 ${M} .${p}-shell-fold{margin:0}
 ${M} .${p}-shell-foot{justify-content:center}
+}
+.${p}-shell-menu{display:none}
+.${p}-shell-bar{display:none;flex:none;align-items:center;z-index:${zValue("chrome")}}
+.${p}-shell-menu-btn{display:inline-block;flex:none;width:22px;height:16px;cursor:pointer}
+.${p}-shell-bar-brand{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.${p}-shell-backdrop{display:none;position:fixed;inset:0;z-index:${zValue("backdrop")}}
+@media ${maxWidth("lg")}{
+.${p}-shell{${inset}:0px}
+.${p}-shell-bar{display:flex}
+.${p}-shell-fold{display:none}
+${side}{position:fixed;top:0;left:0;z-index:${zValue("overlay")};height:100dvh;width:17rem;max-width:82vw;transform:translateX(-100%)}
+.${p}-shell-menu:checked ~ .${p}-row ${side},.${p}-shell[data-${p}-shell-open] ${side}{transform:translateX(0)}
+.${p}-shell-menu:checked ~ .${p}-shell-backdrop,.${p}-shell[data-${p}-shell-open] .${p}-shell-backdrop{display:block}
+.${p}-shell .${p}-row{scroll-snap-type:x mandatory}
+${page}{scroll-snap-align:start;scroll-snap-stop:always}
 }
 .${p}-shell .${p}-fold{flex:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 @keyframes ${p}-page-in{from{flex-grow:0;flex-basis:0;opacity:0}}

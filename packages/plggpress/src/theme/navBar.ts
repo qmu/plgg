@@ -1,4 +1,7 @@
 import {
+  shellBarClass,
+  shellBarBrandClass,
+  shellMenuButtonClass,
   shellFoldClass,
   shellFootClass,
   shellMinAttr,
@@ -193,11 +196,17 @@ export const mobileBar = (
     ? [
         attr("href", hrefOf("/")),
         attr("aria-current", "page"),
-        class_("vp-mobilebar-home"),
+        class_(
+          "vp-mobilebar-home " +
+            shellBarBrandClass,
+        ),
       ]
     : [
         attr("href", hrefOf("/")),
-        class_("vp-mobilebar-home"),
+        class_(
+          "vp-mobilebar-home " +
+            shellBarBrandClass,
+        ),
       ];
   const menuBtn: ReadonlyArray<Flow<never>> =
     showMenu
@@ -205,7 +214,10 @@ export const mobileBar = (
           label(
             [
               attr("for", "vp-menu-toggle"),
-              class_("vp-menu-btn"),
+              class_(
+                "vp-menu-btn " +
+                  shellMenuButtonClass,
+              ),
               attr("aria-label", "Toggle menu"),
               attr("role", "button"),
             ],
@@ -214,7 +226,7 @@ export const mobileBar = (
         ]
       : [];
   return header(
-    [class_("vp-mobilebar")],
+    [class_("vp-mobilebar " + shellBarClass)],
     [
       ...menuBtn,
       a(homeAttrs, [

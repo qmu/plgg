@@ -76,7 +76,7 @@ test("mobile bar shows the ☰ menu button, wordmark home link, and toggle", () 
   all([
     check(
       barContent,
-      toContain('class="vp-mobilebar"'),
+      toContain('class="vp-mobilebar '),
     ),
     // the CSS-only drawer control targets the checkbox
     check(

@@ -15,6 +15,7 @@
 export {
   type ShellPage,
   type ShellProps,
+  type ShellDrawer,
   shell,
 } from "plggmatic/Shell/usecase/shell";
 export {

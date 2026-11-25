@@ -103,21 +103,16 @@ export const settle = (
   };
 };
 
-const narrow = (): boolean =>
-  typeof window !== "undefined" &&
-  window.innerWidth < 960;
-
 export const init = (
   url: Url,
 ): readonly [Model, Cmd<Msg>] => [
   {
     path: url.path,
     ...settle(url),
-    // a narrow window starts with the sidebar folded: the
-    // page is what was asked for
     folded:
       typeof window !== "undefined" &&
-      (narrow() || readPreference(FOLD_KEY)),
+      readPreference(FOLD_KEY),
+    drawer: false,
     scheme:
       typeof document !== "undefined" &&
       document.documentElement.classList.contains(
@@ -179,7 +174,14 @@ export const update = (
           ...model,
           path: m.url.path,
           ...settle(m.url),
+          // picking a row is what the drawer was for
+          drawer: false,
         },
+        cmdNone(),
+      ];
+    case "ToggleDrawer":
+      return [
+        { ...model, drawer: !model.drawer },
         cmdNone(),
       ];
     case "ToggleFold":
@@ -443,6 +445,12 @@ export const view = (model: Model): Html<Msg> => {
         },
         folded: model.folded,
         fold: [onClick<Msg>(msg.toggleFold())],
+        drawer: some({
+          open: model.drawer,
+          toggle: [
+            onClick<Msg>(msg.toggleDrawer()),
+          ],
+        }),
         foot: [
           themeToggle<Msg>({
             scheme: model.scheme,

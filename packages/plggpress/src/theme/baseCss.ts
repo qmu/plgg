@@ -4,7 +4,6 @@ import {
   themeToggleClass,
   sidebarNavClass,
   trailClass,
-  shareInsetVar,
   selector,
   colorVar,
   metricVar,
@@ -35,9 +34,6 @@ import {
  * - pages of a FIXED reading width (`contentWidth:
  *   "measure"`), the drilled section column, the trail row
  *   and the far-right chrome rail;
- * - the phone form: a sticky bar and the sidebar as an
- *   off-canvas drawer, CSS-only (a hidden
- *   `#vp-menu-toggle` checkbox);
  * - the sheet page (one figure filling its column);
  * - callouts, the footer, social links.
  *
@@ -90,7 +86,6 @@ body.vp{
   color:${cvar("primary-base")};
   text-decoration:none;
 }
-.vp-menu-cb{display:none}
 
 /* ---- the column system ----------------------------------
    One frame, one strip, one column shape — the layout
@@ -164,52 +159,10 @@ ${selector(trailClass)} button:hover{
   display:flex;flex-direction:column;
   align-items:center;gap:0.4rem;
 }
-/* sticky mobile bar (below lg only): menu button (when the
-   page has a drawer), wordmark home link, appearance
-   toggle. Hidden on lg+. */
-.vp-mobilebar{
-  display:none;position:sticky;top:0;z-index:30;
-  align-items:center;gap:0.6rem;
-  height:52px;padding:0 1rem;
-  background:${cvar("surface")};
-  border-bottom:${rule};
-}
-.vp-mobilebar-home{
-  font-weight:600;font-size:1rem;
-  color:${cvar("text")};
-  padding:0.1rem 0.4rem;
-  transition:background-color 0.15s
-    cubic-bezier(0.4,0,0.2,1);
-}
-.vp-mobilebar-home:focus-visible{
-  outline:${rule};outline-offset:-1px;
-}
-.vp-mobilebar-home[aria-current]{
-  ${mark(a.current)};
-}
+/* the phone bar and the drawer are the kit's; plggpress
+   adds the appearance toggle and the social links to the
+   bar */
 .vp-mobilebar .${themeToggleClass}{margin-left:0.4rem}
-/* dimmed backdrop behind an open mobile drawer */
-.vp-backdrop{
-  display:none;position:fixed;inset:0;z-index:40;
-  background:rgba(0,0,0,0.4);
-}
-
-/* CSS-drawn 3-bar hamburger (no glyph font) */
-.vp-menu-btn{
-  display:none;width:22px;height:16px;
-  cursor:pointer;color:${cvar("text")};
-  background-image:linear-gradient(
-      currentColor,currentColor),
-    linear-gradient(currentColor,currentColor),
-    linear-gradient(currentColor,currentColor);
-  background-size:100% 2px;
-  background-position:0 1px,0 7px,0 13px;
-  background-repeat:no-repeat;
-}
-
-/* a site that keeps its controls in the sidebar: a fold
-   control in the head, the appearance toggle at the foot */
-.vp-fold-btn{display:none}
 .vp-foot-social{display:flex;align-items:center}
 /* social links live ONLY in the chrome group: the rail on
    lg+, the mobile bar below it. Nothing chrome-like is left
@@ -294,7 +247,6 @@ ${selector(trailClass)} button:hover{
 
 @media ${minWidth("lg")}{
   .vp-rail{display:flex}
-  .vp-fold-btn{display:inline-flex}
   html[${shellMinAttr}] .vp-sidebar .vp-tagline,
   html[${shellMinAttr}] .vp-sidebar .vp-footer-link,
   html[${shellMinAttr}] .vp-sidebar .vp-foot-social{display:none}
@@ -304,42 +256,18 @@ ${selector(trailClass)} button:hover{
   .vp-app:not(.${shareClass}){scroll-padding-left:0}
 }
 
-/* below lg: no rail; a sticky mobile bar + an off-canvas
-   drawer (the sidebar), the page scrolls normally. The
-   drawer is revealed by the CSS-only menu checkbox and the
-   backdrop dims the page — zero client JavaScript. */
+/* below lg the kit turns the sidebar into a drawer under
+   a bar; what is plggpress's own there: no rail, no
+   drilled section column (the drawer carries it), and a
+   fixed-width page takes the whole window. */
 @media ${maxWidth("lg")}{
-  .vp-shell{${shareInsetVar}:0px}
-  .vp-menu-btn{display:inline-block}
-  .vp-mobilebar{display:flex}
-  /* the drilled section column duplicates navigation the
-     drawer already carries; drop it so the phone shows just
-     the content column full-bleed. */
   .vp-section{display:none}
-  /* one page per screen: the strip snaps column by
-     column, as the apps do on a phone */
-  .vp-app{scroll-snap-type:x mandatory}
-  .vp-content{
-    width:100vw;scroll-snap-align:start;
-    scroll-snap-stop:always;
-  }
+  .vp-content{width:100vw}
   .vp-content .vp-col-body{
     padding:1.25rem 1.25rem 3rem;
   }
   .vp-doc{max-width:100%}
   .vp-doc pre{max-width:100%}
-  .vp-sidebar{
-    position:fixed;top:0;left:0;z-index:50;
-    height:100dvh;width:17rem;max-width:82vw;
-    background:${cvar("surface")};
-    border-right:${rule};
-    transform:translateX(-100%);
-    transition:transform 0.2s ease-out;
-  }
-  .vp-menu-cb:checked ~ .vp-app .vp-sidebar{
-    transform:translateX(0);
-  }
-  .vp-menu-cb:checked ~ .vp-backdrop{display:block}
 }
 @media(min-width:1024px) and (max-width:1099px){
  .vp-shell:has(.vp-sheet) .vp-mobilebar{display:flex}

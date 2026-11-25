@@ -32,6 +32,8 @@ import {
   shareClass,
   spanTwoClass,
   shellClass,
+  shellMenuClass,
+  shellBackdropClass,
   shellSideClass,
   shellHeadClass,
   shellTitleClass,
@@ -93,7 +95,7 @@ const colBody = (
  */
 const menuToggle = input(
   [
-    class_("vp-menu-cb"),
+    class_("vp-menu-cb " + shellMenuClass),
     attr("type", "checkbox"),
     attr("id", "vp-menu-toggle"),
     attr("aria-hidden", "true"),
@@ -110,7 +112,7 @@ const menuToggle = input(
 const backdrop = label(
   [
     attr("for", "vp-menu-toggle"),
-    class_("vp-backdrop"),
+    class_("vp-backdrop " + shellBackdropClass),
     attr("aria-hidden", "true"),
   ],
   [],

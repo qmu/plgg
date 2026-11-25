@@ -78,6 +78,13 @@ ${page} .${p}-shell-body{padding:${a.page}}
 .${p}-shell-foot{gap:.5rem;padding:.6rem ${a.gutter};border-top:${rule}}
 ${M} ${side} .${p}-shell-head{padding:0}
 ${M} .${p}-shell-foot{padding:.6rem 0}
+.${p}-shell-bar{gap:.6rem;height:${a.head};padding:0 1rem;background:${surface};border-bottom:${rule}}
+.${p}-shell-menu-btn{border:0;padding:0;color:${text};background-color:transparent;background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);background-size:100% 2px;background-position:0 1px,0 7px,0 13px;background-repeat:no-repeat}
+.${p}-shell-bar-brand{padding:.1rem .4rem;border-radius:${a.radius};font-size:1rem;font-weight:600;color:${text};text-decoration:none}
+.${p}-shell-bar-brand:focus-visible{outline:${rule};outline-offset:-1px}
+.${p}-shell-bar-brand[aria-current]{${mark(a.current)}}
+.${p}-shell-backdrop{background:rgba(0,0,0,.4)}
+@media (max-width:1023px){${side}{transition:transform ${a.leave} ease-out}}
 .${p}-shell .${p}-fold{width:1.75rem;height:1.75rem;border:0;border-radius:${a.radius};background:none;color:${muted};font:inherit;font-size:1.1rem;line-height:1;text-decoration:none}
 .${p}-shell .${p}-fold:hover,.${p}-shell .${p}-fold:focus-visible{${mark(a.press)};outline:0}
 ${page} ~ ${page}{animation:${p}-page-in ${a.arrive} ${a.ease}}

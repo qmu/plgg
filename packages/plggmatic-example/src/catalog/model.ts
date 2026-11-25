@@ -20,6 +20,8 @@ export type Model = Readonly<{
   head: SoftStr;
   rest: ReadonlyArray<SoftStr>;
   folded: boolean;
+  /** Whether a narrow window's drawer is open. */
+  drawer: boolean;
   scheme: Scheme;
   name: SoftStr;
   note: SoftStr;
@@ -44,6 +46,7 @@ export type Look = "monochrome" | "soft";
 export type Msg =
   | Readonly<{ kind: "UrlChanged"; url: Url }>
   | Readonly<{ kind: "ToggleFold" }>
+  | Readonly<{ kind: "ToggleDrawer" }>
   | Readonly<{ kind: "ToggleScheme" }>
   | Readonly<{ kind: "Done" }>
   | Readonly<{ kind: "Press" }>
@@ -75,6 +78,9 @@ export type Msg =
 /** Typed constructors, so a handler never widens a literal. */
 export const msg = {
   toggleFold: (): Msg => ({ kind: "ToggleFold" }),
+  toggleDrawer: (): Msg => ({
+    kind: "ToggleDrawer",
+  }),
   toggleScheme: (): Msg => ({
     kind: "ToggleScheme",
   }),
