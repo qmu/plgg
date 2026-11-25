@@ -947,7 +947,7 @@ const shellPage: Page = {
         "    resolve: (id) => …,  // 項目からアドレスへ",
         "    current: (id) => …,  // いま居る項目か",
         "    toggle: true,        // グループを開閉する",
-        "    numbered: true,      // 01, 02, … と数える",
+        "    numbered: false,     // true で 01, 02, … と数える",
         '    label: "目次",',
         "  },",
         "  folded: model.folded,",

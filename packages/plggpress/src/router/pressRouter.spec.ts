@@ -82,7 +82,7 @@ const composed = (
 // is always a text body, and a branch whose other arm can
 // never be taken is a branch that can never be tested.
 const docColumns = (res: HttpResponse): number =>
-  String(res.body).split('class="vp-doc"')
+  String(res.body).split('class="vp-doc ')
     .length - 1;
 
 // A fixture corpus exercising every router branch:

@@ -69,7 +69,7 @@ ${side}{transition:width ${a.arrive} ${a.ease}}
 ${side} .${p}-shell-body{font-size:.875rem}
 ${page} .${p}-shell-body{padding:${a.page}}
 .${p}-shell-brand{margin-left:-.5rem;padding:.25rem .5rem;border-radius:${a.radius};font-size:1rem;letter-spacing:-.01em;line-height:1.25rem;font-weight:600;color:${text};text-decoration:none;${quick("background-color", "color")}}
-.${p}-shell-brand:hover,.${p}-shell-brand:focus-visible{${mark(a.press)};outline:0}
+.${p}-shell-brand:focus-visible{outline:${rule};outline-offset:-1px}
 .${p}-shell-brand[aria-current]{${mark(a.current)}}
 .${p}-shell-fold{width:1.9rem;height:1.9rem;padding:0;border:0;border-radius:${a.radius};background:none;color:${text};${quick("background-color", "color")}}
 .${p}-shell-fold:hover,.${p}-shell-fold:focus-visible{${mark(a.press)};outline:0}
@@ -91,17 +91,21 @@ ${doc} h4{font-size:.875rem;font-weight:600;line-height:1.5;color:${muted};margi
 ${doc} p{margin:.85rem 0}
 ${doc} ul,${doc} ol{padding-left:1.35rem;margin:.85rem 0}
 ${doc} li{margin:.35rem 0}
-${doc} strong{font-weight:600}
-${doc} a{color:${text};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;padding:.15em .3em;margin-inline:-.3em;border-radius:${a.radius};${quick("background-color", "color")}}
-${doc} a:hover,${doc} a:focus-visible{${mark(a.press)};text-decoration:none;outline:0}
+${doc} strong{font-weight:600;color:${text}}
+${doc} blockquote{margin:1rem 0;padding:.1rem 1rem;border-left:${rule};color:${muted}}
+${doc} a{color:${text};text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;font-weight:400;padding:.15em .3em;margin-inline:-.3em;border-radius:${a.radius};${quick("background-color", "color")}}
+${doc} a:hover,${doc} a:focus-visible{${mark(a.press)};text-decoration:none;outline:0;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 ${doc} a[data-${p}-opened]{${mark(a.current)};text-decoration:none}
-${doc} code{font-family:${a.mono};font-size:.85em;padding:.1em .35em;border-radius:${a.radius};background:${cvar("surface-2")}}
-${doc} pre{margin:1rem 0;padding:.9rem 1rem;overflow:auto;border:${rule};border-radius:${a.radius};font-size:.8125rem;line-height:1.6}
-${doc} pre code{padding:0;background:none;font-size:inherit}
-${doc} table{border-collapse:collapse;margin:1rem 0;font-size:.875rem}
-${doc} th,${doc} td{text-align:left;padding:.45rem .9rem .45rem 0;border-bottom:${hair}}
+${doc} mark{${mark(a.current)};padding:.1em .25em;border-radius:${a.radius};box-decoration-break:clone;-webkit-box-decoration-break:clone;scroll-margin-top:1rem}
+${doc} code{font-family:${a.mono};font-size:.86em;font-weight:400;color:${text};padding:.1em .35em;border:${a.ruleWidth} solid transparent;border-radius:${a.radius};background:${cvar("surface-2")}}
+${doc} a:hover code,${doc} a:focus-visible code,${doc} a[data-${p}-opened] code{color:inherit;background:none;border-color:transparent}
+${doc} pre{margin:1.1rem 0;padding:.875rem 1rem;background:${surface};border:${rule};border-radius:${a.radius};font-size:.8125rem;line-height:1.65}
+${doc} pre code{padding:0;border:none;background:none;font-size:inherit;color:inherit}
+${doc} table{border-collapse:collapse;margin:1.25rem 0;font-size:.92rem}
+${doc} th,${doc} td{text-align:left;padding:.5rem 1.25rem .5rem 0;border-bottom:${hair}}
 ${doc} th{border-bottom:${rule};font-weight:600}
 ${doc} hr{border:none;border-top:${hair};margin:1.5rem 0}
+${doc} :is(h1,h2,h3,h4){scroll-margin-top:1rem}
 .${p}-nav-group{margin:0}
 .${p}-nav-group-title{padding:1.1rem ${a.gutter} .4rem;font-size:.75rem;line-height:1.25rem;font-weight:500;color:${muted};border-bottom:${hair}}
 ${link}{padding:.5rem ${a.gutter};border-bottom:${hair};font-size:.875rem;line-height:1.45;color:${text};text-decoration:none}
@@ -115,7 +119,8 @@ ${group} summary{padding:.7rem ${a.gutter};font-size:.8rem;${quick("background-c
 ${group} summary::after{content:"";width:.4rem;height:.4rem;margin-right:.2rem;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(-45deg);transition:transform ${a.quick} ease}
 ${group}[open] summary::after{transform:rotate(45deg)}
 ${group}[open] summary{color:${text}}
-${group} summary:hover,${group} summary:focus-visible{${mark(a.press)};outline:0}
+${group} summary:hover{${mark(a.hover)}}
+${group} summary:focus-visible{${mark(a.press)};outline:0}
 ${group} summary:active{opacity:.8}
 ${group}::details-content{transition:block-size ${a.leave} ease,content-visibility ${a.leave} allow-discrete}
 ${group} ${link}{${quick("background-color", "color", "padding-left")}}

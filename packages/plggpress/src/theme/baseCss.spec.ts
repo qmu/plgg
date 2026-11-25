@@ -6,7 +6,14 @@ import {
   toBe,
   not,
 } from "plgg-test";
-import { sidebarNavClass } from "plggmatic";
+import {
+  sidebarNavClass,
+  kitCss,
+  docClass,
+  shellClass,
+  shellHeadClass,
+  shellBrandClass,
+} from "plggmatic";
 import {
   colorVar,
   metricVar,
@@ -24,7 +31,12 @@ import { defaultTheme } from "plggpress/themeSupport/styleEntry";
 // either fails at build, not visually. baseCss is now a
 // function of the resolved theme (D3, config-driven); the
 // default theme is the monochrome qmu palette.
-const css: string = baseCss(defaultTheme);
+// `own` is plggpress's sheet alone; `css` is what a page
+// ships — plggmatic's kit (the UI system and its default
+// appearance) with plggpress's additions after it. The
+// look is the kit's, so the look is asserted on `css`.
+const own: string = baseCss(defaultTheme);
+const css: string = kitCss(defaultTheme) + own;
 
 // The framework's own token emitters, so these assertions
 // name plggmatic's custom properties by IMPORT rather than
@@ -40,7 +52,7 @@ test("D16 clean cutover: no legacy vp custom properties survive", () =>
     // split so this spec stays clean of the literal the
     // ticket-07 D16 grep hunts for.
     check(css, not(toContain("--" + "vp-"))),
-    check(css, not(toContain(":root{"))),
+    check(own, not(toContain(":root{"))),
     // the palette/geometry now come through plggmatic tokens
     check(css, toContain(cvar("text"))),
     check(css, toContain(cvar("surface"))),
@@ -66,30 +78,30 @@ test("callouts ride the D9 role matrix, not hardcoded hexes", () =>
   all([
     // tip=success, warning, danger onto role surface/text/border
     check(
-      css,
+      own,
       toContain(
         "background:" + cvar("success-surface"),
       ),
     ),
     check(
-      css,
+      own,
       toContain("color:" + cvar("success-text")),
     ),
     check(
-      css,
+      own,
       toContain(
         "border-color:" + cvar("warning-border"),
       ),
     ),
     check(
-      css,
+      own,
       toContain(
         "background:" + cvar("danger-surface"),
       ),
     ),
     // info/note stay neutral with a primary edge
     check(
-      css,
+      own,
       toContain(
         "border-color:" + cvar("primary-base"),
       ),
@@ -97,12 +109,12 @@ test("callouts ride the D9 role matrix, not hardcoded hexes", () =>
     // the retired emerald/amber/red ramp hexes are gone.
     // Needles are split ("#" + rest) so this spec stays
     // clean of the literals the ticket-07 AC3 grep hunts for.
-    check(css, not(toContain("#" + "ecfdf5"))),
-    check(css, not(toContain("#" + "10b981"))),
-    check(css, not(toContain("#" + "f59e0b"))),
-    check(css, not(toContain("#" + "ef4444"))),
-    check(css, not(toContain("#" + "022c22"))),
-    check(css, not(toContain("#" + "450a0a"))),
+    check(own, not(toContain("#" + "ecfdf5"))),
+    check(own, not(toContain("#" + "10b981"))),
+    check(own, not(toContain("#" + "f59e0b"))),
+    check(own, not(toContain("#" + "ef4444"))),
+    check(own, not(toContain("#" + "022c22"))),
+    check(own, not(toContain("#" + "450a0a"))),
   ]));
 
 test("scheme scroll motion is framework-owned; plggpress keeps its link-fade reset", () =>
@@ -151,7 +163,9 @@ test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
   all([
     check(
       css,
-      toContain(".vp-doc a:focus-visible"),
+      toContain(
+        "." + docClass + " a:focus-visible",
+      ),
     ),
     check(
       css,
@@ -163,14 +177,16 @@ test("hover inversions are keyboard-reachable (:focus-visible parity)", () =>
     ),
     check(
       css,
-      toContain(".vp-wordmark:focus-visible"),
+      toContain(
+        "." + shellBrandClass + ":focus-visible",
+      ),
     ),
   ]));
 
 test("prose links keep a padded hit-area, cloning on wrap", () =>
   all([
-    check(css, toContain("padding:0.15em 0.3em")),
-    check(css, toContain("margin-inline:-0.3em")),
+    check(css, toContain("padding:.15em .3em")),
+    check(css, toContain("margin-inline:-.3em")),
     check(
       css,
       toContain("box-decoration-break:clone"),
@@ -225,7 +241,20 @@ test("inline code is a square wash of the token surface, no overlay alphas", () 
   ]));
 
 test("nothing in the sheet is rounded", () =>
-  check(css, not(toContain("border-radius"))));
+  all([
+    check(own, not(toContain("border-radius"))),
+    // the default appearance's radius is zero, everywhere;
+    // the one round thing is the appearance toggle's own
+    // button, which the kit carries unchanged
+    check(
+      css
+        .split("border-radius:0")
+        .join("")
+        .split("border-radius:50%")
+        .join(""),
+      not(toContain("border-radius")),
+    ),
+  ]));
 
 test("chrome text: the wordmark sits in a head bar, the footer is 13px", () =>
   all([
@@ -233,7 +262,7 @@ test("chrome text: the wordmark sits in a head bar, the footer is 13px", () =>
     check(
       css,
       toContain(
-        "font-size:1rem;letter-spacing:-0.01em",
+        "font-size:1rem;letter-spacing:-.01em",
       ),
     ),
   ]));
@@ -271,9 +300,7 @@ test("the sidebar tree is flush left - hierarchy by weight, never indentation", 
     ),
     check(
       css,
-      toContain(
-        "padding:0.5rem 1.25rem;font-size:0.875rem",
-      ),
+      toContain("padding:.5rem 1.25rem"),
     ),
   ]));
 
@@ -282,7 +309,7 @@ test("sidebar rows are full-width, ruled by a hairline, the current one inverted
     check(
       css,
       toContain(
-        "font-size:0.875rem;line-height:1.45",
+        "font-size:.875rem;line-height:1.45",
       ),
     ),
     check(
@@ -296,10 +323,15 @@ test("sidebar rows are full-width, ruled by a hairline, the current one inverted
 
 test("a hovered link's inline-code badge flips to the hover ink (never ink-on-ink)", () =>
   all([
-    check(css, toContain(".vp-doc a:hover code")),
     check(
       css,
-      toContain(".vp-doc a:focus-visible code"),
+      toContain("." + docClass + " a:hover code"),
+    ),
+    check(
+      css,
+      toContain(
+        "." + docClass + " a:focus-visible code",
+      ),
     ),
   ]));
 
@@ -360,12 +392,19 @@ test("the strip is one frame, one strip, one column shape", () =>
     check(
       css,
       toContain(
-        ".vp-app " + selector(colClass) + "{",
+        "." +
+          shellClass +
+          " " +
+          selector(colClass) +
+          "{",
       ),
     ),
     // a fixed head bar names the column; the body under
     // it is the only vertical scroller
-    check(css, toContain(".vp-col-head{")),
+    check(
+      css,
+      toContain("." + shellHeadClass + "{"),
+    ),
     check(
       css,
       toContain(

@@ -31,6 +31,14 @@ import {
   sidebarNavClass,
   shareClass,
   spanTwoClass,
+  shellClass,
+  shellSideClass,
+  shellHeadClass,
+  shellTitleClass,
+  shellBodyClass,
+  shellBrandClass,
+  shellPageClass,
+  docClass,
 } from "plggmatic";
 import {
   type SiteConfig,
@@ -59,13 +67,22 @@ import {
 const colHead = (
   children: ReadonlyArray<Flow<never>>,
 ): Html<never> =>
-  header([class_("vp-col-head")], children);
+  header(
+    [class_("vp-col-head " + shellHeadClass)],
+    children,
+  );
 const colTitle = (title: SoftStr): Flow<never> =>
-  span([class_("vp-col-title")], [text(title)]);
+  span(
+    [class_("vp-col-title " + shellTitleClass)],
+    [text(title)],
+  );
 const colBody = (
   children: ReadonlyArray<Flow<never>>,
 ): Html<never> =>
-  div([class_("vp-col-body")], children);
+  div(
+    [class_("vp-col-body " + shellBodyClass)],
+    children,
+  );
 
 /**
  * The hidden checkbox the `☰` mobile-bar label toggles. A
@@ -199,11 +216,11 @@ const sectionsColumn = (
     ? [
         attr("href", hrefOf("/")),
         attr("aria-current", "page"),
-        class_("vp-wordmark"),
+        class_("vp-wordmark " + shellBrandClass),
       ]
     : [
         attr("href", hrefOf("/")),
-        class_("vp-wordmark"),
+        class_("vp-wordmark " + shellBrandClass),
       ];
   const groupEntry = (
     group: SidebarGroup,
@@ -237,8 +254,12 @@ const sectionsColumn = (
   };
   return column(
     numbered(config)
-      ? ["vp-sidebar", "vp-numbered"]
-      : ["vp-sidebar"],
+      ? [
+          "vp-sidebar",
+          "vp-numbered",
+          shellSideClass,
+        ]
+      : ["vp-sidebar", shellSideClass],
     [
       colHead([
         a(wordmarkAttrs, [text(config.title)]),
@@ -403,11 +424,20 @@ const contentColumn = (
             "vp-sheet",
             "vp-fill",
             spanTwoClass,
+            shellPageClass,
           ]
-        : ["vp-content", "vp-sheet"]
+        : [
+            "vp-content",
+            "vp-sheet",
+            shellPageClass,
+          ]
       : fills(config)
-        ? ["vp-content", "vp-fill"]
-        : ["vp-content"],
+        ? [
+            "vp-content",
+            "vp-fill",
+            shellPageClass,
+          ]
+        : ["vp-content", shellPageClass],
     [
       colHead([
         colTitle(content.title),
@@ -434,7 +464,7 @@ const contentColumn = (
                 class_(
                   content.sheet
                     ? "vp-sheet-body"
-                    : "vp-doc",
+                    : "vp-doc " + docClass,
                 ),
               ],
               [slot([], [content.body])],
@@ -478,7 +508,7 @@ export const page = (
   base: SoftStr,
 ): Html<never> =>
   slot(
-    [class_("vp-shell")],
+    [class_("vp-shell " + shellClass)],
     [
       menuToggle,
       // The home page carries the sections column too

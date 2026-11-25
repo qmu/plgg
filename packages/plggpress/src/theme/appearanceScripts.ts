@@ -1,7 +1,7 @@
 import { type SoftStr } from "plgg";
 import {
   sidebarFoldClass,
-  sidebarMinClass,
+  sidebarMinAttr,
 } from "plggpress/theme/navBar";
 import {
   themeToggleClass,
@@ -50,13 +50,13 @@ const bodyWiringScript: SoftStr =
   "var f=document.querySelectorAll(" +
   JSON.stringify("." + sidebarFoldClass) +
   "),h=document.documentElement,M=" +
-  JSON.stringify(sidebarMinClass) +
+  JSON.stringify(sidebarMinAttr) +
   ";function s(){for(var i=0;i<f.length;i++)" +
   "f[i].setAttribute('aria-expanded'," +
-  "h.classList.contains(M)?'false':'true');}s();" +
+  "h.hasAttribute(M)?'false':'true');}s();" +
   "for(var j=0;j<f.length;j++){" +
   "f[j].addEventListener('click',function(){" +
-  "var m=h.classList.toggle(M);s();" +
+  "var m=h.toggleAttribute(M);s();" +
   "try{localStorage.setItem(" +
   JSON.stringify(sidebarStorageKey) +
   ",m?'min':'open');}catch(e){}});}" +
@@ -74,9 +74,9 @@ const bodyWiringScript: SoftStr =
 const sidebarInitScript: SoftStr =
   "<script>try{if(localStorage.getItem(" +
   JSON.stringify(sidebarStorageKey) +
-  ")==='min')document.documentElement.classList.add(" +
-  JSON.stringify(sidebarMinClass) +
-  ");}catch(e){}</script>";
+  ")==='min')document.documentElement.setAttribute(" +
+  JSON.stringify(sidebarMinAttr) +
+  ",'');}catch(e){}</script>";
 
 /**
  * Inject the appearance scripts into a rendered page at the

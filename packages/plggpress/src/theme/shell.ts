@@ -24,26 +24,26 @@ import { type SiteConfig } from "plggpress/SiteConfig/model/SiteConfig";
 import { href } from "plggpress/Href/usecase/href";
 import { baseCss } from "plggpress/theme/baseCss";
 import {
+  type Appearance,
+  kitCss,
+  monochrome,
+} from "plggmatic";
+import {
   type Theme,
-  themeToggleCss,
-  schemeCss,
-  metricCss,
   reducedMotionCss,
   syntaxCss,
   defaultTheme,
 } from "plggpress/themeSupport/styleEntry";
 
 /**
- * The framework-owned CSS blocks plggmatic emits, composed
- * in the one order the cascade needs: the scheme custom
- * properties FIRST (so every later `var(--pm-*)` resolves),
- * then the scheme-independent shell metrics, the
- * reduced-motion reset, the appearance-toggle chrome +
- * icon-switch, and the syntax-highlight `--pm-code-*`
- * properties + `tok-*` rules — all escape-safe (no
- * `<`/`>`/`&`), all ahead of {@link baseCss}'s bespoke
- * layout/prose sheet (D3/D16 cutover, roadmap tickets
- * 07 + 08).
+ * The framework's stylesheet, ahead of {@link baseCss}:
+ * plggmatic's KIT — the UI system (frame, columns, shared
+ * strip, sidebar, prose structure) and the appearance that
+ * dresses it, with the scheme and metric properties every
+ * later `var()` resolves — then the reduced-motion reset
+ * and the syntax-highlight properties. All escape-safe (no
+ * `<`/`>`/`&`). The site's look IS the kit's; `baseCss`
+ * only adds what a documentation site has beyond it.
  */
 // plggpress passes the RESOLVED theme to the value-carrying
 // emitters — the scheme, metric, and syntax CSS for the
@@ -51,11 +51,12 @@ import {
 // default, or a `SiteConfig` palette override (D3, made
 // config-driven); `resolveTheme` picks it from the config.
 // `reducedMotionCss`/`themeToggleCss` carry no theme values.
-const frameworkCss = (theme: Theme): SoftStr =>
-  schemeCss(theme) +
-  metricCss(theme) +
+const frameworkCss = (
+  theme: Theme,
+  appearance: Appearance,
+): SoftStr =>
+  kitCss(theme, appearance) +
   reducedMotionCss +
-  themeToggleCss +
   syntaxCss(theme);
 
 /**
@@ -72,6 +73,17 @@ export const resolveTheme = (
     () => defaultTheme,
     (theme: Theme) => theme,
   )(config.theme);
+
+/**
+ * The appearance a site renders in: its config's, else
+ * the framework's default.
+ */
+export const resolveAppearance = (
+  config: SiteConfig,
+): Appearance =>
+  config.appearance?.__tag === "Some"
+    ? config.appearance.content
+    : monochrome;
 
 /**
  * The page `<title>` text: the document's first H1
@@ -163,8 +175,14 @@ const documentHead = (
         [],
         [
           text(
-            frameworkCss(theme) +
-              baseCss(theme) +
+            frameworkCss(
+              theme,
+              resolveAppearance(config),
+            ) +
+              baseCss(
+                theme,
+                resolveAppearance(config),
+              ) +
               "\n" +
               collectCss(body),
           ),

@@ -12,12 +12,17 @@ import {
   cast,
   ok,
   err,
+  isErr,
   invalidError,
 } from "plgg";
 import {
   type Theme,
   pragmaticThemeWithPalette,
 } from "plggmatic/style";
+import {
+  type Appearance,
+  asAppearance,
+} from "plggmatic";
 import { type ContentModelBinding } from "plggpress/ContentModel/model/ContentModel";
 import { asBindings } from "plggpress/ContentModel/usecase/asContentModel";
 
@@ -157,6 +162,14 @@ export type SiteConfig = Readonly<{
   // the offending path (e.g. `dark.danger-border`) on a
   // bad palette rather than silently.
   theme: Option<Theme>;
+  /**
+   * How the site LOOKS: a plggmatic `Appearance` — type,
+   * rules, corners, marks, density, motion. Absent ⇒ the
+   * framework's default (monochrome). The palette
+   * (`theme`) says what colour each role is; this says
+   * which role draws what, and everything else.
+   */
+  appearance?: Option<Appearance>;
 }>;
 
 /**
@@ -325,6 +338,7 @@ export type SiteConfigInput = Readonly<{
   // Optional palette override — absent ⇒ the B&W qmu
   // default. Validated into a `Theme` at load.
   theme?: PaletteInput;
+  appearance?: Appearance;
 }>;
 
 /**
@@ -337,8 +351,9 @@ export type SiteConfigInput = Readonly<{
  */
 export const asSiteConfig = (
   value: unknown,
-): Result<SiteConfig, InvalidError> =>
-  cast(
+): Result<SiteConfig, InvalidError> => {
+  // two passes: `cast` composes at most twenty steps
+  const read = cast(
     value,
     asObj,
     forProp("title", asSoftStr),
@@ -448,6 +463,13 @@ export const asSiteConfig = (
       pragmaticThemeWithPalette,
     ),
   );
+  return isErr(read)
+    ? err(read.content)
+    : cast(
+        read.content,
+        forOptionProp("appearance", asAppearance),
+      );
+};
 
 /**
  * The typed authoring façade over {@link asSiteConfig}:

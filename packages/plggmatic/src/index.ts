@@ -613,6 +613,7 @@ export {
   monochrome,
   soft,
   appearanceCss,
+  asAppearance,
 } from "plggmatic/Shell";
 export {
   shellClass,

@@ -2,6 +2,7 @@ import { type SoftStr } from "plgg";
 import { type Theme } from "plggmatic/Style/model/theme";
 import { metricVar } from "plggmatic/Style/model/metric";
 import { zValue } from "plggmatic/Style/model/zIndex";
+import { minWidth } from "plggmatic/Style/model/breakpoint";
 import {
   shareCss,
   shareOptions,
@@ -22,7 +23,12 @@ import {
  *   the sidebar, up to what the window holds
  *   ({@link shareCss}); past that the strip scrolls and
  *   two controls step it.
- * - **States.** The sidebar folds to a strip. A sidebar
+ * - **A page.** What a page shows keeps the reading
+ *   measure and stands in the middle of its column; a
+ *   page that asks for two columns is a figure or a whole
+ *   screen and takes the room.
+ * - **States.** The sidebar folds to a strip (where it is
+ *   a column: from the `lg` breakpoint up). A sidebar
  *   group is a disclosure. A page can be arriving, leaving
  *   or replacing another — the system names each state and
  *   moves the layout; it does not say how long it takes.
@@ -60,18 +66,23 @@ ${side}{width:var(${inset});position:sticky;left:0;z-index:3}
 .${p}-shell-brand{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .${p}-shell-fold{display:inline-flex;margin-left:auto;flex:none;align-items:center;justify-content:center;cursor:pointer}
 .${p}-shell-foot{flex:none;margin-top:auto;display:flex;align-items:center}
+@media ${minWidth("lg")}{
 ${M}{${inset}:3rem}
 ${M} ${side} .${p}-shell-brand,${M} ${side} .${p}-shell-body{display:none}
 ${M} ${side} .${p}-shell-head{justify-content:center}
 ${M} .${p}-shell-fold{margin:0}
 ${M} .${p}-shell-foot{justify-content:center}
+}
 .${p}-shell .${p}-fold{flex:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 @keyframes ${p}-page-in{from{flex-grow:0;flex-basis:0;opacity:0}}
 @keyframes ${p}-page-out{to{flex-grow:0;flex-basis:0;opacity:0;border-right-width:0}}
 @keyframes ${p}-page-swap{from{opacity:0}}
 .${p}-shell ${page}${page}[data-${p}-leaving]{pointer-events:none}
-.${p}-doc{display:block;margin:0}
-.${p}-doc :is(p,li,h1,h2,h3,h4,blockquote,dl){max-width:${mvar("measure")}}
+.${p}-doc{display:block;margin:0 auto;max-width:${mvar("measure")}}
+.${p}-span-2 .${p}-doc{max-width:none}
+.${p}-doc pre{overflow-x:auto}
+.${p}-doc table{display:block;overflow-x:auto}
+.${p}-doc img{max-width:100%}
 .${p}-nav{display:block}
 .${p}-nav-link,.${p}-nav-flat{display:block}
 .${p}-nav-numbered{counter-reset:sample}

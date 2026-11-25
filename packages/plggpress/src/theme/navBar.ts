@@ -1,3 +1,8 @@
+import {
+  shellFoldClass,
+  shellFootClass,
+  shellMinAttr,
+} from "plggmatic";
 import { type SoftStr } from "plgg";
 import {
   type Html,
@@ -108,14 +113,15 @@ export const chromeRail = (
   );
 
 /**
- * The class of the control that folds the sidebar, and of
- * the state it sets on `<html>`. Named once: the page, the
+ * The class of the control that folds the sidebar, and
+ * the attribute it sets on `<html>` — the framework's own
+ * folded-shell state, so the kit's rules answer it. Named once: the page, the
  * stylesheet and the wiring script all read them here.
  */
 export const sidebarFoldClass: SoftStr =
   "vp-fold-btn";
-export const sidebarMinClass: SoftStr =
-  "vp-side-min";
+export const sidebarMinAttr: SoftStr =
+  shellMinAttr;
 
 /**
  * The control that folds the sidebar to a narrow strip and
@@ -129,7 +135,9 @@ export const sidebarFold: Html<never, "button"> =
   button(
     [
       attr("type", "button"),
-      class_(sidebarFoldClass),
+      class_(
+        sidebarFoldClass + " " + shellFoldClass,
+      ),
       attr("aria-label", "Fold the sidebar"),
       attr("aria-expanded", "true"),
     ],
@@ -145,7 +153,7 @@ export const sidebarFoot = (
   config: SiteConfig,
 ): Html<never, "div"> =>
   div(
-    [class_("vp-sidebar-foot")],
+    [class_("vp-sidebar-foot " + shellFootClass)],
     [
       staticThemeToggle,
       socialLinks(config, "vp-foot-social"),

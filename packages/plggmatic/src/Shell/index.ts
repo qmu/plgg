@@ -30,3 +30,4 @@ export {
   soft,
 } from "plggmatic/Appearance/model/appearance";
 export { appearanceCss } from "plggmatic/Appearance/usecase/appearanceCss";
+export { asAppearance } from "plggmatic/Appearance/usecase/asAppearance";

@@ -438,7 +438,7 @@ export const view = (model: Model): Html<Msg> => {
           // the sidebar marks the page read last
           current: (id: SoftStr) => id === last,
           toggle: true,
-          numbered: true,
+          numbered: false,
           label: "目次",
         },
         folded: model.folded,

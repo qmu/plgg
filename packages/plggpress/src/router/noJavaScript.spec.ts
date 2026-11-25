@@ -174,7 +174,7 @@ test("a composition URL renders its columns with no script involved", async () =
       all([
         // both columns are in the SERVER's bytes
         toBe(2)(
-          bodyOf(res).split('class="vp-doc"')
+          bodyOf(res).split('class="vp-doc ')
             .length - 1,
         ),
         // …including the highlight
@@ -192,7 +192,7 @@ test("a composition URL renders its columns with no script involved", async () =
               /<script>[\s\S]*?<\/script>/g,
               "",
             )
-            .split('class="vp-doc"').length - 1,
+            .split('class="vp-doc ').length - 1,
         ),
       ]),
     ),

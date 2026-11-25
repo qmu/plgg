@@ -208,7 +208,7 @@ test("the landing page is ordinary prose WITH the sections column (qmu model)", 
     // no hero variant exists
     check(
       renderedHome,
-      toContain('class="vp-doc"'),
+      toContain('class="vp-doc '),
     ),
     // the wordmark marks the home route current
     check(
@@ -335,7 +335,7 @@ test("the strip carries ONE content column per composition entry", () =>
     ),
     // every column is a real content column, footer and all
     check(
-      renderedComposition.split('class="vp-doc"')
+      renderedComposition.split('class="vp-doc ')
         .length - 1,
       toBe(3),
     ),
