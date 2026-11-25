@@ -250,7 +250,12 @@ const sectionsColumn = (
                 attr("href", hrefOf(link)),
                 class_(sidebarNavClass.link),
               ],
-          [text(group.text)],
+          [
+            span(
+              [class_(sidebarNavClass.label)],
+              [text(group.text)],
+            ),
+          ],
         ),
     )(firstLeafLink(group.items));
   };

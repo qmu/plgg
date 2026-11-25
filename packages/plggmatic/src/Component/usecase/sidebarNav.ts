@@ -28,6 +28,7 @@ import {
   navGroupClass,
   navGroupTitleClass,
   navLinkClass,
+  navLabelClass,
   navFlatClass,
   navSubgroupClass,
   navSubgroupTitleClass,
@@ -54,6 +55,7 @@ export const sidebarNavClass = {
   group: navGroupClass,
   groupTitle: navGroupTitleClass,
   link: navLinkClass,
+  label: navLabelClass,
   flat: navFlatClass,
   subgroup: navSubgroupClass,
   subgroupTitle: navSubgroupTitleClass,
@@ -115,7 +117,12 @@ export const sidebarNav = (
           [text(item.label)],
         ),
       (href) =>
-        a(linkAttrs(href), [text(item.label)]),
+        a(linkAttrs(href), [
+          span(
+            [class_(c.label)],
+            [text(item.label)],
+          ),
+        ]),
     )(item.href);
   const renderItem = (
     item: NavItem,

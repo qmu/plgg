@@ -51,7 +51,7 @@ ${doc} .cat-example table{margin:0;}
 // Two sheets, because they are two things: the system
 // (where things are, how they behave) never changes; the
 // appearance (how they look) is replaced when the reader
-// picks another on the "見た目と仕組み" page.
+// picks another on the "見た目を差し替える" page.
 const system = document.createElement("style");
 system.textContent = kitSystemCss(defaultTheme);
 document.head.appendChild(system);

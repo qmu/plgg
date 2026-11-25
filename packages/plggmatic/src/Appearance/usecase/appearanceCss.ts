@@ -118,7 +118,8 @@ ${doc} :is(h1,h2,h3,h4){scroll-margin-top:1rem}
 ${link}{padding:.5rem ${a.gutter};border-bottom:${hair};font-size:.875rem;line-height:1.45;color:${text};text-decoration:none}
 ${link}:hover{${mark(a.hover)};text-decoration:none}
 ${link}:focus-visible{${mark(a.press)};text-decoration:none;outline:0}
-${link}[aria-current]{${mark(a.current)};border-bottom-color:${cvar(a.current.fill)}}
+.${p}-nav-label{padding:.15rem .5rem;margin-inline:-.5rem;border-radius:${a.radius};box-decoration-break:clone;-webkit-box-decoration-break:clone}
+${link}[aria-current] .${p}-nav-label{${mark(a.current)}}
 .${p}-nav-flat{padding:.5rem ${a.gutter};border-bottom:${hair};font-size:.875rem;line-height:1.45;color:${muted}}
 .${p}-nav-subgroup{margin:0}
 .${p}-nav-subgroup-title{padding:.5rem ${a.gutter};font-size:.875rem;line-height:1.45;border-bottom:${hair};font-weight:600;color:${text}}

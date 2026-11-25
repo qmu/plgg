@@ -304,7 +304,7 @@ test("the sidebar tree is flush left - hierarchy by weight, never indentation", 
     ),
   ]));
 
-test("sidebar rows are full-width, ruled by a hairline, the current one inverted", () =>
+test("sidebar rows are full-width, ruled by a hairline; the current one inverts its words, not the row", () =>
   all([
     check(
       css,
@@ -315,7 +315,11 @@ test("sidebar rows are full-width, ruled by a hairline, the current one inverted
     check(
       css,
       toContain(
-        "border-bottom-color:" +
+        "." +
+          sidebarNavClass.link +
+          "[aria-current] ." +
+          sidebarNavClass.label +
+          "{background:" +
           cvar("primary-base"),
       ),
     ),

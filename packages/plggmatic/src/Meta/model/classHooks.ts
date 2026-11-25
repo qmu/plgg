@@ -239,6 +239,12 @@ export const navGroupTitleClass: SoftStr = hook(
 /** A row that is a link. */
 export const navLinkClass: SoftStr =
   hook("nav-link");
+/**
+ * The words of a row, apart from the row itself: what an
+ * appearance marks when the row is the current one.
+ */
+export const navLabelClass: SoftStr =
+  hook("nav-label");
 /** A row that is plain text. */
 export const navFlatClass: SoftStr =
   hook("nav-flat");
