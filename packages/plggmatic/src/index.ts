@@ -134,6 +134,22 @@ export {
   documentColumn,
   navigationInitScript,
   injectNavigationScript,
+  type Trail,
+  type TrailResolver,
+  type TrailColumn,
+  resolveTrail,
+  settledTrail,
+  foldTrail,
+  stepFrom,
+  restep,
+  type StepCodec,
+  trailParam,
+  stepSeparator,
+  encodeTrail,
+  decodeTrail,
+  trailQuery,
+  printSteps,
+  parseSteps,
 } from "plggmatic/Navigate";
 // The `themeToggle*` family (component + class/CSS/static
 // helpers) is part of the THEME surface, so it is routed

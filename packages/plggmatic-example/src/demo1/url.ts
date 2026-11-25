@@ -7,6 +7,16 @@ import {
 } from "plgg";
 import { type Url } from "plgg-view/client";
 import {
+  type StepCodec,
+  trailParam,
+  encodeTrail,
+  decodeTrail,
+  printSteps,
+  parseSteps,
+  foldTrail,
+  stepFrom,
+} from "plggmatic";
+import {
   type SectionId,
   defOf,
   sectionIdOf,
@@ -204,7 +214,7 @@ const OWNED: Record<
   search: ["search"],
   results: ["submitted", "kw", "st"],
   detail: ["p"],
-  trail: ["trail"],
+  trail: [trailParam],
 };
 
 /**
@@ -277,8 +287,9 @@ const withTrailOnUrl = (
   steps: ReadonlyArray<TrailStep>,
 ): Url => {
   const params = new URLSearchParams(url.search);
-  if (steps.length === 0) params.delete("trail");
-  else params.set("trail", printTrail(steps));
+  if (steps.length === 0)
+    params.delete(trailParam);
+  else params.set(trailParam, printTrail(steps));
   return {
     path: url.path,
     search: searchString(params),
@@ -317,7 +328,7 @@ export const selectedId = (
 
 // === The recursion trail ===
 // A URL-carried STACK of cross-reference hops appended after
-// the base view: `trail=<step>.<step>.…`, where a step NAMES
+// the base view: `x=<step>.<step>.…`, where a step NAMES
 // the section it is about:
 //
 //   d_<section>_<id>           a record's detail
@@ -399,21 +410,30 @@ const parseStep = (
   )(sectionIdOf(rawSection));
 };
 
+// The step vocabulary is this app's; splitting, joining,
+// escaping and "stop at the first string that is no step"
+// are plggmatic's trail format (`?x=<step>.<step>.…`).
+const stepCodec: StepCodec<TrailStep> = {
+  print: printStep,
+  parse: (raw: SoftStr): Option<TrailStep> =>
+    fromNullable(parseStep(raw)[0]),
+};
 export const trailOf = (
   url: Url,
-): ReadonlyArray<TrailStep> => {
-  const raw = new URLSearchParams(url.search).get(
-    "trail",
+): ReadonlyArray<TrailStep> =>
+  parseSteps(stepCodec)(
+    decodeTrail(
+      fromNullable(
+        new URLSearchParams(url.search).get(
+          trailParam,
+        ),
+      ),
+    ),
   );
-  return raw === null || raw === ""
-    ? []
-    : raw.split(".").flatMap(parseStep);
-};
-
 const printTrail = (
   steps: ReadonlyArray<TrailStep>,
-): SoftStr => steps.map(printStep).join(".");
-
+): SoftStr =>
+  encodeTrail(printSteps(stepCodec)(steps));
 // An href with the trail replaced — PRESERVING every other
 // column of the current view (the search condition, the
 // results, the selection): a recursion hop must grow the
@@ -428,7 +448,14 @@ export const appendTrail = (
   url: Url,
   step: TrailStep,
 ): SoftStr =>
-  withTrail(url, [...trailOf(url), step]);
+  withTrail(
+    url,
+    stepFrom(
+      trailOf(url),
+      trailOf(url).length,
+      step,
+    ),
+  );
 
 /**
  * The url as a column at `depth` hops sees it: the trail cut
@@ -449,5 +476,5 @@ export const trailAt = (
 ): Url =>
   withTrailOnUrl(
     url,
-    trailOf(url).slice(0, depth),
+    foldTrail(trailOf(url), depth),
   );

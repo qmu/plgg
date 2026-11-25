@@ -40,3 +40,23 @@ export {
   navigationInitScript,
   injectNavigationScript,
 } from "plggmatic/Navigate/usecase/navigationScript";
+export {
+  type Trail,
+  type TrailResolver,
+  type TrailColumn,
+  resolveTrail,
+  settledTrail,
+  foldTrail,
+  stepFrom,
+  restep,
+} from "plggmatic/Navigate/model/Trail";
+export {
+  type StepCodec,
+  trailParam,
+  stepSeparator,
+  encodeTrail,
+  decodeTrail,
+  trailQuery,
+  printSteps,
+  parseSteps,
+} from "plggmatic/Navigate/usecase/trailUrl";

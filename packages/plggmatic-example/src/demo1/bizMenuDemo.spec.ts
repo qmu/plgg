@@ -458,7 +458,7 @@ test("a project search deep link keeps the condition and results before detail",
 const DEEP =
   "?c=clients&search=1&submitted=1&kw=beacon" +
   "&st=Any&p=acme" +
-  "&trail=l_projects_client_acme.d_projects_acme";
+  "&x=l_projects_client_acme.d_projects_acme";
 
 const deepUrl = makeUrl("/", DEEP);
 
@@ -509,7 +509,7 @@ test("a trail column's header keeps that column, dropping the hops after it", ()
       trailAt(deepUrl, 1).search,
       toBe(
         "?c=clients&search=1&submitted=1&kw=beacon&st=Any&p=acme" +
-          "&trail=l_projects_client_acme",
+          "&x=l_projects_client_acme",
       ),
     ),
   ]);
@@ -1108,7 +1108,7 @@ test("the recursion spans the newly-declared sections", () => {
     makeUrl(
       "/",
       "?c=clients&p=acme" +
-        "&trail=l_deals_client_acme.d_deals_est-2041",
+        "&x=l_deals_client_acme.d_deals_est-2041",
     ),
   );
   const html = renderToString(app.view(m));
