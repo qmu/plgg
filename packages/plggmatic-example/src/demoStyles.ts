@@ -55,7 +55,7 @@ ${selector(disabledClass)}{opacity:0.55;cursor:not-allowed;}
 ${selector(formClass)}{display:flex;flex-direction:column;gap:0.5rem;max-width:420px;}
 ${selector(actionsClass)}{display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;}
 ${selector(btnClass)}{padding:0.35rem 0.75rem;border:1px solid ${cssVarRef("border")};border-radius:6px;background:${cssVarRef("surface")};color:${cssVarRef("text")};cursor:pointer;font:inherit;}
-${selector(btnPrimaryClass)}{background:${cssVarRef("primary-base")};color:${cssVarRef("primary-text")};border-color:${cssVarRef("primary-base")};}
+${selector(btnPrimaryClass)}{background:${cssVarRef("primary-base")};color:${cssVarRef("surface")};border-color:${cssVarRef("primary-base")};}
 ${selector(btnDangerClass)}{border-color:${cssVarRef("danger-base")};color:${cssVarRef("danger-base")};}
 ${selector(hintClass)}{color:${cssVarRef("muted")};}
 ${selector(errorClass)}{color:${cssVarRef("danger-base")};}

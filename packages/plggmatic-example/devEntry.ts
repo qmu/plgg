@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, normalize } from "node:path";
 
@@ -45,12 +46,20 @@ const serveFile = async (path: string): Promise<Response> => {
   }
 };
 
+// The bundler's entry: beside this package when it has its
+// own node_modules, else hoisted to the workspace root (an
+// npm workspace install puts it there).
+const BUNDLER = "node_modules/plgg-bundle/bin/plgg-bundle.mjs";
+const bundler = existsSync(join(here, BUNDLER))
+  ? join(here, BUNDLER)
+  : join(here, "..", "..", BUNDLER);
+
 export default (): ((request: Request) => Promise<Response>) => {
   // Rebuild on every (re-)entry — once at start, again per
   // watched edit.
   execFileSync(
     "node",
-    ["node_modules/plgg-bundle/bin/plgg-bundle.mjs", "bundle.config.ts"],
+    [bundler, "bundle.config.ts"],
     { cwd: here, stdio: "inherit" },
   );
   return async (request: Request): Promise<Response> => {
