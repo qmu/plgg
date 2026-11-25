@@ -34,10 +34,14 @@ import {
   openedAttr,
   columnAttr,
   toasterClass,
+  kitAppearanceCss,
+  monochrome,
+  soft,
 } from "plggmatic";
 import {
   type Scheme,
   applyScheme,
+  defaultTheme,
 } from "plggmatic/style";
 import {
   type Model,
@@ -66,6 +70,8 @@ import { type Page, pages } from "./pages.ts";
 
 export const FOLD_KEY =
   "plggmatic-catalog:folded";
+/** The id of the `<style>` holding the appearance half. */
+export const LOOK_SHEET = "catalog-look";
 
 const pageOf = (id: SoftStr): Option<Page> =>
   fromNullable(pages.find((p) => p.id === id));
@@ -127,6 +133,11 @@ export const init = (
     shown: [],
     presses: 0,
     saved: "",
+    layout: "none",
+    snap: "16",
+    acyclic: true,
+    maxOut: "",
+    look: "monochrome",
   },
   cmdNone(),
 ];
@@ -271,6 +282,47 @@ export const update = (
         ),
         cmdNone(),
       ];
+    case "SetLayout":
+      return [
+        { ...model, layout: m.value },
+        cmdNone(),
+      ];
+    case "SetSnap":
+      return [
+        { ...model, snap: m.value },
+        cmdNone(),
+      ];
+    case "ToggleAcyclic":
+      return [
+        { ...model, acyclic: !model.acyclic },
+        cmdNone(),
+      ];
+    case "SetMaxOut":
+      return [
+        {
+          ...model,
+          maxOut: m.value.replace(/[^0-9]/g, ""),
+        },
+        cmdNone(),
+      ];
+    case "SetLook":
+      return [
+        { ...model, look: m.look },
+        // only the appearance half is replaced: nothing
+        // moves, everything is redressed
+        cmdEffect(() => {
+          const sheet =
+            document.getElementById(LOOK_SHEET);
+          if (sheet !== null)
+            sheet.textContent = kitAppearanceCss(
+              defaultTheme,
+              m.look === "soft"
+                ? soft
+                : monochrome,
+            );
+          return Promise.resolve(msg.done());
+        }),
+      ];
     case "Dismiss":
       return [
         {
@@ -349,8 +401,10 @@ const shellPage = (
   return {
     route: page.id,
     title: page.title,
+    // a strip is closed from its end: only the rightmost
+    // page, and not when it is the only one
     close:
-      index === 0
+      index === 0 || index !== ids.length - 1
         ? none()
         : some(
             hrefOf(

@@ -256,7 +256,9 @@ export const navigationInitScript: SoftStr =
   "function sync(){var c=cols();" +
   "for(var i=0;i<c.length;i++){(function(col,i){" +
   "var b=col.querySelector('.'+FC);" +
-  "if(i===0){if(b){b.remove();}return;}" +
+  // only the RIGHTMOST column closes, and not the head: a
+  // strip is closed from its end, a page at a time
+  "if(i===0||i!==c.length-1){if(b){b.remove();}return;}" +
   "if(!b){b=document.createElement('button');b.type='button';" +
   "b.className=FC;b.setAttribute('aria-label','この列を閉じる');" +
   "b.textContent='\u00d7';var hd=col.querySelector(':scope>header');" +

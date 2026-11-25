@@ -67,6 +67,35 @@ export const openedAttr: SoftStr = `data-${cssPrefix}-opened`;
 /** The row naming every open column. */
 export const trailClass: SoftStr = hook("trail");
 
+// --- Property list (Component/usecase/properties) ---
+
+/** A list of settings: one row per property. */
+export const propsClass: SoftStr = hook("props");
+/** One row: a name and the control that sets it. */
+export const propClass: SoftStr = hook("prop");
+/** The name in a property row. */
+export const propLabelClass: SoftStr =
+  hook("prop-label");
+/** The control's place in a property row. */
+export const propControlClass: SoftStr = hook(
+  "prop-control",
+);
+/** An on/off switch. */
+export const switchClass: SoftStr =
+  hook("switch");
+/** The switch's track. */
+export const switchTrackClass: SoftStr = hook(
+  "switch-track",
+);
+/** The switch's thumb. */
+export const switchThumbClass: SoftStr = hook(
+  "switch-thumb",
+);
+/** The word beside a switch saying which way it stands. */
+export const switchLabelClass: SoftStr = hook(
+  "switch-label",
+);
+
 // --- Shell (Shell/usecase/shell) ---
 
 /** The frame of the framework's standard screen. */

@@ -45,8 +45,11 @@ import { none } from "plgg";
 /**
  * One document column of the shell: the page at `route`,
  * called `title` in its head bar. `close` is the address
- * of the strip WITHOUT this column and what stands to its
- * right — present on every column but the first. `wide`
+ * of the strip WITHOUT this column — present on the
+ * RIGHTMOST column only, and not when it is the only one:
+ * a strip is closed from its end, a page at a time, so a
+ * reader never removes a page that others still stand to
+ * the right of. `wide`
  * asks for two columns' worth (a page that is one large
  * figure or a whole screen).
  */

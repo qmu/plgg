@@ -11,17 +11,21 @@ import {
   defaultTheme,
 } from "plggmatic/style";
 import {
-  kitCss,
+  kitSystemCss,
+  kitAppearanceCss,
   carouselInitScript,
   cssVarRef,
   selector,
   docClass,
 } from "plggmatic";
-import { app } from "./catalog/app.ts";
+import {
+  app,
+  LOOK_SHEET,
+} from "./catalog/app.ts";
 
 /**
  * CSR entry for the catalog. The whole screen is
- * `kitCss`; what follows it is only what the catalog's
+ * the kit's two sheets; what follows them is only what the catalog's
  * own pages add — the box an example stands in, the colour
  * chips, the frame a whole screen is shown in.
  */
@@ -44,10 +48,20 @@ body{margin:0;background:${cssVarRef("surface")};}
 ${doc} .cat-example table{margin:0;}
 `;
 
-const style = document.createElement("style");
-style.textContent =
-  kitCss(defaultTheme) + pageCss;
-document.head.appendChild(style);
+// Two sheets, because they are two things: the system
+// (where things are, how they behave) never changes; the
+// appearance (how they look) is replaced when the reader
+// picks another on the "見た目と仕組み" page.
+const system = document.createElement("style");
+system.textContent = kitSystemCss(defaultTheme);
+document.head.appendChild(system);
+const look = document.createElement("style");
+look.id = LOOK_SHEET;
+look.textContent = kitAppearanceCss(defaultTheme);
+document.head.appendChild(look);
+const own = document.createElement("style");
+own.textContent = pageCss;
+document.head.appendChild(own);
 
 applyScheme(
   decideScheme(

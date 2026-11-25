@@ -29,7 +29,17 @@ export type Model = Readonly<{
   shown: ReadonlyArray<Shown>;
   presses: number;
   saved: SoftStr;
+  /** The property list's example: a diagram's settings. */
+  layout: SoftStr;
+  snap: SoftStr;
+  acyclic: boolean;
+  maxOut: SoftStr;
+  /** Which appearance the catalog is wearing. */
+  look: Look;
 }>;
+
+/** The appearances the catalog can be seen in. */
+export type Look = "monochrome" | "soft";
 
 export type Msg =
   | Readonly<{ kind: "UrlChanged"; url: Url }>
@@ -49,7 +59,18 @@ export type Msg =
       kind: "Toast";
       tone: Shown["tone"];
     }>
-  | Readonly<{ kind: "Dismiss"; id: SoftStr }>;
+  | Readonly<{ kind: "Dismiss"; id: SoftStr }>
+  | Readonly<{
+      kind: "SetLayout";
+      value: SoftStr;
+    }>
+  | Readonly<{ kind: "SetSnap"; value: SoftStr }>
+  | Readonly<{ kind: "ToggleAcyclic" }>
+  | Readonly<{
+      kind: "SetMaxOut";
+      value: SoftStr;
+    }>
+  | Readonly<{ kind: "SetLook"; look: Look }>;
 
 /** Typed constructors, so a handler never widens a literal. */
 export const msg = {
@@ -89,5 +110,24 @@ export const msg = {
   dismiss: (id: SoftStr): Msg => ({
     kind: "Dismiss",
     id,
+  }),
+  setLayout: (value: SoftStr): Msg => ({
+    kind: "SetLayout",
+    value,
+  }),
+  setSnap: (value: SoftStr): Msg => ({
+    kind: "SetSnap",
+    value,
+  }),
+  toggleAcyclic: (): Msg => ({
+    kind: "ToggleAcyclic",
+  }),
+  setMaxOut: (value: SoftStr): Msg => ({
+    kind: "SetMaxOut",
+    value,
+  }),
+  setLook: (look: Look): Msg => ({
+    kind: "SetLook",
+    look,
   }),
 };

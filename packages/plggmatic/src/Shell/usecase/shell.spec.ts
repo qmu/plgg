@@ -13,9 +13,17 @@ import {
   type ShellProps,
   shell,
 } from "plggmatic/Shell/usecase/shell";
-import { shellCss } from "plggmatic/Shell/usecase/shellCss";
-import { controlsCss } from "plggmatic/Shell/usecase/controlsCss";
-import { kitCss } from "plggmatic/Shell/usecase/kit";
+import {
+  kitCss,
+  kitSystemCss,
+  kitAppearanceCss,
+} from "plggmatic/Shell/usecase/kit";
+import { systemCss } from "plggmatic/System/usecase/systemCss";
+import {
+  monochrome,
+  soft,
+} from "plggmatic/Appearance/model/appearance";
+import { appearanceCss } from "plggmatic/Appearance/usecase/appearanceCss";
 
 const props = (
   folded: boolean,
@@ -124,45 +132,127 @@ test("a folded sidebar is told to the stylesheet by one attribute, and to assist
   ]);
 });
 
-test("the look is square, ruled in the text colour, and escape-safe", () => {
-  const css =
-    shellCss(defaultTheme) +
-    controlsCss(defaultTheme);
+test("the system sheet makes no visual decision: no colour, font, border, radius, padding or duration", () => {
+  const css = systemCss(defaultTheme);
   return all([
     check(/[<>&]/.test(css), toBe(false)),
-    // no rounding anywhere but the explicit reset
     check(
-      css
+      [
+        "color:",
+        "background",
+        "font-family",
+        "font-size",
+        "border:",
+        "border-radius",
+        "padding",
+        "transition",
+        "box-shadow",
+        "animation:",
+      ]
+        // as a declaration of its own, not inside
+        // another property's name (scroll-padding-left)
+        .filter((decision) =>
+          new RegExp("[{;]" + decision).test(css),
+        )
+        .join(),
+      toBe(""),
+    ),
+    // it does fix the structure
+    check(
+      css,
+      toContain(
+        ".pm-shell .pm-col{flex:none;display:flex;flex-direction:column;min-height:0;overflow:hidden}",
+      ),
+    ),
+  ]);
+});
+
+test("an appearance sheet positions nothing: it dresses what the system laid out", () => {
+  const css =
+    appearanceCss(defaultTheme)(monochrome);
+  return all([
+    check(/[<>&]/.test(css), toBe(false)),
+    check(
+      [
+        "position:fixed",
+        "position:sticky",
+        "flex:1",
+        "overflow-x",
+      ]
+        .filter((layout) => css.includes(layout))
+        .join(),
+      toBe(""),
+    ),
+  ]);
+});
+
+test("monochrome is one ink, square and inverted; soft answers every one of those differently", () => {
+  const mono =
+    appearanceCss(defaultTheme)(monochrome);
+  const other = appearanceCss(defaultTheme)(soft);
+  return all([
+    check(
+      mono,
+      toContain(
+        ".pm-shell .pm-col{background:var(--pm-surface);border-right:1px solid var(--pm-text)}",
+      ),
+    ),
+    check(
+      mono
         .split("border-radius:")
         .slice(1)
         .every((rest) => rest.startsWith("0")),
       toBe(true),
     ),
     check(
-      css,
+      mono,
       toContain(
-        "border-right:1px solid var(--pm-text)",
+        ".pm-doc a[data-pm-opened]{background:var(--pm-primary-base);color:var(--pm-surface)",
       ),
     ),
     check(
-      css,
-      toContain(".pm-doc a[data-pm-opened]"),
+      other,
+      toContain(
+        "border-right:1px solid var(--pm-border)}",
+      ),
+    ),
+    check(
+      other,
+      toContain("border-radius:.5rem"),
+    ),
+    check(
+      other,
+      toContain(
+        ".pm-doc a[data-pm-opened]{background:var(--pm-primary-surface);color:var(--pm-primary-text)",
+      ),
     ),
   ]);
 });
 
-test("the kit puts the scheme first and the shared strip after the shell", () => {
+test("the kit is the system half then the appearance half, and the appearance half alone can be replaced", () => {
   const css = kitCss(defaultTheme);
   return all([
     check(
-      css.indexOf("--pm-text") <
-        css.indexOf(".pm-shell{"),
-      toBe(true),
+      css,
+      toBe(
+        kitSystemCss(defaultTheme) +
+          kitAppearanceCss(
+            defaultTheme,
+            monochrome,
+          ),
+      ),
     ),
     check(
-      css.indexOf(".pm-shell{") <
-        css.indexOf(".pm-share{"),
-      toBe(true),
+      kitSystemCss(defaultTheme),
+      toBe(kitSystemCss(defaultTheme)),
+    ),
+    check(
+      kitAppearanceCss(defaultTheme, soft) ===
+        kitAppearanceCss(
+          defaultTheme,
+          monochrome,
+        ),
+      toBe(false),
     ),
     check(/[<>&]/.test(css), toBe(false)),
   ]);

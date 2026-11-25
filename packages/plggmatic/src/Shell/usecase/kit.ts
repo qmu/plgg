@@ -2,39 +2,52 @@ import { type SoftStr } from "plgg";
 import { type Theme } from "plggmatic/Style/model/theme";
 import { metricCss } from "plggmatic/Style/usecase/metricCss";
 import { schemeCss } from "plggmatic/Style/usecase/schemeCss";
-import {
-  shareCss,
-  shareOptions,
-} from "plggmatic/Style/usecase/shareCss";
-import { carouselCss } from "plggmatic/Style/usecase/carouselCss";
-import { sidebarNavCss } from "plggmatic/Component/usecase/sidebarNav";
 import { themeToggleCss } from "plggmatic/Component/usecase/themeToggle";
-import { shellCss } from "plggmatic/Shell/usecase/shellCss";
-import { controlsCss } from "plggmatic/Shell/usecase/controlsCss";
+import { systemCss } from "plggmatic/System/usecase/systemCss";
+import {
+  type Appearance,
+  monochrome,
+} from "plggmatic/Appearance/model/appearance";
+import { appearanceCss } from "plggmatic/Appearance/usecase/appearanceCss";
 
 /**
- * EVERYTHING the standard screen needs, in the one order
- * that works: the theme's custom properties, then the
- * shell, then what the shell holds. A product injects this
- * once and writes no layout of its own:
+ * EVERYTHING a plggmatic screen needs, as two halves in
+ * the one order that works:
+ *
+ * 1. **the system** — the metrics and `systemCss`: where
+ *    things are and how they behave;
+ * 2. **an appearance** — the palette's scheme and
+ *    `appearanceCss`: how they look. {@link monochrome}
+ *    unless the product says otherwise.
  *
  * ```ts
- * style.textContent = kitCss(defaultTheme);
- * root.replaceChildren(render(shell({ … })));
+ * style.textContent = kitCss(defaultTheme);          // the default look
+ * style.textContent = kitCss(myTheme, myAppearance); // the product's own
  * ```
  *
- * Order matters in two places and is why this exists
- * rather than a list in a README: the shared strip must
- * follow the shell (both size the same columns, at equal
- * specificity), and the scheme must precede everything
- * that reads a `--pm-*` property. Escape-safe.
+ * The halves are separable on purpose — {@link kitSystemCss}
+ * and {@link kitAppearanceCss} — so a product can change
+ * its appearance at run time by replacing the second and
+ * leaving the first alone: nothing moves, everything is
+ * redressed. Escape-safe.
  */
-export const kitCss = (theme: Theme): SoftStr =>
-  metricCss(theme) +
+export const kitCss = (
+  theme: Theme,
+  appearance: Appearance = monochrome,
+): SoftStr =>
+  kitSystemCss(theme) +
+  kitAppearanceCss(theme, appearance);
+
+/** The system half: metrics, structure, behaviour. */
+export const kitSystemCss = (
+  theme: Theme,
+): SoftStr => metricCss(theme) + systemCss(theme);
+
+/** The appearance half: the palette and the look. */
+export const kitAppearanceCss = (
+  theme: Theme,
+  appearance: Appearance = monochrome,
+): SoftStr =>
   schemeCss(theme) +
-  shellCss(theme) +
-  shareCss(theme)(shareOptions) +
-  carouselCss(theme) +
-  sidebarNavCss(theme) +
   themeToggleCss +
-  controlsCss(theme);
+  appearanceCss(theme)(appearance);

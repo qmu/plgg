@@ -1,22 +1,32 @@
 /**
  * The plggmatic Shell module: the framework's STANDARD
- * SCREEN and its look — what a product gets when it says
- * "build it with plggmatic" and nothing more. A sidebar
- * pinned on the left and the open pages sharing the width
- * beside it ({@link shell}), drawn by one stylesheet
- * ({@link kitCss}) that also dresses the framework's
- * buttons, fields, dialog and toasts.
+ * SCREEN — what a product gets when it says "build it with
+ * plggmatic" and nothing more. A sidebar pinned on the
+ * left and the open pages sharing the width beside it
+ * ({@link shell}), and the one call that styles it
+ * ({@link kitCss}): the UI system's sheet, then an
+ * appearance's.
  *
- * Everything below it (the strip, the shared widths, the
- * carousel, the sidebar) is still usable on its own; this
- * module is the assembly, so that the default is the good
- * one. An explicit named barrel (house style).
+ * The two are kept apart. `System` says where things are
+ * and how they behave; `Appearance` says how they look,
+ * and the monochrome one is only the default. An explicit
+ * named barrel (house style).
  */
 export {
   type ShellPage,
   type ShellProps,
   shell,
 } from "plggmatic/Shell/usecase/shell";
-export { shellCss } from "plggmatic/Shell/usecase/shellCss";
-export { controlsCss } from "plggmatic/Shell/usecase/controlsCss";
-export { kitCss } from "plggmatic/Shell/usecase/kit";
+export {
+  kitCss,
+  kitSystemCss,
+  kitAppearanceCss,
+} from "plggmatic/Shell/usecase/kit";
+export { systemCss } from "plggmatic/System/usecase/systemCss";
+export {
+  type Mark,
+  type Appearance,
+  monochrome,
+  soft,
+} from "plggmatic/Appearance/model/appearance";
+export { appearanceCss } from "plggmatic/Appearance/usecase/appearanceCss";

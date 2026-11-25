@@ -10,6 +10,11 @@ import {
   toast,
   confirmDialog,
   themeToggle,
+  propertyList,
+  propertyRow,
+  choice,
+  entry,
+  toggle,
   btnClass,
   btnPrimaryClass,
   btnDangerClass,
@@ -194,6 +199,104 @@ const rules: Page = {
       "列の幅の決まりは ",
       link("share", "列を分け合う"),
       " にあります。",
+    ),
+  ],
+};
+
+const looks: Page = {
+  id: "looks",
+  title: "見た目と仕組み",
+  group: "はじめに",
+  wide: false,
+  body: ({ model, link }) => [
+    h1("見た目と仕組み"),
+    para(
+      "plggmatic は、仕組み（UI システム）と見た目（アピアランス）を分けて持ちます。同じ仕組みの上で、まったく違う見た目になるのは、ふつうのことです。",
+    ),
+    h2("切り替えてみる"),
+    example(
+      row(
+        plain(
+          "モノトーン（既定）",
+          model.look === "monochrome"
+            ? `${btnClass} ${btnPrimaryClass}`
+            : btnClass,
+          msg.setLook("monochrome"),
+          false,
+        ),
+        plain(
+          "ソフト",
+          model.look === "soft"
+            ? `${btnClass} ${btnPrimaryClass}`
+            : btnClass,
+          msg.setLook("soft"),
+          false,
+        ),
+      ),
+      para(
+        "押すと、線の色・角の丸み・強調のしかた・文字・動きの速さが変わります。列の位置や幅、開閉の動きは変わりません。",
+      ),
+    ),
+    h2("仕組みが決めること"),
+    list(
+      [
+        "左にサイドバー、その右にページの列があること。",
+      ],
+      [
+        "どの列も「名前の帯＋自分でスクロールする本文」であること。",
+      ],
+      [
+        "ページが幅を分け合い、開くときは広がり、閉じるときは縮むこと（",
+        link("share", "列を分け合う"),
+        "）。",
+      ],
+      [
+        "いま居る場所と、右の列を開いたリンクに「印」が付くこと。",
+      ],
+    ),
+    h2("見た目が決めること"),
+    table(
+      ["決めること", "モノトーン", "ソフト"],
+      [
+        ["線の色", "文字と同じ色", "薄い灰色"],
+        ["角", "丸めない", "丸める"],
+        [
+          "印の付け方",
+          "白黒を反転",
+          "薄く色を敷く",
+        ],
+        ["浮くもの", "影なし", "影あり"],
+        [
+          "文字",
+          "Inter / Noto Sans JP",
+          "OS の文字",
+        ],
+        ["動き", "速い", "ゆっくり"],
+      ],
+    ),
+    h2("書き方"),
+    para(
+      "見た目はデータです。既定を写して、変えたいところだけ書き換えられます。",
+    ),
+    source(
+      [
+        'import { kitCss, monochrome } from "plggmatic";',
+        "",
+        "// 既定（モノトーン）",
+        "kitCss(theme);",
+        "",
+        "// 自分の見た目",
+        "kitCss(theme, {",
+        "  ...monochrome,",
+        '  radius: "6px",',
+        '  rule: "border",',
+        "});",
+      ].join("\n"),
+    ),
+    para(
+      "既定の決まりは ",
+      link("rules", "画面のきまり"),
+      " にあります。あれは「モノトーンの決まり」で、仕組みの決まりではありません。",
     ),
   ],
 };
@@ -513,6 +616,128 @@ const fields: Page = {
         disabled: true,
         onInput: msg.setName,
       }),
+    ),
+  ],
+};
+
+const properties: Page = {
+  id: "properties",
+  title: "設定の行",
+  group: "部品",
+  wide: false,
+  body: ({ model, link }) => [
+    h1("設定の行"),
+    para(
+      "1つのものの設定を、1行に1つずつ並べます。左に名前、右にそれを決める部品。調べる・整える用のパネルの形です。",
+    ),
+    example(
+      propertyList<Msg>("図全体", [
+        propertyRow(
+          "cat-layout",
+          "配置",
+          choice<Msg>({
+            name: "cat-layout",
+            value: model.layout,
+            options: [
+              { value: "none", label: "なし" },
+              {
+                value: "down",
+                label: "階層（下へ）",
+              },
+              {
+                value: "right",
+                label: "階層（右へ）",
+              },
+            ],
+            disabled: false,
+            onChange: msg.setLayout,
+          }),
+        ),
+        propertyRow(
+          "cat-snap",
+          "吸着",
+          choice<Msg>({
+            name: "cat-snap",
+            value: model.snap,
+            options: [
+              { value: "0", label: "なし" },
+              { value: "8", label: "8" },
+              { value: "16", label: "16" },
+              { value: "32", label: "32" },
+            ],
+            disabled: false,
+            onChange: msg.setSnap,
+          }),
+        ),
+        propertyRow(
+          "cat-acyclic",
+          "循環を禁止",
+          toggle<Msg>({
+            name: "cat-acyclic",
+            on: model.acyclic,
+            onLabel: "オン",
+            offLabel: "オフ",
+            disabled: false,
+            onToggle: msg.toggleAcyclic(),
+          }),
+        ),
+        propertyRow(
+          "cat-max",
+          "出力数の上限",
+          entry<Msg>({
+            name: "cat-max",
+            value: model.maxOut,
+            placeholder: some("なし"),
+            numeric: true,
+            disabled: false,
+            onInput: msg.setMaxOut,
+          }),
+        ),
+        propertyRow(
+          "cat-fixed",
+          "変更できない行",
+          toggle<Msg>({
+            name: "cat-fixed",
+            on: false,
+            onLabel: "オン",
+            offLabel: "オフ",
+            disabled: true,
+            onToggle: msg.done(),
+          }),
+        ),
+      ]),
+      para(
+        `いまの値：配置 ${model.layout}、吸着 ${model.snap}、循環を禁止 ${model.acyclic ? "オン" : "オフ"}、上限 ${model.maxOut === "" ? "なし" : model.maxOut}`,
+      ),
+    ),
+    h2("きまり"),
+    list(
+      [
+        "1行に部品は1つ。その部品の値が、その行のすべてです。",
+      ],
+      [
+        "送信ボタンはありません。部品を変えた時点で効きます。",
+      ],
+      [
+        "オン・オフは、位置や色だけでなく言葉でも示します。",
+      ],
+    ),
+    para(
+      "上から順に書き込んでいく形は ",
+      link("fields", "入力欄"),
+      " を使います。",
+    ),
+    source(
+      [
+        'propertyList("図全体", [',
+        '  propertyRow("snap", "吸着",',
+        '    choice({ name: "snap", value, options, … })),',
+        '  propertyRow("acyclic", "循環を禁止",',
+        '    toggle({ name: "acyclic", on, onLabel, offLabel, … })),',
+        '  propertyRow("max", "出力数の上限",',
+        '    entry({ name: "max", value, numeric: true, … })),',
+        "])",
+      ].join("\n"),
     ),
   ],
 };
@@ -898,11 +1123,13 @@ const tplForms: Page = {
 export const pages: ReadonlyArray<Page> = [
   overview,
   rules,
+  looks,
   colors,
   type,
   metrics,
   buttons,
   fields,
+  properties,
   dialog,
   toasts,
   links,

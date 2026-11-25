@@ -604,9 +604,15 @@ export {
   type ShellPage,
   type ShellProps,
   shell,
-  shellCss,
-  controlsCss,
   kitCss,
+  kitSystemCss,
+  kitAppearanceCss,
+  systemCss,
+  type Mark,
+  type Appearance,
+  monochrome,
+  soft,
+  appearanceCss,
 } from "plggmatic/Shell";
 export {
   shellClass,
@@ -620,4 +626,24 @@ export {
   shellPageClass,
   docClass,
   shellMinAttr,
+} from "plggmatic/Meta/model/classHooks";
+export {
+  type ChoiceProps,
+  type EntryProps,
+  type ToggleProps,
+  propertyList,
+  propertyRow,
+  choice,
+  entry,
+  toggle,
+} from "plggmatic/Component/usecase/properties";
+export {
+  propsClass,
+  propClass,
+  propLabelClass,
+  propControlClass,
+  switchClass,
+  switchTrackClass,
+  switchThumbClass,
+  switchLabelClass,
 } from "plggmatic/Meta/model/classHooks";

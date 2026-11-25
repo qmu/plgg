@@ -129,11 +129,22 @@ style.textContent = kitCss(defaultTheme);
 shell({ brand, home, atHome, nav, folded, fold, foot, pages });
 ```
 
-The look is one hand throughout (`shellCss`, `controlsCss`): separators are
-hairlines in the text colour, nothing is rounded, the current thing is
-inverted and that is the only emphasis, every column is a head bar over a
-body that scrolls on its own. Buttons, fields, the dialog and toasts are
-dressed by the same sheet, so two products on these components look related.
+**System and appearance are two things.** `systemCss` fixes structure and
+behaviour — the frame, what a column is, how pages share the width, which
+states exist — and contains no colour, font, border, radius, padding or
+duration. An `Appearance` is a value that answers all of those, and
+`appearanceCss` turns it into rules. `kitCss(theme, appearance)` is the two
+in order; `kitSystemCss` and `kitAppearanceCss` are the halves, so a product
+can swap its appearance at run time and nothing moves.
+
+`monochrome` is the default appearance — one ink, square, inversion as the
+only emphasis — and only a default: `soft` ships beside it to keep that
+honest, and a product is expected to write its own
+(`{ ...monochrome, radius: "6px", rule: "border" }`).
+
+Settings read down a column use the **property list** (`propertyList`,
+`propertyRow`, with `choice`, `entry` and `toggle` as the one control a row
+holds).
 
 `packages/plggmatic-example` opens on the **catalog** (`index.html`): the
 design system's pages and live examples, shown in this screen.
