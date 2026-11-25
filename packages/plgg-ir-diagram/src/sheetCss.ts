@@ -497,12 +497,25 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .stage {
     margin-bottom: 6px;
   }
+  /* the hint lies on the picture's own floor, bottom left,
+     and stops short of the panel beside the picture */
+  :scope {
+    position: relative;
+  }
   :scope > small {
-    max-width: none;
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    margin: 0;
+    max-width: calc(100% - 320px - 70px);
+    pointer-events: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 1.5;
+  }
+  :scope[data-max="true"] > small {
+    max-width: calc(100% - 70px);
   }
   .dsl .dsl-rows {
     min-height: 0;
@@ -646,6 +659,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
 
   @media(min-width:760px) and (max-width:1099px){
+    :scope>small{max-width:calc(100% - 280px - 70px)}
     .stage{--panel:280px}
     .stage .dsl{padding-left:28px}
     .dsl-handle{display:block;position:absolute;inset:0 auto 0 0;width:28px;font-size:0;background:var(--paper);border:0;border-right:1px solid var(--trace);touch-action:none}
@@ -697,7 +711,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
 
     .dsl .dsl-mode{width:44px;height:44px}
     .stage .help-toast{inset:0 0 auto;width:100%;max-width:none;max-height:85%;overflow:auto}
-    :scope>small{position:absolute;bottom:calc(var(--panel) + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--paper);pointer-events:none}
+    :scope>small{position:absolute;max-width:none;bottom:calc(var(--panel) + 12px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--paper);pointer-events:none}
     :scope>small[hidden],.hint-mouse{display:none}.hint-touch{display:inline}
     .stage :is(input,select,textarea,small,.dsl-row){font-size:max(12px,1em)}
   }

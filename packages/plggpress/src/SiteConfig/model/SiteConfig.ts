@@ -94,6 +94,11 @@ export type SiteConfig = Readonly<{
   nav: ReadonlyArray<NavItem>;
   sidebar: ReadonlyArray<SidebarGroup>;
   sidebarStyle?: Option<"plain" | "numbered">;
+  /**
+   * `toggle` renders each top-level sidebar group as a
+   * disclosure, open only where the current page lives.
+   */
+  sidebarGroups?: Option<"open" | "toggle">;
   tagline?: Option<string>;
   footerLink?: Option<NavItem>;
   social: ReadonlyArray<SocialLink>;
@@ -287,6 +292,7 @@ export type SiteConfigInput = Readonly<{
   nav: ReadonlyArray<NavItemInput>;
   sidebar: ReadonlyArray<SidebarGroupInput>;
   sidebarStyle?: "plain" | "numbered";
+  sidebarGroups?: "open" | "toggle";
   tagline?: string;
   footerLink?: NavItemInput;
   social: ReadonlyArray<SocialLinkInput>;
@@ -342,6 +348,23 @@ export const asSiteConfig = (
               invalidError({
                 message:
                   "sidebarStyle must be plain or numbered",
+              }),
+            ),
+    ),
+    forOptionProp(
+      "sidebarGroups",
+      (
+        value: unknown,
+      ): Result<
+        "open" | "toggle",
+        InvalidError
+      > =>
+        value === "open" || value === "toggle"
+          ? ok(value)
+          : err(
+              invalidError({
+                message:
+                  "sidebarGroups must be open or toggle",
               }),
             ),
     ),

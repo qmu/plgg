@@ -702,6 +702,52 @@ html.dark .vp-sheet{color-scheme:dark}
 .vp-sheet .vp-col-title{flex:0 0 auto;max-width:65%}
 .vp-sheet .vp-col-head{padding-top:.75rem}
 .vp-numbered nav{counter-reset:sample}
+/* toggle groups: a disclosure per section. The summary
+   wears the links' inverted pill on hover, its chevron
+   turns as the section opens, and the section's height
+   eases where the browser can interpolate to auto. */
+details.vp-group{counter-reset:sample;interpolate-size:allow-keywords}
+details.vp-group summary{
+  cursor:pointer;list-style:none;display:flex;
+  justify-content:space-between;align-items:center;
+  padding:.7rem 1.25rem;font-size:.8rem;user-select:none;
+  transition:background-color .15s ease,color .15s ease;
+}
+details.vp-group summary::-webkit-details-marker{display:none}
+details.vp-group summary::after{
+  content:"";width:.4rem;height:.4rem;margin-right:.2rem;
+  border-right:1px solid currentColor;
+  border-bottom:1px solid currentColor;
+  transform:rotate(-45deg);transition:transform .2s ease;
+}
+details.vp-group[open] summary::after{transform:rotate(45deg)}
+details.vp-group[open] summary{color:${cvar("text")}}
+details.vp-group summary:hover,
+details.vp-group summary:focus-visible{
+  background:${cvar("primary-base")};
+  color:${cvar("surface")};outline:0;
+}
+details.vp-group summary:active{opacity:.8}
+details.vp-group::details-content{
+  block-size:0;overflow:clip;
+  transition:block-size .22s ease,
+    content-visibility .22s allow-discrete;
+}
+details.vp-group[open]::details-content{block-size:auto}
+details.vp-group .vp-sidebar-link{
+  transition:background-color .15s ease,color .15s ease,
+    padding-left .15s ease;
+}
+details.vp-group .vp-sidebar-link:hover{padding-left:1.5rem}
+details.vp-group .vp-sidebar-link[aria-current]:hover{
+  padding-left:1.25rem;
+}
+@media (prefers-reduced-motion:reduce){
+  details.vp-group summary,
+  details.vp-group summary::after,
+  details.vp-group::details-content,
+  details.vp-group .vp-sidebar-link{transition:none}
+}
 .vp-numbered .vp-sidebar-link{counter-increment:sample}
 .vp-numbered .vp-sidebar-link::before{content:counter(sample,decimal-leading-zero);font-variant-numeric:tabular-nums;margin-right:1rem}
 .vp-tagline,.vp-footer-link{padding:.75rem 1.25rem;font-size:.8rem}

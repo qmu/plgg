@@ -31,8 +31,12 @@ import {
   readFileSync,
 } from "node:fs";
 import config from "../site.config.ts";
-const examples = config.sidebar[0]!.items.map(
-  ({ text: name, link }) => {
+const examples = config.sidebar
+  .flatMap((group) => group.items)
+  .filter((item) =>
+    item.link.startsWith("/samples/"),
+  )
+  .map(({ text: name, link }) => {
     const page = readFileSync(
       "markdown" + link + ".md",
       "utf8",
@@ -61,8 +65,7 @@ const examples = config.sidebar[0]!.items.map(
       initial,
       tools: sheetToolNames(fence[1]!),
     };
-  },
-);
+  });
 test("all twenty-eight diagrams have unique identities and valid directed edges", () =>
   check(
     new Set(examples.map((e) => e.name)).size ===
@@ -538,7 +541,7 @@ test("each subject file has its own sheet and sidebar entry", () => {
   const subjects = "../plgg-flow/subjects";
   return check(
     ["architectures", "subjects"].every(
-      (group, index) => {
+      (group) => {
         const folder =
           group === "subjects"
             ? subjects
@@ -546,9 +549,12 @@ test("each subject file has its own sheet and sidebar entry", () => {
         const files = readdirSync(folder).filter(
           (name) => name.endsWith(".txt"),
         );
-        const links = config.sidebar[
-          index + 1
-        ]!.items.map((item) => item.link);
+        const links = config.sidebar
+          .flatMap((entry) => entry.items)
+          .map((item) => item.link)
+          .filter((link) =>
+            link.startsWith("/" + group + "/"),
+          );
         return (
           files.length === links.length &&
           files.every((file) => {

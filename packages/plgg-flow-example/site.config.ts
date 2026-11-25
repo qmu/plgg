@@ -5,9 +5,10 @@ export default {
   base: "/",
   nav: [],
   sidebarStyle: "numbered",
+  sidebarGroups: "toggle",
   sidebar: [
     {
-      text: "実例",
+      text: "基礎機能",
       items: [
         {
           text: "立体交差",
@@ -34,6 +35,11 @@ export default {
           link: "/samples/dimensions",
           items: [],
         },
+      ],
+    },
+    {
+      text: "配線",
+      items: [
         {
           text: "エッジに挿入",
           link: "/samples/split",
@@ -60,6 +66,26 @@ export default {
           items: [],
         },
         {
+          text: "エッジの経路",
+          link: "/samples/routes",
+          items: [],
+        },
+        {
+          text: "エッジのラベル",
+          link: "/samples/labels",
+          items: [],
+        },
+        {
+          text: "配線をたどる",
+          link: "/samples/trace",
+          items: [],
+        },
+      ],
+    },
+    {
+      text: "ノード",
+      items: [
+        {
           text: "グリッド吸着",
           link: "/samples/snap",
           items: [],
@@ -75,20 +101,20 @@ export default {
           items: [],
         },
         {
-          text: "エッジの経路",
-          link: "/samples/routes",
+          text: "コピーと貼り付け",
+          link: "/samples/copy",
           items: [],
         },
         {
-          text: "フローのアニメーション",
-          link: "/samples/motion",
+          text: "計算ノード",
+          link: "/samples/compute",
           items: [],
         },
-        {
-          text: "エッジのラベル",
-          link: "/samples/labels",
-          items: [],
-        },
+      ],
+    },
+    {
+      text: "構造と表示",
+      items: [
         {
           text: "分岐の折りたたみ",
           link: "/samples/collapse",
@@ -105,10 +131,25 @@ export default {
           items: [],
         },
         {
-          text: "コピーと貼り付け",
-          link: "/samples/copy",
+          text: "グループ一覧",
+          link: "/samples/outline",
           items: [],
         },
+        {
+          text: "ミニマップ",
+          link: "/samples/overview",
+          items: [],
+        },
+        {
+          text: "フローのアニメーション",
+          link: "/samples/motion",
+          items: [],
+        },
+      ],
+    },
+    {
+      text: "履歴と保存",
+      items: [
         {
           text: "元に戻す・やり直す",
           link: "/samples/history",
@@ -120,28 +161,8 @@ export default {
           items: [],
         },
         {
-          text: "計算ノード",
-          link: "/samples/compute",
-          items: [],
-        },
-        {
-          text: "ミニマップ",
-          link: "/samples/overview",
-          items: [],
-        },
-        {
-          text: "配線をたどる",
-          link: "/samples/trace",
-          items: [],
-        },
-        {
           text: "編集履歴",
           link: "/samples/revisions",
-          items: [],
-        },
-        {
-          text: "グループ一覧",
-          link: "/samples/outline",
           items: [],
         },
         {

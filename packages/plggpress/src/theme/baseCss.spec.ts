@@ -3,6 +3,7 @@ import {
   check,
   all,
   toContain,
+  toBe,
   not,
 } from "plgg-test";
 import {
@@ -175,7 +176,9 @@ test("headings: the title carries no rule of its own, and the sub-sm downscale c
   all([
     check(
       css,
-      toContain("line-height:1.3;margin:0 0 1rem"),
+      toContain(
+        "line-height:1.3;margin:0 0 1rem",
+      ),
     ),
     // the sub-sm media boundary is composed from
     // plggmatic's maxWidth("sm") → (max-width:639px)
@@ -204,7 +207,10 @@ test("the lg app-shell boundary is the token breakpoint too", () =>
 
 test("inline code is a square wash of the token surface, no overlay alphas", () =>
   all([
-    check(css, not(toContain("rgba(0,0,0,0.08)"))),
+    check(
+      css,
+      not(toContain("rgba(0,0,0,0.08)")),
+    ),
     check(
       css,
       toContain(
@@ -236,9 +242,17 @@ test("the sans stack leads with Inter and Noto Sans JP", () =>
 test("no per-page 目次 panel styles remain (widget removed, 2026-07-03)", () =>
   all([
     check(css, not(toContain("vp-toc"))),
+    // interpolate-size now belongs to the sidebar's toggle
+    // groups alone (2026-11-25); the 目次 panel used it too.
+    check(
+      css.split("interpolate-size").length,
+      toBe(2),
+    ),
     check(
       css,
-      not(toContain("interpolate-size")),
+      toContain(
+        "details.vp-group{counter-reset:sample;interpolate-size:allow-keywords}",
+      ),
     ),
   ]));
 
@@ -333,8 +347,7 @@ test("the strip is one frame, one strip, one column shape", () =>
     check(
       css,
       toContain(
-        "border-right:1px solid " +
-          cvar("text"),
+        "border-right:1px solid " + cvar("text"),
       ),
     ),
     check(

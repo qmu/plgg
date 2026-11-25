@@ -251,6 +251,10 @@ const sectionsColumn = (
               config.sidebar,
               activePath,
               base,
+              config.sidebarGroups?.__tag ===
+                "Some" &&
+                config.sidebarGroups.content ===
+                  "toggle",
             )
           : nav(
               [

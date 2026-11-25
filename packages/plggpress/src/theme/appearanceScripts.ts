@@ -34,7 +34,19 @@ const bodyWiringScript: SoftStr =
   "var d=document.documentElement.classList" +
   ".toggle('dark');try{localStorage.setItem(" +
   JSON.stringify(appearanceStorageKey) +
-  ",d?'dark':'light');}catch(e){}});}})();" +
+  ",d?'dark':'light');}catch(e){}});}" +
+  // Bring the current page's sidebar link into view when
+  // it opened below the fold of its column.
+  "var a=document.querySelector(" +
+  "'.vp-sidebar [aria-current]');" +
+  "for(var b=a&&a.parentElement;b;b=b.parentElement){" +
+  "if(b.scrollHeight>b.clientHeight+1){" +
+  "var r=a.getBoundingClientRect()," +
+  "q=b.getBoundingClientRect();" +
+  "if(r.top<q.top||r.bottom>q.bottom)" +
+  "b.scrollTop+=r.top-q.top-q.height/2;" +
+  "break;}}" +
+  "})();" +
   "</script>";
 
 /**

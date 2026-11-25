@@ -5,6 +5,8 @@ import {
   type Attribute,
   nav,
   div,
+  details,
+  summary,
   a,
   span,
   text,
@@ -40,6 +42,7 @@ export const sidebarTree = (
   groups: ReadonlyArray<SidebarGroup>,
   activePath: SoftStr,
   base: SoftStr,
+  toggle: boolean = false,
 ): Html<never, "nav"> => {
   const hrefOf = href(base);
   const sameAsActive = samePath(base);
@@ -90,22 +93,55 @@ export const sidebarTree = (
             ...item.items.map(renderItem),
           ],
         );
+  const holdsActive = (
+    items: ReadonlyArray<SidebarItem>,
+  ): boolean =>
+    items.some(
+      (item) =>
+        matchOption<SoftStr, boolean>(
+          () => false,
+          isActive,
+        )(item.link) || holdsActive(item.items),
+    );
+  // A disclosure group is open only where the current
+  // page lives, so a page opens with its own section
+  // unfolded and the rest folded away.
+  const group = (g: SidebarGroup): Flow<never> =>
+    toggle
+      ? details(
+          holdsActive(g.items)
+            ? [
+                class_("vp-group"),
+                attr("name", "vp-group"),
+                attr("open", ""),
+              ]
+            : [
+                class_("vp-group"),
+                attr("name", "vp-group"),
+              ],
+          [
+            summary(
+              [class_("vp-group-title")],
+              [text(g.text)],
+            ),
+            ...g.items.map(renderItem),
+          ],
+        )
+      : div(
+          [class_("vp-group")],
+          [
+            div(
+              [class_("vp-group-title")],
+              [text(g.text)],
+            ),
+            ...g.items.map(renderItem),
+          ],
+        );
   return nav(
     [
       class_("vp-sidebar-nav"),
       attr("aria-label", "Sidebar navigation"),
     ],
-    groups.map((group) =>
-      div(
-        [class_("vp-group")],
-        [
-          div(
-            [class_("vp-group-title")],
-            [text(group.text)],
-          ),
-          ...group.items.map(renderItem),
-        ],
-      ),
-    ),
+    groups.map(group),
   );
 };
