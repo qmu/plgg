@@ -177,6 +177,14 @@ const groupHasActive = (
 const numbered = (config: SiteConfig) =>
   config.sidebarStyle?.__tag === "Some" &&
   config.sidebarStyle.content === "numbered";
+/**
+ * Whether the sidebar is the whole tree in one column
+ * (`tree`, or `numbered` — the same tree with its rows
+ * counted) rather than sections that drill open beside it.
+ */
+const treed = (config: SiteConfig) =>
+  config.sidebarStyle?.__tag === "Some" &&
+  config.sidebarStyle.content !== "plain";
 const sectionsColumn = (
   config: SiteConfig,
   activePath: SoftStr,
@@ -255,7 +263,7 @@ const sectionsColumn = (
           ]
         : []),
       colBody([
-        numbered(config)
+        treed(config)
           ? sidebarTree(
               config.sidebar,
               activePath,
@@ -264,7 +272,7 @@ const sectionsColumn = (
                 "Some" &&
                 config.sidebarGroups.content ===
                   "toggle",
-              true,
+              numbered(config),
             )
           : nav(
               [
@@ -317,7 +325,7 @@ const drilledColumn = (
   activePath: SoftStr,
   base: SoftStr,
 ): ReadonlyArray<Html<never>> => {
-  if (numbered(config)) return [];
+  if (treed(config)) return [];
   return matchOption<
     SidebarGroup,
     ReadonlyArray<Html<never>>

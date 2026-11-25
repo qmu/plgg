@@ -93,7 +93,9 @@ export type SiteConfig = Readonly<{
   base: SoftStr;
   nav: ReadonlyArray<NavItem>;
   sidebar: ReadonlyArray<SidebarGroup>;
-  sidebarStyle?: Option<"plain" | "numbered">;
+  sidebarStyle?: Option<
+    "plain" | "tree" | "numbered"
+  >;
   /**
    * `toggle` renders each top-level sidebar group as a
    * disclosure, open only where the current page lives.
@@ -307,7 +309,7 @@ export type SiteConfigInput = Readonly<{
   base: string;
   nav: ReadonlyArray<NavItemInput>;
   sidebar: ReadonlyArray<SidebarGroupInput>;
-  sidebarStyle?: "plain" | "numbered";
+  sidebarStyle?: "plain" | "tree" | "numbered";
   sidebarGroups?: "open" | "toggle";
   controls?: "rail" | "sidebar";
   contentWidth?: "measure" | "fill";
@@ -357,15 +359,17 @@ export const asSiteConfig = (
       (
         value: unknown,
       ): Result<
-        "plain" | "numbered",
+        "plain" | "tree" | "numbered",
         InvalidError
       > =>
-        value === "plain" || value === "numbered"
+        value === "plain" ||
+        value === "tree" ||
+        value === "numbered"
           ? ok(value)
           : err(
               invalidError({
                 message:
-                  "sidebarStyle must be plain or numbered",
+                  "sidebarStyle must be plain, tree or numbered",
               }),
             ),
     ),

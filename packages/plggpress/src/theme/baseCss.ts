@@ -750,9 +750,11 @@ ${carouselCss(theme)}
   animation:vp-col-out .26s cubic-bezier(.4,0,.6,1) forwards;
   pointer-events:none;
 }
-.vp-fill .vp-doc{max-width:none}
-.vp-fill .vp-doc :is(p,li,h1,h2,h3,h4,h5,h6,blockquote,dl){
-  max-width:${mvar("measure")};
+/* a page that shares the width keeps everything it shows
+   — text and figures alike — to the reading measure, and
+   stands in the middle of its column */
+.vp-fill .vp-doc{
+  max-width:${mvar("measure")};margin-inline:auto;
 }
 @media (prefers-reduced-motion:reduce){
   .vp-sidebar,.vp-fold-btn{transition:none}

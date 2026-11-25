@@ -4,7 +4,7 @@ export default {
     "文章で書いて、つかんで動かせる図。",
   base: "/",
   nav: [],
-  sidebarStyle: "numbered",
+  sidebarStyle: "tree",
   sidebarGroups: "toggle",
   controls: "sidebar",
   contentWidth: "fill",
