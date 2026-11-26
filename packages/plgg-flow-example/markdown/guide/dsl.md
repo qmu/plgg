@@ -56,6 +56,27 @@ Process -> Result
 
 Result から Source へ線を引こうとしても、循環になるので拒否されます。
 
+## 位置が意味を持つ配置
+
+`layout` に次のどれかを書くと、ノードの位置が値や順番や時間を表します。どれも `axis` の行を、その配置なりに読みます。
+
+| 構文 | 何を表すか | `axis` の読み方 |
+| --- | --- | --- |
+| `layout plot` | 数値で比べる | 2〜3 本。`axis 費用 0..200 lower` のように範囲と、良い向き（`lower` / `higher`）を書ける |
+| `layout sequence` | やりとりの順 | 0〜1 本。参加者を奥行きで分ける属性 |
+| `layout timeline` | いつ何が走るか | 1 本目が時間（`axis 週 0..12`）、2 本目は面を分ける属性 |
+
+```plgg-flow
+layout plot
+axis 費用 0..200 lower
+axis 性能 0..100 higher
+node 案A 費用=60 性能=70
+node 案B 費用=140 性能=90
+node 案C 費用=150 性能=60
+```
+
+案C は、費用でも性能でも案B に負けているので薄く描かれます。実例：[案を比べる](../plots/options.md)、[やりとりの順](../plots/sequence.md)、[いつ何が走るか](../plots/timeline.md)。
+
 ## 次に読む
 
 - [図の実例](./gallery.md) — 立体交差、グループ、計算ノード

@@ -41,7 +41,7 @@ import {
   type Change,
 } from "plgg-flow";
 import { wireGraph } from "plgg-flow/wiring";
-import { plotExtent } from "plgg-flow/plot";
+import { chartExtent } from "plgg-flow/chart";
 import {
   applySpec,
   axesFromView,
@@ -122,8 +122,8 @@ export const fitDemo = (
           ),
         );
       }),
-    ...(flow.plot
-      ? plotExtent(flow.plot).map(at)
+    ...(flow.chart
+      ? chartExtent(flow.chart, flow).map(at)
       : []),
     ...(flow.rooms
       ? []

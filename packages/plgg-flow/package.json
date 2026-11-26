@@ -128,6 +128,36 @@
         "default": "./dist/plot.cjs.js"
       }
     },
+    "./sequence": {
+      "import": {
+        "types": "./dist/sequence.d.ts",
+        "default": "./dist/sequence.es.js"
+      },
+      "require": {
+        "types": "./dist/sequence.d.ts",
+        "default": "./dist/sequence.cjs.js"
+      }
+    },
+    "./timeline": {
+      "import": {
+        "types": "./dist/timeline.d.ts",
+        "default": "./dist/timeline.es.js"
+      },
+      "require": {
+        "types": "./dist/timeline.d.ts",
+        "default": "./dist/timeline.cjs.js"
+      }
+    },
+    "./chart": {
+      "import": {
+        "types": "./dist/chart.d.ts",
+        "default": "./dist/chart.es.js"
+      },
+      "require": {
+        "types": "./dist/chart.d.ts",
+        "default": "./dist/chart.cjs.js"
+      }
+    },
     "./routing": {
       "import": {
         "types": "./dist/routing.d.ts",

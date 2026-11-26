@@ -25,6 +25,9 @@ export default {
     "routing",
     "revisions",
     "plot",
+    "sequence",
+    "timeline",
+    "chart",
     "dsl",
     "wiring",
   ].map((name) => ({

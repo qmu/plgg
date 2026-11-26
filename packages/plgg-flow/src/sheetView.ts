@@ -1,18 +1,18 @@
 import { drawFlow } from "plgg-flow/viewport";
 import { movingRooms } from "plgg-flow/roomCamera";
 import { spaceScenery } from "plgg-flow/roomView";
-import { plotScenery } from "plgg-flow/plot";
+import { chartScenery } from "plgg-flow/chart";
 export const flowView = (
   ...args: Parameters<typeof drawFlow>
 ) => {
   const [flow, label, registry] = args;
-  if (flow.plot)
+  if (flow.chart)
     return drawFlow(
       {
         ...flow,
         showWorldGrid: false,
         scenery: [
-          ...plotScenery(flow.plot, flow.nodes),
+          ...chartScenery(flow.chart, flow),
           ...(flow.scenery ?? []),
         ],
       },

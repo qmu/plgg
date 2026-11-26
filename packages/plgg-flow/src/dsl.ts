@@ -1,10 +1,12 @@
 import {
-  asPlot,
-  plotGraph,
-  plotMeasures,
-  measureWords,
-  type Plot,
-} from "plgg-flow/plot";
+  asChart,
+  isChartKind,
+  chartGraph,
+  chartLines,
+  chartCamera,
+  chartSizes,
+  type Chart,
+} from "plgg-flow/chart";
 import { routeSpace } from "plgg-flow/space";
 import { edgeIndex } from "plgg-flow/connections";
 import {
@@ -71,8 +73,9 @@ export type Spec = Readonly<{
   mark?: readonly string[];
   layout?: LayerOptions;
   pinned?: readonly string[];
-  /** Nodes placed in a space of measures. */
-  plot?: Plot;
+  /** A layout in which where a node stands says
+   * something about it. */
+  chart?: Chart;
 }>;
 
 const tokens = (line: string) =>
@@ -236,7 +239,7 @@ export const parseSpec = (
     rules: Rule[] = [];
   const mark: string[] = [];
   let rooms = false;
-  let plotted = false;
+  let charted: string | undefined;
   let explicitView = false;
   let camera: Spec["camera"];
   const definitions: Axis[] = [];
@@ -348,8 +351,12 @@ export const parseSpec = (
         rooms = true;
         continue;
       }
-      if (kind === "plot" && !args.length) {
-        plotted = true;
+      if (
+        kind !== undefined &&
+        isChartKind(kind) &&
+        !args.length
+      ) {
+        charted = kind;
         continue;
       }
       const direction = args[0];
@@ -421,21 +428,25 @@ export const parseSpec = (
     );
   if (stray !== undefined)
     return err(`未定義のノード「${stray}」`);
-  if (plotted) {
-    const plot = asPlot(
+  if (charted !== undefined) {
+    const chart = asChart(
+      charted,
       definitions,
       assignments,
-      nodes,
+      { nodes, edges },
     );
-    if (plot.__tag === "Err") return plot;
-    return ok({
-      graph: { nodes, edges },
-      ...(mark.length && { mark }),
-      ...(camera && { camera }),
-      plot: plot.content,
-      rules,
-      ...(snap === undefined ? {} : { snap }),
-    });
+    if (chart.__tag === "Some") {
+      if (chart.content.__tag === "Err")
+        return chart.content;
+      return ok({
+        graph: { nodes, edges },
+        ...(mark.length && { mark }),
+        ...(camera && { camera }),
+        chart: chart.content.content,
+        rules,
+        ...(snap === undefined ? {} : { snap }),
+      });
+    }
   }
   if (layout && definitions.length) {
     if (definitions.length > 1)
@@ -592,23 +603,21 @@ const laySpec =
       fixedRoles,
       writtenCamera,
       suggestionIndex,
-      plot: _plot,
+      chart: _chart,
       ...rest
     } = flow;
-    if (spec.plot)
+    if (spec.chart)
       return {
         ...rest,
-        ...plotGraph(spec.plot, spec.graph),
-        plot: spec.plot,
+        ...chartGraph(spec.chart, spec.graph),
+        chart: spec.chart,
         ...(spec.camera && {
           writtenCamera: spec.camera,
         }),
         camera: {
           ...flow.camera,
           ...(spec.camera ??
-            (spec.plot.z.__tag === "Some"
-              ? { yaw: -0.5, pitch: 0.36 }
-              : { yaw: 0, pitch: 0 })),
+            chartCamera(spec.chart)),
           perspective: false,
         },
         snap: spec.snap ?? grid,
@@ -915,7 +924,7 @@ export const placedByLayout = (
 ) => {
   const p = flow.layered?.computed.get(node.id);
   return (
-    !!flow.plot ||
+    !!flow.chart ||
     (!!flow.rooms && !flow.layered) ||
     !!(
       p &&
@@ -959,7 +968,12 @@ const nodeWords = (f: Flow, n: FlowNode) => {
         "width",
       ] satisfies (keyof FlowNode)[]
     ).flatMap((k) =>
-      n[k] === undefined ? [] : [k, String(n[k])],
+      n[k] === undefined ||
+      (k === "width" &&
+        f.chart !== undefined &&
+        chartSizes(f.chart))
+        ? []
+        : [k, String(n[k])],
     ),
     ...(n.grow && (n.grow.x || n.grow.y)
       ? ["grow", coord(n.grow.x), coord(n.grow.y)]
@@ -1003,18 +1017,29 @@ const buildLines = (
     ...(flow.mark?.length
       ? [directive("mark", flow.mark.map(name))]
       : []),
-    ...(flow.plot
+    ...(flow.chart
       ? [
-          directive("layout", ["plot"]),
-          ...plotMeasures(flow.plot).map((m) =>
-            directive("axis", [
-              ["x", "y", "z"].includes(
-                m.attribute,
-              )
-                ? quoted(m.attribute)
-                : name(m.attribute),
-              ...measureWords(m),
-            ]),
+          ...chartLines(flow.chart).flatMap(
+            ([key, ...words]) =>
+              key === "layout"
+                ? [directive("layout", words)]
+                : key === "axis"
+                  ? [
+                      directive(
+                        "axis",
+                        words.map((w, i) =>
+                          i === 0 &&
+                          [
+                            "x",
+                            "y",
+                            "z",
+                          ].includes(w)
+                            ? quoted(w)
+                            : name(w),
+                        ),
+                      ),
+                    ]
+                  : [],
           ),
           ...(flow.writtenCamera
             ? [

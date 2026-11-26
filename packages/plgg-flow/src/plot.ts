@@ -87,7 +87,10 @@ export const valueOn =
       chainOption((v: JsonValue) => numberOf(v)),
     );
 
-type Range = Readonly<{ lo: number; hi: number }>;
+export type Range = Readonly<{
+  lo: number;
+  hi: number;
+}>;
 const rangeFrom = (
   lo: Option<number>,
   hi: Option<number>,
@@ -98,7 +101,9 @@ const rangeFrom = (
     ? some({ lo: lo.content, hi: hi.content })
     : none();
 /** `0..200` as a range. */
-const rangeOf = (word: string): Option<Range> =>
+export const rangeOf = (
+  word: string,
+): Option<Range> =>
   word.split("..").length === 2
     ? rangeFrom(
         numberOf(word.split("..")[0]),
@@ -142,7 +147,7 @@ const saying = (
 
 /** The range the values themselves span, opened a
  * little when they all agree. */
-const spanned = (
+export const spanned = (
   values: readonly number[],
 ): Range =>
   values.length === 0
@@ -287,7 +292,7 @@ const spannedBy = (
 
 /** Every result when all are sound; the first refusal
  * otherwise. */
-const all = <T>(
+export const all = <T>(
   results: readonly Result<T, string>[],
 ): Result<readonly T[], string> =>
   pipe(
@@ -521,13 +526,13 @@ export const plotGraph = (
   ),
 });
 
-const pencil = "var(--pencil,gray)";
-const trace = "var(--trace,gray)";
-const ink = "var(--ink,black)";
-type Segment = readonly [Point3, Point3];
+export const pencil = "var(--pencil,gray)";
+export const trace = "var(--trace,gray)";
+export const ink = "var(--ink,black)";
+export type Segment = readonly [Point3, Point3];
 
 /** Several strokes as one line, when there is any. */
-const strokes = (
+export const strokes = (
   tone: string,
   dotted: boolean,
   segments: readonly Segment[],
@@ -543,7 +548,7 @@ const strokes = (
       ...(dotted ? { dotted: true } : {}),
     }),
   );
-const lettering = (
+export const lettering = (
   anchor: Point3,
   offset: Readonly<{ x: number; y: number }>,
   text: string,
@@ -560,10 +565,10 @@ const lettering = (
   tone,
 });
 
-const divisions: readonly number[] = [
+export const divisions: readonly number[] = [
   0, 0.25, 0.5, 0.75, 1,
 ];
-const shown = (v: number): string =>
+export const shown = (v: number): string =>
   String(Number(v.toFixed(2)));
 const tickText = (
   m: Measure,
@@ -764,7 +769,22 @@ const ideal = (plot: Plot): readonly Scenery[] =>
                   getOr(0.5),
                 ),
               ),
-              { x: 0, y: -10 },
+              {
+                x:
+                  pipe(
+                    fromNullable(ends[0]),
+                    getOr(0),
+                  ) < 0.5
+                    ? 34
+                    : -34,
+                y:
+                  pipe(
+                    fromNullable(ends[1]),
+                    getOr(0),
+                  ) < 0.5
+                    ? -12
+                    : 18,
+              },
               "◎ 理想",
               600,
               ink,

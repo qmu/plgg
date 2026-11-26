@@ -67,6 +67,16 @@ export default {
           link: "/plots/options",
           items: [],
         },
+        {
+          text: "やりとりの順",
+          link: "/plots/sequence",
+          items: [],
+        },
+        {
+          text: "いつ何が走るか",
+          link: "/plots/timeline",
+          items: [],
+        },
       ],
     },
     {
