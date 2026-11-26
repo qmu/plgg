@@ -17,6 +17,7 @@ import {
 } from "plgg-ir-diagram/dslRows";
 export { sheetCss } from "plgg-ir-diagram/sheetCss";
 import { project } from "plgg-board";
+import { btnClass } from "plggmatic/hooks";
 import {
   addNode,
   selectedNodes,
@@ -934,6 +935,7 @@ export const sheetDsl = <Action>(
                 "button",
                 [
                   attr("type", "button"),
+                  attr("class", btnClass),
                   on("click", () => {
                     return retype(
                       writeCurrentView(

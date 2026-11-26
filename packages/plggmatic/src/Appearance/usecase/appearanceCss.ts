@@ -180,11 +180,15 @@ select.${p}-input{appearance:none;padding-right:1.9rem;background-image:linear-g
 .${p}-prop-label{font-size:.8125rem;line-height:1.3;color:${text}}
 .${p}-prop-control .${p}-input{padding:.3rem .55rem;font-size:.8125rem}
 .${p}-prop-control select.${p}-input{padding-right:1.7rem}
+.${p}-prop-control{gap:.4rem}
+.${p}-props .${p}-btn{min-height:0;padding:.3rem .55rem;font-size:.8125rem;font-weight:400}
+.${p}-btn[aria-pressed="true"]{${mark(a.current)}}
 .${p}-switch{gap:.55rem;padding:0;border:0;background:none;color:${text};font:inherit;font-size:.8125rem;line-height:1.3}
 .${p}-switch-track{border:${rule};border-radius:${a.radius === "0" ? "0" : "999px"};background:${surface};${quick("background-color", "border-color")}}
 .${p}-switch-thumb{border-radius:${a.radius === "0" ? "0" : "50%"};background:${text};transition:transform ${a.quick} ${a.ease},background-color ${a.quick} ease}
-.${p}-switch[aria-checked="true"] .${p}-switch-track{background:${cvar("primary-base")};border-color:${cvar("primary-base")}}
-.${p}-switch[aria-checked="true"] .${p}-switch-thumb{background:${surface}}
+.${p}-switch:is([aria-checked="true"],[aria-pressed="true"]) .${p}-switch-track{background:${cvar("primary-base")};border-color:${cvar("primary-base")}}
+.${p}-switch:is([aria-checked="true"],[aria-pressed="true"]) .${p}-switch-thumb{background:${surface}}
+.${p}-switch[aria-pressed="mixed"] .${p}-switch-thumb{background:${muted}}
 .${p}-switch:focus-visible{outline:0}
 .${p}-switch:focus-visible .${p}-switch-track{box-shadow:0 0 0 2px ${surface},0 0 0 3px ${cvar(a.rule)}}
 .${p}-switch:disabled{opacity:.45}

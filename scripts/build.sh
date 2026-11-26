@@ -57,12 +57,14 @@ cd $REPO_ROOT/packages/plgg-router && npm run build
 cd $REPO_ROOT/packages/plgg-view && npm run build
 cd $REPO_ROOT/packages/plgg-board && npm run build
 cd $REPO_ROOT/packages/plgg-flow && npm run build
-cd $REPO_ROOT/packages/plgg-ir-diagram && npm run build
 # plggmatic after plgg-view + the plgg-ir family: the column-oriented UI
 # framework returns plgg-view Html and interprets the plgg-ir Domain Manifest,
 # so it consumes plgg, plgg-view, and plgg-ir-syntax/language/manifest dists —
 # all built above.
 cd $REPO_ROOT/packages/plggmatic && npm run build
+# plgg-ir-diagram after plggmatic: its property panel is plggmatic's
+# property list (the same hooks, styled by the kit).
+cd $REPO_ROOT/packages/plgg-ir-diagram && npm run build
 # plgg-md after plgg-view: its AST->Html fold emits plgg-view's Html and it takes
 # an injected Highlighter seam (filled by plgg-highlight, built next).
 cd $REPO_ROOT/packages/plgg-md && npm run build

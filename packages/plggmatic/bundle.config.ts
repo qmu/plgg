@@ -23,6 +23,12 @@ export default {
       name: "columnsEntry",
       input: "columnsEntry.ts",
     },
+    // the hook names alone, for a package that draws its
+    // own markup — see src/hooksEntry.ts
+    {
+      name: "hooksEntry",
+      input: "hooksEntry.ts",
+    },
   ],
   formats: ["es"],
   fileNamePattern: "[name].[format].js",

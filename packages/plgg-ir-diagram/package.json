@@ -98,7 +98,8 @@
     "plgg-parser": "file:../plgg-parser",
     "plgg-view": "file:../plgg-view",
     "plgg-flow": "file:../plgg-flow",
-    "plgg-board": "file:../plgg-board"
+    "plgg-board": "file:../plgg-board",
+    "plggmatic": "file:../plggmatic"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

@@ -9,6 +9,18 @@ import {
   type Html,
 } from "plgg-view";
 import {
+  btnClass,
+  inputClass,
+  propsClass,
+  propClass,
+  propLabelClass,
+  propControlClass,
+  switchClass,
+  switchTrackClass,
+  switchThumbClass,
+  switchLabelClass,
+} from "plggmatic/hooks";
+import {
   selectedNodes,
   selectedEdges,
   chooseEdges,
@@ -198,6 +210,15 @@ const arrange =
     };
   };
 
+/** The nearest name at or above what was acted on: a
+ * switch's click lands on its track or its word. */
+const labelled = (
+  at: EventTarget | null,
+): string | undefined =>
+  at instanceof HTMLElement
+    ? (at.getAttribute("aria-label") ??
+      labelled(at.parentElement))
+    : undefined;
 export const propertyCache = () =>
   new Map<
     string,
@@ -253,10 +274,18 @@ export const sheetProperties = <A>(
   ) =>
     el(
       "div",
-      [attr("class", "property-row")],
+      [attr("class", propClass)],
       [
-        el("span", [], [text(label)]),
-        el("div", [], controls),
+        el(
+          "span",
+          [attr("class", propLabelClass)],
+          [text(label)],
+        ),
+        el(
+          "div",
+          [attr("class", propControlClass)],
+          controls,
+        ),
       ],
     );
   const handlers = new Map<
@@ -302,6 +331,10 @@ export const sheetProperties = <A>(
           "button",
           [
             attr("type", "button"),
+            attr(
+              "class",
+              switched ? switchClass : btnClass,
+            ),
             attr("aria-label", aria),
             ...(pressed === undefined
               ? []
@@ -314,14 +347,46 @@ export const sheetProperties = <A>(
             ...(disabled
               ? [attr("disabled", "")]
               : []),
-            ...(switched
-              ? [attr("data-switch", "")]
-              : []),
             ...(label === mixed
               ? [attr("data-mixed", "")]
               : []),
           ],
-          [text(label)],
+          switched
+            ? [
+                el(
+                  "span",
+                  [
+                    attr(
+                      "class",
+                      switchTrackClass,
+                    ),
+                    attr("aria-hidden", "true"),
+                  ],
+                  [
+                    el(
+                      "span",
+                      [
+                        attr(
+                          "class",
+                          switchThumbClass,
+                        ),
+                      ],
+                      [],
+                    ),
+                  ],
+                ),
+                el(
+                  "span",
+                  [
+                    attr(
+                      "class",
+                      switchLabelClass,
+                    ),
+                  ],
+                  [text(label)],
+                ),
+              ]
+            : [text(label)],
         ),
     );
   };
@@ -381,6 +446,7 @@ export const sheetProperties = <A>(
         el(
           "input",
           [
+            attr("class", inputClass),
             attr("aria-label", label),
             attr(
               "type",
@@ -427,6 +493,7 @@ export const sheetProperties = <A>(
         el(
           "select",
           [
+            attr("class", inputClass),
             attr("aria-label", label),
             attr("value", value ?? mixed),
             ...(value === undefined
@@ -1136,10 +1203,7 @@ export const sheetProperties = <A>(
   for (const label of cache.keys())
     if (!handlers.has(label)) cache.delete(label);
   const dispatch = (e: Event) => {
-    const label =
-      e.target instanceof HTMLElement
-        ? e.target.getAttribute("aria-label")
-        : undefined;
+    const label = labelled(e.target);
     return label
       ? (handlers.get(label)?.(e) ?? none())
       : none();
@@ -1147,7 +1211,10 @@ export const sheetProperties = <A>(
   return el(
     "section",
     [
-      attr("class", "dsl-properties"),
+      attr(
+        "class",
+        "dsl-properties " + propsClass,
+      ),
       ...(ids.length || edges.length
         ? [attr("data-selected", "")]
         : []),

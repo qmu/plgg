@@ -135,7 +135,8 @@ ${car}{position:absolute;top:50%;z-index:${zValue("chrome")};display:flex;align-
 .${p}-switch:disabled{cursor:not-allowed}
 .${p}-switch-track{position:relative;display:block;flex:none;width:2.25rem;height:1.25rem}
 .${p}-switch-thumb{position:absolute;top:50%;left:.2rem;width:.75rem;height:.75rem;margin-top:-.375rem}
-.${p}-switch[aria-checked="true"] .${p}-switch-thumb{transform:translateX(1.05rem)}
+.${p}-switch:is([aria-checked="true"],[aria-pressed="true"]) .${p}-switch-thumb{transform:translateX(1.05rem)}
+.${p}-switch[aria-pressed="mixed"] .${p}-switch-thumb{transform:translateX(.525rem)}
 .${p}-modal{position:fixed;inset:0;z-index:${zValue("backdrop")}}
 .${p}-backdrop{position:fixed;inset:0;z-index:${zValue("backdrop")}}
 .${p}-dialog{position:fixed;z-index:${zValue("overlay")};top:50%;left:50%;transform:translate(-50%,-50%);width:min(26rem,90vw)}

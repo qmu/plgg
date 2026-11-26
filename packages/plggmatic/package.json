@@ -17,6 +17,10 @@
     "./columns": {
       "types": "./dist/columnsEntry.d.ts",
       "default": "./dist/columnsEntry.es.js"
+    },
+    "./hooks": {
+      "types": "./dist/hooksEntry.d.ts",
+      "default": "./dist/hooksEntry.es.js"
     }
   },
   "types": "dist/index.d.ts",
