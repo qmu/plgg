@@ -78,6 +78,9 @@ ${page} .${p}-shell-body{padding:${a.page}}
 .${p}-shell-fold span::before{content:"";position:absolute;top:0;bottom:0;left:.25rem;border-left:1.5px solid currentColor}
 .${p}-shell-foot{gap:.5rem;padding:.6rem ${a.gutter};border-top:${rule}}
 ${M} ${side} .${p}-shell-head{padding:0}
+.${p}-figure-page .${p}-shell-head{gap:1rem;padding-top:.75rem}
+${page}.${p}-figure-page .${p}-shell-body{padding:0}
+.${p}-shell-note{font-weight:400;color:${muted}}
 ${M} .${p}-shell-foot{padding:.6rem 0}
 .${p}-shell-bar{gap:.6rem;height:${a.head};padding:0 1rem;background:${surface};border-bottom:${rule}}
 .${p}-shell-menu-btn{border:0;padding:0;color:${text};background-color:transparent;background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);background-size:100% 2px;background-position:0 1px,0 7px,0 13px;background-repeat:no-repeat}

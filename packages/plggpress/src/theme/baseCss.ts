@@ -266,17 +266,8 @@ html.dark .vp-sheet{color-scheme:dark}
   color:${cvar("surface")};
 }
 
-.vp-content.vp-sheet{flex:1 0 0;min-width:min(28rem,100vw);align-self:stretch}
-.vp-sheet .vp-col-head{align-items:baseline;gap:1rem;overflow:hidden}
-.vp-description{font-weight:400;color:${cvar("muted")};overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.vp-content.vp-sheet .vp-col-body{padding:0;overflow:hidden;min-height:0}
-.vp-sheet .vp-main,.vp-sheet-body,.vp-sheet-body div:has([data-fill]){display:flex;flex-direction:column;flex:1;min-height:0}
-.vp-sheet .vp-col-body,.vp-sheet-body{display:flex;flex-direction:column}
-.vp-sheet-body h1:first-child{display:none}
-.vp-sheet-body [data-fill]{flex:1;min-height:0;overflow:hidden}
-
-.vp-sheet .vp-col-title{flex:0 0 auto;max-width:65%}
-.vp-sheet .vp-col-head{padding-top:.75rem}
+/* the sheet page (one figure filling its column) is the
+   kit's figure page; nothing of it is declared here */
 /* pages that share the width need no row naming them: each
    one's own head does, and its close control is there */
 .vp-shell:has(.vp-fill) ${selector(trailClass)}{display:none}

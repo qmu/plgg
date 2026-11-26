@@ -40,6 +40,9 @@ import {
   shellBodyClass,
   shellBrandClass,
   shellPageClass,
+  figurePageClass,
+  figureBodyClass,
+  shellNoteClass,
   docClass,
 } from "plggmatic";
 import {
@@ -432,11 +435,13 @@ const contentColumn = (
             "vp-fill",
             spanTwoClass,
             shellPageClass,
+            figurePageClass,
           ]
         : [
             "vp-content",
             "vp-sheet",
             shellPageClass,
+            figurePageClass,
           ]
       : fills(config)
         ? [
@@ -452,7 +457,12 @@ const contentColumn = (
         content.description?.__tag === "Some"
           ? [
               span(
-                [class_("vp-description")],
+                [
+                  class_(
+                    "vp-description " +
+                      shellNoteClass,
+                  ),
+                ],
                 [
                   text(
                     content.description.content,
@@ -470,7 +480,8 @@ const contentColumn = (
               [
                 class_(
                   content.sheet
-                    ? "vp-sheet-body"
+                    ? "vp-sheet-body " +
+                        figureBodyClass
                     : "vp-doc " + docClass,
                 ),
               ],

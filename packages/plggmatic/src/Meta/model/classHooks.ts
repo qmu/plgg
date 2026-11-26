@@ -129,6 +129,20 @@ export const shellPageClass: SoftStr =
 /** A document column's content: prose, figures, examples. */
 export const docClass: SoftStr = hook("doc");
 /**
+ * A document column that is ONE FIGURE: the figure takes
+ * the whole body, which neither pads nor scrolls it.
+ */
+export const figurePageClass: SoftStr = hook(
+  "figure-page",
+);
+/** The figure's place in such a column. */
+export const figureBodyClass: SoftStr = hook(
+  "figure-body",
+);
+/** A line beside the name in a head bar, saying what it is. */
+export const shellNoteClass: SoftStr =
+  hook("shell-note");
+/**
  * Set on the shell (or any ancestor, `<html>` included)
  * while its sidebar is folded.
  */

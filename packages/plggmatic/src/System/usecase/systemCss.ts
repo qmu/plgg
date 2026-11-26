@@ -102,6 +102,15 @@ ${page}{scroll-snap-align:start;scroll-snap-stop:always}
 @keyframes ${p}-page-out{to{flex-grow:0;flex-basis:0;opacity:0;border-right-width:0}}
 @keyframes ${p}-page-swap{from{opacity:0}}
 .${p}-shell ${page}${page}[data-${p}-leaving]{pointer-events:none}
+.${p}-figure-page{flex:1 0 0;min-width:min(28rem,100vw);align-self:stretch}
+.${p}-figure-page .${p}-shell-head{align-items:baseline;overflow:hidden}
+.${p}-figure-page .${p}-shell-title{flex:0 0 auto;max-width:65%}
+.${p}-shell-note{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.${p}-figure-page .${p}-shell-body{overflow:hidden;min-height:0}
+.${p}-figure-page :is(.${p}-shell-body,main,.${p}-figure-body,.${p}-figure-body div:has([data-fill])){display:flex;flex-direction:column}
+.${p}-figure-page :is(main,.${p}-figure-body,.${p}-figure-body div:has([data-fill])){flex:1;min-height:0}
+.${p}-figure-body h1:first-child{display:none}
+.${p}-figure-body [data-fill]{flex:1;min-height:0;overflow:hidden}
 .${p}-doc{display:block;margin:0 auto;max-width:${mvar("measure")}}
 .${p}-span-2 .${p}-doc{max-width:none}
 .${p}-doc pre{overflow-x:auto}
