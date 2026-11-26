@@ -7,6 +7,7 @@
 * [Pragmatic — Concept: an AI-native UI design system](20260708-pragmatic-ai-native-ui-concept.md)
 * [Pragmatic — input-field model (AI-generatable + AI-operable)](20260708-pragmatic-input-field-model.md)
 * [Pragmatic — screen-transition model (AI-generatable + AI-operable)](20260708-pragmatic-screen-transition-model.md)
+* [Verified structure — Concept: models you can argue on because a machine has checked them](20261126-verified-structure-concept.md)
 * [Specs Index](README.md) - Architecture and project specification documents for plgg
 * [Application Viewpoint](application.md) - Runtime behavior, agent orchestration, and data flow across the plgg monorepo packages.
 * [Component Viewpoint](component.md) - Internal structure, module boundaries, and decomposition of the plgg monorepo packages.
