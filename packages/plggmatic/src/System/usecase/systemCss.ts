@@ -82,6 +82,17 @@ ${M} ${side} .${p}-shell-head{justify-content:center}
 ${M} .${p}-shell-fold{margin:0}
 ${M} .${p}-shell-foot{justify-content:center}
 }
+.${p}-shell-rail{display:none;flex:0 0 ${mvar("rail")};width:${mvar("rail")};flex-direction:column;align-items:center;margin-left:auto;position:sticky;right:0}
+.${p}-shell-rail-group,.${p}-shell-rail .${p}-chrome-links{display:flex;flex-direction:column;align-items:center}
+.${p}-chrome-links{display:flex;align-items:center}
+.${p}-shell-bar .${p}-chrome-links{margin-left:auto}
+.${p}-chrome-link{display:inline-flex;align-items:center}
+.${p}-shell-rail .${p}-chrome-link-label{writing-mode:vertical-rl}
+.${p}-doc-foot{text-align:center}
+@media ${minWidth("lg")}{
+.${p}-shell-rail{display:flex}
+${M} ${side} :is(.${p}-shell-caption,.${p}-shell-side-link,.${p}-chrome-links){display:none}
+}
 .${p}-shell-menu{display:none}
 .${p}-shell-bar{display:none;flex:none;align-items:center;z-index:${zValue("chrome")}}
 .${p}-shell-menu-btn{display:inline-block;flex:none;width:22px;height:16px;cursor:pointer}

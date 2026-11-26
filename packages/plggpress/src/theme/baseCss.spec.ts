@@ -359,11 +359,11 @@ test("hover micro-interactions run at qmu's 150ms (no slower fades, no scale)", 
     ),
   ]));
 
-test("chrome fades use qmu's sharp-in curve; only the fill fades", () =>
+test("chrome fades are the kit's quick fade; only the fill fades", () =>
   all([
     check(
       css,
-      toContain("cubic-bezier(0.4,0,0.2,1)"),
+      toContain("background-color .15s ease"),
     ),
     // text color snaps (only the fill fades, never muddy)
     check(css, not(toContain(",color 0.15s"))),

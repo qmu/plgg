@@ -5,6 +5,11 @@ import {
   shellFoldClass,
   shellFootClass,
   shellMinAttr,
+  shellRailClass,
+  shellRailGroupClass,
+  chromeLinksClass,
+  chromeLinkClass,
+  chromeLinkLabelClass,
 } from "plggmatic";
 import { type SoftStr } from "plgg";
 import {
@@ -63,11 +68,16 @@ const socialLink = (
       attr("target", "_blank"),
       attr("rel", "noopener noreferrer"),
       attr("aria-label", socialName(item.icon)),
-      class_("vp-social"),
+      class_("vp-social " + chromeLinkClass),
     ],
     [
       span(
-        [class_("vp-social-label")],
+        [
+          class_(
+            "vp-social-label " +
+              chromeLinkLabelClass,
+          ),
+        ],
         [text(socialName(item.icon))],
       ),
     ],
@@ -84,7 +94,7 @@ export const socialLinks = (
   wrapClass: SoftStr,
 ): Html<never, "div"> =>
   div(
-    [class_(wrapClass)],
+    [class_(wrapClass + " " + chromeLinksClass)],
     config.social.map(socialLink),
   );
 
@@ -103,10 +113,15 @@ export const chromeRail = (
   config: SiteConfig,
 ): Html<never, "div"> =>
   div(
-    [class_("vp-rail")],
+    [class_("vp-rail " + shellRailClass)],
     [
       div(
-        [class_("vp-rail-controls")],
+        [
+          class_(
+            "vp-rail-controls " +
+              shellRailGroupClass,
+          ),
+        ],
         [
           staticThemeToggle,
           socialLinks(config, "vp-rail-social"),

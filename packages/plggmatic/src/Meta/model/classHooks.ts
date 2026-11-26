@@ -139,6 +139,41 @@ export const figurePageClass: SoftStr = hook(
 export const figureBodyClass: SoftStr = hook(
   "figure-body",
 );
+/**
+ * The far-right chrome rail of the shell: a narrow bar of
+ * controls and outside links, never navigation.
+ */
+export const shellRailClass: SoftStr =
+  hook("shell-rail");
+/** The stack of things a rail carries. */
+export const shellRailGroupClass: SoftStr = hook(
+  "shell-rail-group",
+);
+/** A run of links that leave the screen (a repository,
+ * a profile). */
+export const chromeLinksClass: SoftStr = hook(
+  "chrome-links",
+);
+/** One such link. */
+export const chromeLinkClass: SoftStr = hook(
+  "chrome-link",
+);
+/** The words of one such link. */
+export const chromeLinkLabelClass: SoftStr = hook(
+  "chrome-link-label",
+);
+/** A line under the sidebar's head saying what the
+ * product is. */
+export const shellCaptionClass: SoftStr = hook(
+  "shell-caption",
+);
+/** A single link closing the sidebar. */
+export const shellSideLinkClass: SoftStr = hook(
+  "shell-side-link",
+);
+/** The closing line of a document column. */
+export const docFootClass: SoftStr =
+  hook("doc-foot");
 /** A line beside the name in a head bar, saying what it is. */
 export const shellNoteClass: SoftStr =
   hook("shell-note");

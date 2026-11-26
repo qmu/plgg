@@ -43,6 +43,9 @@ import {
   figurePageClass,
   figureBodyClass,
   shellNoteClass,
+  shellCaptionClass,
+  shellSideLinkClass,
+  docFootClass,
   docClass,
 } from "plggmatic";
 import {
@@ -128,7 +131,7 @@ const siteFooter = (
 ): Html<never, "div"> =>
   div(
     [
-      class_("vp-footer"),
+      class_("vp-footer " + docFootClass),
       attr("role", "contentinfo"),
     ],
     [
@@ -280,7 +283,12 @@ const sectionsColumn = (
       ...(config.tagline?.__tag === "Some"
         ? [
             p(
-              [class_("vp-tagline")],
+              [
+                class_(
+                  "vp-tagline " +
+                    shellCaptionClass,
+                ),
+              ],
               [text(config.tagline.content)],
             ),
           ]
@@ -317,7 +325,10 @@ const sectionsColumn = (
         ? [
             a(
               [
-                class_("vp-footer-link"),
+                class_(
+                  "vp-footer-link " +
+                    shellSideLinkClass,
+                ),
                 attr(
                   "href",
                   hrefOf(

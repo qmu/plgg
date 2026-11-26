@@ -81,6 +81,17 @@ ${M} ${side} .${p}-shell-head{padding:0}
 .${p}-figure-page .${p}-shell-head{gap:1rem;padding-top:.75rem}
 ${page}.${p}-figure-page .${p}-shell-body{padding:0}
 .${p}-shell-note{font-weight:400;color:${muted}}
+.${p}-shell-rail{padding:.5rem 0 .75rem;background:${surface};border-left:${rule}}
+.${p}-shell-rail-group{gap:.5rem}
+.${p}-chrome-links{gap:.4rem}
+.${p}-chrome-link{padding:.25rem .4rem;font-size:.8rem;color:${muted};text-decoration:none;${quick("background-color")}}
+.${p}-chrome-link:hover,.${p}-chrome-link:focus-visible{${mark(a.press)};text-decoration:none}
+.${p}-shell-rail .${p}-chrome-link-label{letter-spacing:.02em}
+.${p}-shell-caption,.${p}-shell-side-link{padding:.75rem ${a.gutter};font-size:.8rem}
+.${p}-shell-caption{margin:0;color:${muted}}
+.${p}-shell-side-link{border-top:${rule}}
+.${p}-doc-foot{margin-top:2rem;padding:1.25rem 0}
+.${p}-doc-foot p{margin:0;font-size:13px;color:${muted}}
 ${M} .${p}-shell-foot{padding:.6rem 0}
 .${p}-shell-bar{gap:.6rem;height:${a.head};padding:0 1rem;background:${surface};border-bottom:${rule}}
 .${p}-shell-menu-btn{border:0;padding:0;color:${text};background-color:transparent;background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);background-size:100% 2px;background-position:0 1px,0 7px,0 13px;background-repeat:no-repeat}
@@ -210,6 +221,6 @@ ${tones
 .${p}-toast-close{width:1.6rem;height:1.6rem;padding:0;border:0;border-radius:${a.radius};background:none;color:inherit;font-size:1.05rem;line-height:1}
 .${p}-toast-close:hover,.${p}-toast-close:focus-visible{background:currentColor;outline:0}
 @media (max-width:959px){${page} .${p}-shell-body{padding:1.25rem 1.25rem 3rem}}
-@media (prefers-reduced-motion:reduce){${side},.${p}-shell-brand,.${p}-shell-fold,${doc} a,${group} summary,${group} summary::after,${group}::details-content,${group} ${link},${car},.${p}-btn,.${p}-input,.${p}-switch-track,.${p}-switch-thumb{transition:none}${page} ~ ${page},.${p}-shell ${page}${page}[data-${p}-replacing],.${p}-shell ${page}${page}[data-${p}-leaving]{animation:none}}
+@media (prefers-reduced-motion:reduce){${side},.${p}-shell-brand,.${p}-shell-fold,${doc} a,${group} summary,${group} summary::after,${group}::details-content,${group} ${link},${car},.${p}-chrome-link,.${p}-btn,.${p}-input,.${p}-switch-track,.${p}-switch-thumb{transition:none}${page} ~ ${page},.${p}-shell ${page}${page}[data-${p}-replacing],.${p}-shell ${page}${page}[data-${p}-leaving]{animation:none}}
 `;
   };

@@ -43,7 +43,7 @@ const rail = renderToString(chromeRail(config));
 
 test("chrome rail carries the appearance toggle and social links, no nav", () =>
   all([
-    check(rail, toContain('class="vp-rail"')),
+    check(rail, toContain('class="vp-rail ')),
     // the appearance toggle is plggmatic's SSG static
     // toggle on the framework class, both icons rendered
     check(

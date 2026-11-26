@@ -12,10 +12,8 @@ import {
 } from "plggpress/themeSupport/styleEntry";
 import {
   type Appearance,
-  type Mark,
   monochrome,
   shareClass,
-  shellMinAttr,
 } from "plggmatic";
 
 /**
@@ -52,8 +50,6 @@ export const baseCss = (
   const cvar = colorVar(theme);
   const mvar = metricVar(theme);
   const rule = `${a.ruleWidth} solid ${cvar(a.rule)}`;
-  const mark = (m: Mark): SoftStr =>
-    `background:${cvar(m.fill)};color:${cvar(m.ink)}`;
   return `
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -138,69 +134,11 @@ ${selector(trailClass)} button[aria-current]{
 ${selector(trailClass)} button:hover{
   color:${cvar("text")};
 }
-/* far-RIGHT chrome rail (lg+ only): the appearance toggle
-   and the social links. Always the rightmost bar: pushed
-   right while the strip is narrower than the viewport,
-   stuck to the right edge once it scrolls. */
-.vp-rail{
-  display:none;flex:0 0 ${mvar("rail")};
-  width:${mvar("rail")};
-  flex-direction:column;align-items:center;
-  padding:0.5rem 0 0.75rem;
-  margin-left:auto;position:sticky;right:0;
-  background:${cvar("surface")};
-  border-left:${rule};
-}
-.vp-rail-controls{
-  display:flex;flex-direction:column;
-  align-items:center;gap:0.5rem;
-}
-.vp-rail-social{
-  display:flex;flex-direction:column;
-  align-items:center;gap:0.4rem;
-}
 /* the phone bar and the drawer are the kit's; plggpress
    adds the appearance toggle and the social links to the
    bar */
 .vp-mobilebar .${themeToggleClass}{margin-left:0.4rem}
-.vp-foot-social{display:flex;align-items:center}
-/* social links live ONLY in the chrome group: the rail on
-   lg+, the mobile bar below it. Nothing chrome-like is left
-   in the sections column at any breakpoint. */
-.vp-mobilebar-social{
-  display:flex;align-items:center;gap:0.4rem;
-  margin-left:auto;
-}
-.vp-social{
-  display:inline-flex;align-items:center;
-  padding:0.25rem 0.4rem;
-  font-size:0.8rem;color:${cvar("muted")};
-  transition:background-color 0.15s
-    cubic-bezier(0.4,0,0.2,1);
-}
-.vp-social:hover{
-  ${mark(a.press)};
-  text-decoration:none;
-}
-.vp-social:focus-visible{
-  ${mark(a.press)};
-  text-decoration:none;
-}
-/* in the narrow rail the label rides vertically so the
-   full name fits the 48px column. */
-.vp-rail-social .vp-social-label{
-  writing-mode:vertical-rl;letter-spacing:0.02em;
-}
-
 .vp-main{display:block}
-.vp-footer{
-  margin-top:2rem;padding:1.25rem 0;
-  text-align:center;
-}
-.vp-footer-text{
-  margin:0;font-size:13px;color:${cvar("muted")};
-}
-
 /* below sm (qmu's 639px block): the prose headings render
    oversized relative to the phone column; scale them down.
    Body text keeps its base size. */
@@ -209,10 +147,6 @@ ${selector(trailClass)} button:hover{
 }
 
 @media ${minWidth("lg")}{
-  .vp-rail{display:flex}
-  html[${shellMinAttr}] .vp-sidebar .vp-tagline,
-  html[${shellMinAttr}] .vp-sidebar .vp-footer-link,
-  html[${shellMinAttr}] .vp-sidebar .vp-foot-social{display:none}
   /* pages of a fixed width do not share the room, so the
      sidebar scrolls away with the strip as it always did */
   .vp-app:not(.${shareClass}) .vp-sidebar{position:static}
@@ -274,8 +208,5 @@ html.dark .vp-sheet{color-scheme:dark}
 @media (prefers-reduced-motion:reduce){
   .vp-sidebar{transition:none}
 }
-.vp-tagline,.vp-footer-link{padding:.75rem 1.25rem;font-size:.8rem}
-.vp-tagline{color:${cvar("muted")};margin:0}
-.vp-footer-link{border-top:${rule}}
 `;
 };
