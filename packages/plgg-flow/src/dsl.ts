@@ -223,6 +223,15 @@ const parseEdge = (
       edge = { ...edge, animated: true };
     else if (isRoute(t.text))
       edge = { ...edge, route: t.text };
+    else if (t.text.indexOf("=") > 0)
+      edge = {
+        ...edge,
+        data: {
+          ...edge.data,
+          [t.text.slice(0, t.text.indexOf("="))]:
+            t.text.slice(t.text.indexOf("=") + 1),
+        },
+      };
     else
       return err(
         `${source.text} -> ${target.text}: 不明な指定「${t.text}」`,
@@ -1141,6 +1150,12 @@ const buildLines = (
           "->",
           name(e.target),
           ...(e.label ? [quoted(e.label)] : []),
+          ...Object.entries(e.data ?? {}).flatMap(
+            ([k, v]) =>
+              typeof v === "string"
+                ? [name(k + "=" + v)]
+                : [],
+          ),
           ...(e.route ? [e.route] : []),
           ...(e.animated ? ["animated"] : []),
         ].join(" "),

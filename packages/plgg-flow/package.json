@@ -257,6 +257,16 @@
         "types": "./dist/bars.d.ts",
         "default": "./dist/bars.cjs.js"
       }
+    },
+    "./sankey": {
+      "import": {
+        "types": "./dist/sankey.d.ts",
+        "default": "./dist/sankey.es.js"
+      },
+      "require": {
+        "types": "./dist/sankey.d.ts",
+        "default": "./dist/sankey.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

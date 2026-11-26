@@ -83,6 +83,11 @@ export default {
           items: [],
         },
         {
+          text: "量がどこへ流れるか",
+          link: "/plots/sankey",
+          items: [],
+        },
+        {
           text: "やりとりの順",
           link: "/plots/sequence",
           items: [],

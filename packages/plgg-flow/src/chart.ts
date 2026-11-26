@@ -32,6 +32,15 @@ import {
   type Bars,
 } from "plgg-flow/bars";
 import {
+  asSankey,
+  sankeyDeep,
+  sankeyExtent,
+  sankeyGraph,
+  sankeyLines,
+  sankeyScenery,
+  type Sankey,
+} from "plgg-flow/sankey";
+import {
   asSequence,
   sequenceDeep,
   sequenceExtent,
@@ -60,18 +69,22 @@ import {
  * - a {@link Plot} places nodes by their numbers;
  * - a {@link Sequence} places messages by their turn;
  * - a {@link Timeline} places nodes by their time;
- * - {@link Bars} raise nodes as tall as their value.
+ * - {@link Bars} raise nodes as tall as their value;
+ * - a {@link Sankey} draws connections as wide as what
+ *   they carry.
  */
 export type Chart =
   | Box<"Plot", Plot>
   | Box<"Sequence", Sequence>
   | Box<"Timeline", Timeline>
-  | Box<"Bars", Bars>;
+  | Box<"Bars", Bars>
+  | Box<"Sankey", Sankey>;
 
 const plot$ = () => pattern("Plot")();
 const sequence$ = () => pattern("Sequence")();
 const timeline$ = () => pattern("Timeline")();
 const bars$ = () => pattern("Bars")();
+const sankey$ = () => pattern("Sankey")();
 
 /** The names `layout` knows a chart by. */
 const kinds: readonly string[] = [
@@ -79,6 +92,7 @@ const kinds: readonly string[] = [
   "sequence",
   "timeline",
   "bars",
+  "sankey",
 ];
 export const isChartKind = (
   word: string,
@@ -131,7 +145,17 @@ export const asChart = (
                 ),
               ),
             )
-          : none();
+          : kind === "sankey"
+            ? some(
+                pipe(
+                  asSankey(axes, graph),
+                  mapResult(
+                    (s: Sankey): Chart =>
+                      box("Sankey")(s),
+                  ),
+                ),
+              )
+            : none();
 
 /** The graph laid out as the chart says. */
 export const chartGraph = (
@@ -158,6 +182,11 @@ export const chartGraph = (
       bars$(),
       ({ content }): Graph =>
         barsGraph(content, graph),
+    ],
+    [
+      sankey$(),
+      ({ content }): Graph =>
+        sankeyGraph(content, graph),
     ],
   );
 
@@ -191,6 +220,11 @@ export const chartScenery = (
       ({ content }): readonly Scenery[] =>
         barsScenery(content, graph.nodes),
     ],
+    [
+      sankey$(),
+      ({ content }): readonly Scenery[] =>
+        sankeyScenery(content, graph),
+    ],
   );
 
 /** Points that bound the chart beyond its nodes, so that
@@ -222,6 +256,11 @@ export const chartExtent = (
       bars$(),
       ({ content }): readonly Point3[] =>
         barsExtent(content),
+    ],
+    [
+      sankey$(),
+      (): readonly Point3[] =>
+        sankeyExtent(graph),
     ],
   );
 
@@ -257,6 +296,13 @@ export const chartLines = (
         content,
       }): readonly (readonly string[])[] =>
         barsLines(content),
+    ],
+    [
+      sankey$(),
+      ({
+        content,
+      }): readonly (readonly string[])[] =>
+        sankeyLines(content),
     ],
   );
 
@@ -316,6 +362,18 @@ export const chartCamera = (
           ? { yaw: -0.5, pitch: -0.36 }
           : { yaw: 0, pitch: 0 },
     ],
+    [
+      sankey$(),
+      ({
+        content,
+      }): Readonly<{
+        yaw: number;
+        pitch: number;
+      }> =>
+        sankeyDeep(content)
+          ? { yaw: -0.4, pitch: -0.3 }
+          : { yaw: 0, pitch: 0 },
+    ],
   );
 
 /** Whether the chart gives nodes their width. */
@@ -327,4 +385,5 @@ export const chartSizes = (
     [sequence$(), (): boolean => false],
     [timeline$(), (): boolean => true],
     [bars$(), (): boolean => true],
+    [sankey$(), (): boolean => true],
   );

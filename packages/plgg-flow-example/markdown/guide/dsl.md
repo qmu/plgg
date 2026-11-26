@@ -64,6 +64,7 @@ Result から Source へ線を引こうとしても、循環になるので拒�
 | --- | --- | --- |
 | `layout plot` | 数値で比べる | 場所に 2〜3 本。`axis 費用 0..200 lower` のように範囲と、良い向き（`lower` / `higher`）を書ける。`<=150` `>=50` は条件、`size` は印の大きさに回す軸 |
 | `layout bars` | 量を種類で比べる | 1 本目が量（棒の高さ）、2 本目が横に並べる種類、3 本目は奥行きに分ける種類 |
+| `layout sankey` | 量がどこへ流れるか | 1 本目が接続に書く量の属性（`A -> B 量=60`）、2 本目はノードを奥行きに分ける属性 |
 | `layout sequence` | やりとりの順 | 0〜1 本。参加者を奥行きで分ける属性 |
 | `layout timeline` | いつ何が走るか | 1 本目が時間（`axis 週 0..12`）、2 本目は面を分ける属性 |
 
@@ -80,7 +81,7 @@ node 案C 費用=150 性能=60
 
 `axis 費用 0..200 lower <=150` のように条件を書くと、条件を満たす範囲が点線で囲まれ、外れた案は薄くなります。外れた案は、他の案を負かす側にも数えません。ノードを `->` でつなげば折れ線になります。
 
-実例：[案を比べる](../plots/options.md)、[条件の中で選ぶ](../plots/conditions.md)、[効果と手間で分ける](../plots/quadrant.md)、[量を種類で比べる](../plots/bars.md)、[やりとりの順](../plots/sequence.md)、[いつ何が走るか](../plots/timeline.md)。
+実例：[案を比べる](../plots/options.md)、[条件の中で選ぶ](../plots/conditions.md)、[効果と手間で分ける](../plots/quadrant.md)、[量を種類で比べる](../plots/bars.md)、[量がどこへ流れるか](../plots/sankey.md)、[やりとりの順](../plots/sequence.md)、[いつ何が走るか](../plots/timeline.md)。
 
 ## 次に読む
 

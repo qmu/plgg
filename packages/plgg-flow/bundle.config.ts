@@ -28,6 +28,7 @@ export default {
     "sequence",
     "timeline",
     "bars",
+    "sankey",
     "chart",
     "dsl",
     "wiring",
