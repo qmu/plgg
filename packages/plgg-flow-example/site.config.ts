@@ -60,6 +60,16 @@ export default {
       ],
     },
     {
+      text: "条件の空間",
+      items: [
+        {
+          text: "案を比べる",
+          link: "/plots/options",
+          items: [],
+        },
+      ],
+    },
+    {
       text: "配線",
       items: [
         {

@@ -1,3 +1,10 @@
+import {
+  asPlot,
+  plotGraph,
+  plotMeasures,
+  measureWords,
+  type Plot,
+} from "plgg-flow/plot";
 import { routeSpace } from "plgg-flow/space";
 import { edgeIndex } from "plgg-flow/connections";
 import {
@@ -64,6 +71,8 @@ export type Spec = Readonly<{
   mark?: readonly string[];
   layout?: LayerOptions;
   pinned?: readonly string[];
+  /** Nodes placed in a space of measures. */
+  plot?: Plot;
 }>;
 
 const tokens = (line: string) =>
@@ -227,6 +236,7 @@ export const parseSpec = (
     rules: Rule[] = [];
   const mark: string[] = [];
   let rooms = false;
+  let plotted = false;
   let explicitView = false;
   let camera: Spec["camera"];
   const definitions: Axis[] = [];
@@ -338,6 +348,10 @@ export const parseSpec = (
         rooms = true;
         continue;
       }
+      if (kind === "plot" && !args.length) {
+        plotted = true;
+        continue;
+      }
       const direction = args[0];
       const explicit =
         direction === "down" ||
@@ -407,6 +421,22 @@ export const parseSpec = (
     );
   if (stray !== undefined)
     return err(`未定義のノード「${stray}」`);
+  if (plotted) {
+    const plot = asPlot(
+      definitions,
+      assignments,
+      nodes,
+    );
+    if (plot.__tag === "Err") return plot;
+    return ok({
+      graph: { nodes, edges },
+      ...(mark.length && { mark }),
+      ...(camera && { camera }),
+      plot: plot.content,
+      rules,
+      ...(snap === undefined ? {} : { snap }),
+    });
+  }
   if (layout && definitions.length) {
     if (definitions.length > 1)
       return err(
@@ -562,8 +592,28 @@ const laySpec =
       fixedRoles,
       writtenCamera,
       suggestionIndex,
+      plot: _plot,
       ...rest
     } = flow;
+    if (spec.plot)
+      return {
+        ...rest,
+        ...plotGraph(spec.plot, spec.graph),
+        plot: spec.plot,
+        ...(spec.camera && {
+          writtenCamera: spec.camera,
+        }),
+        camera: {
+          ...flow.camera,
+          ...(spec.camera ??
+            (spec.plot.z.__tag === "Some"
+              ? { yaw: -0.5, pitch: 0.36 }
+              : { yaw: 0, pitch: 0 })),
+          perspective: false,
+        },
+        snap: spec.snap ?? grid,
+        ...allow(spec.rules),
+      };
     const axis = spec.layout?.layerAxis;
     const axesForSpace: RoomAxes | undefined =
       spec.axes ?? (axis && { y: axis });
@@ -865,6 +915,7 @@ export const placedByLayout = (
 ) => {
   const p = flow.layered?.computed.get(node.id);
   return (
+    !!flow.plot ||
     (!!flow.rooms && !flow.layered) ||
     !!(
       p &&
@@ -951,6 +1002,31 @@ const buildLines = (
   return [
     ...(flow.mark?.length
       ? [directive("mark", flow.mark.map(name))]
+      : []),
+    ...(flow.plot
+      ? [
+          directive("layout", ["plot"]),
+          ...plotMeasures(flow.plot).map((m) =>
+            directive("axis", [
+              ["x", "y", "z"].includes(
+                m.attribute,
+              )
+                ? quoted(m.attribute)
+                : name(m.attribute),
+              ...measureWords(m),
+            ]),
+          ),
+          ...(flow.writtenCamera
+            ? [
+                directive("view", [
+                  "camera=" +
+                    flow.writtenCamera.yaw +
+                    "," +
+                    flow.writtenCamera.pitch,
+                ]),
+              ]
+            : []),
+        ]
       : []),
     ...(flow.rooms && !options
       ? [

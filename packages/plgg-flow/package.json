@@ -118,6 +118,16 @@
         "default": "./dist/revisions.cjs.js"
       }
     },
+    "./plot": {
+      "import": {
+        "types": "./dist/plot.d.ts",
+        "default": "./dist/plot.es.js"
+      },
+      "require": {
+        "types": "./dist/plot.d.ts",
+        "default": "./dist/plot.cjs.js"
+      }
+    },
     "./routing": {
       "import": {
         "types": "./dist/routing.d.ts",

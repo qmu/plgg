@@ -1,3 +1,7 @@
+import {
+  plotExtent,
+  type Plot,
+} from "plgg-flow/plot";
 import { splitEdge } from "plgg-flow/graph";
 import { routeSpace } from "plgg-flow/space";
 import { movePath } from "plgg-flow/path3";
@@ -224,6 +228,8 @@ export type Flow = Graph &
       bottom: number;
     }>;
     rooms?: RoomLayout;
+    /** Nodes placed in a space of measures. */
+    plot?: Plot;
     roomPins?: Readonly<Record<string, string>>;
     hoveredEdge?: Edge | undefined;
     hoveredNode?: string | undefined;
@@ -497,7 +503,7 @@ export const fitFlow: Change = (state) =>
       (n) =>
         !state.focus || state.focus.has(n.id),
     ),
-    [],
+    state.plot ? plotExtent(state.plot) : [],
   );
 export const fitWire: Change = (state) => {
   const index = state.activeEdge

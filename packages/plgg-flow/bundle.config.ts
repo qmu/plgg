@@ -24,6 +24,7 @@ export default {
     "annotations",
     "routing",
     "revisions",
+    "plot",
     "dsl",
     "wiring",
   ].map((name) => ({
