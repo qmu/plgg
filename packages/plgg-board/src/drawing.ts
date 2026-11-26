@@ -1,4 +1,16 @@
-import { mix } from "plgg-board/geometry";
+import {
+  pipe,
+  none,
+  some,
+  fromNullable,
+  chainOption,
+  matchOption,
+  type Option,
+} from "plgg";
+import {
+  mix,
+  withNext,
+} from "plgg-board/geometry";
 import type {
   Point3,
   Point,
@@ -10,13 +22,13 @@ import {
   type Bounds,
 } from "plgg-board/visibility";
 export type Tone = "up" | "lit" | "shade";
-export type Fill = {
+export type Fill = Readonly<{
   id: string;
   style: string;
   tone: Tone;
-  points: Point3[];
-};
-export type Ink = {
+  points: readonly Point3[];
+}>;
+export type Ink = Readonly<{
   id: string;
   style: string;
   kind:
@@ -25,9 +37,9 @@ export type Ink = {
     | "hidden"
     | "line";
   outline?: boolean;
-  points: [Point3, Point3];
-};
-export type Matrix = [
+  points: readonly [Point3, Point3];
+}>;
+export type Matrix = readonly [
   number,
   number,
   number,
@@ -35,7 +47,7 @@ export type Matrix = [
   number,
   number,
 ];
-export type DrawMark = {
+export type DrawMark = Readonly<{
   id: string;
   style: string;
   kind: "hole" | "gap" | "mark";
@@ -44,8 +56,8 @@ export type DrawMark = {
   covered: boolean;
   receiver?: string;
   strokeIndex?: number;
-};
-export type DrawLabel = {
+}>;
+export type DrawLabel = Readonly<{
   clear?: boolean;
   id: string;
   style: string;
@@ -54,191 +66,414 @@ export type DrawLabel = {
   matrix: Matrix;
   box: Bounds;
   covered: boolean;
-};
-export type Shadow = {
+}>;
+export type Shadow = Readonly<{
   id: string;
   style: string;
   receiver: string;
-  points: Point3[];
-};
-export type Drawing = {
-  fills: Fill[];
-  strokes: Ink[];
-  marks: DrawMark[];
-  labels: DrawLabel[];
-  shadows: Shadow[];
-};
+  points: readonly Point3[];
+}>;
+export type Drawing = Readonly<{
+  fills: readonly Fill[];
+  strokes: readonly Ink[];
+  marks: readonly DrawMark[];
+  labels: readonly DrawLabel[];
+  shadows: readonly Shadow[];
+}>;
+
+/** The first that answers. */
+const otherwise =
+  <T>(next: () => Option<T>) =>
+  (first: Option<T>): Option<T> =>
+    pipe(
+      first,
+      matchOption(next, (v: T) => some(v)),
+    );
+
+const labelAt = (
+  d: Drawing,
+  p: Point,
+): Option<string> =>
+  pipe(
+    fromNullable(
+      [...d.labels]
+        .reverse()
+        .find(
+          (l) =>
+            !l.covered &&
+            p.x >= l.box.left &&
+            p.x <= l.box.right &&
+            p.y >= l.box.top &&
+            p.y <= l.box.bottom,
+        ),
+    ),
+    chainOption((l: DrawLabel) => some(l.id)),
+  );
+
+/** The nearest thing found so far under the pointer. */
+type Nearest = Readonly<{
+  depth: number;
+  id: Option<string>;
+}>;
+const markHit = (
+  [a, b, c, e, x, y]: Matrix,
+  p: Point,
+  det: number,
+): boolean =>
+  Math.abs(det) >= 1e-8 &&
+  ((e * (p.x - x) - c * (p.y - y)) / det) ** 2 +
+    ((a * (p.y - y) - b * (p.x - x)) / det) **
+      2 <=
+    4;
+const overMark =
+  (p: Point) =>
+  (best: Nearest, m: DrawMark): Nearest =>
+    !m.covered &&
+    m.kind !== "gap" &&
+    m.point.z >= best.depth &&
+    markHit(
+      m.matrix,
+      p,
+      m.matrix[0] * m.matrix[3] -
+        m.matrix[1] * m.matrix[2],
+    )
+      ? { depth: m.point.z, id: some(m.id) }
+      : best;
+/** How far along a→b the foot of the pointer falls. */
+const along = (
+  a: Point3,
+  b: Point3,
+  p: Point,
+): number =>
+  Math.max(
+    0,
+    Math.min(
+      1,
+      ((p.x - a.x) * (b.x - a.x) +
+        (p.y - a.y) * (b.y - a.y)) /
+        ((b.x - a.x) * (b.x - a.x) +
+          (b.y - a.y) * (b.y - a.y) || 1),
+    ),
+  );
+const strokeHit = (
+  best: Nearest,
+  s: Ink,
+  [a, b]: readonly [Point3, Point3],
+  p: Point,
+  t: number,
+): Nearest =>
+  a.z + t * (b.z - a.z) > best.depth &&
+  Math.hypot(
+    p.x - a.x - t * (b.x - a.x),
+    p.y - a.y - t * (b.y - a.y),
+  ) <= 1
+    ? {
+        depth: a.z + t * (b.z - a.z),
+        id: some(s.id),
+      }
+    : best;
+const overStroke =
+  (p: Point) =>
+  (best: Nearest, s: Ink): Nearest =>
+    s.kind === "line"
+      ? strokeHit(
+          best,
+          s,
+          s.points,
+          p,
+          along(s.points[0], s.points[1], p),
+        )
+      : best;
+const inkAt = (
+  d: Drawing,
+  p: Point,
+): Option<string> =>
+  d.strokes.reduce(
+    overStroke(p),
+    d.marks.reduce(overMark(p), {
+      depth: -Infinity,
+      id: none(),
+    }),
+  ).id;
+
+const turns = (
+  f: Fill,
+  p: Point,
+): readonly number[] =>
+  withNext(f.points).map(
+    ([a, b]) =>
+      (b.x - a.x) * (p.y - a.y) -
+      (b.y - a.y) * (p.x - a.x),
+  );
+const within = (
+  crosses: readonly number[],
+): boolean =>
+  crosses.some((c) => c > 1e-8) !==
+  crosses.some((c) => c < -1e-8);
+const fillAt = (
+  d: Drawing,
+  p: Point,
+): Option<string> =>
+  pipe(
+    fromNullable(
+      [...d.fills]
+        .reverse()
+        .find((f) => within(turns(f, p))),
+    ),
+    chainOption((f: Fill) => some(f.id)),
+  );
+
+/** What is under a screen point: a label first, then
+ * the nearest mark or wire, then the topmost face. */
 export const pick = (
   d: Drawing,
   p: Point,
-): string | undefined => {
-  const label = d.labels
-    .slice()
-    .reverse()
-    .find(
-      (l) =>
-        !l.covered &&
-        p.x >= l.box.left &&
-        p.x <= l.box.right &&
-        p.y >= l.box.top &&
-        p.y <= l.box.bottom,
-    );
-  if (label) return label.id;
-  let best = -Infinity,
-    id: string | undefined;
-  for (const m of d.marks) {
-    if (m.covered || m.kind === "gap") continue;
-    const [a, b, c, e, x, y] = m.matrix,
-      det = a * e - b * c;
-    if (Math.abs(det) < 1e-8) continue;
-    const u =
-        (e * (p.x - x) - c * (p.y - y)) / det,
-      v = (a * (p.y - y) - b * (p.x - x)) / det;
-    if (u * u + v * v <= 4 && m.point.z >= best) {
-      id = m.id;
-      best = m.point.z;
-    }
-  }
-  for (const s of d.strokes) {
-    if (s.kind !== "line") continue;
-    const [a, b] = s.points,
-      dx = b.x - a.x,
-      dy = b.y - a.y,
-      t = Math.max(
-        0,
-        Math.min(
-          1,
-          ((p.x - a.x) * dx + (p.y - a.y) * dy) /
-            (dx * dx + dy * dy || 1),
-        ),
-      );
-    const z = a.z + t * (b.z - a.z);
-    if (
-      z > best &&
-      Math.hypot(
-        p.x - a.x - t * dx,
-        p.y - a.y - t * dy,
-      ) <= 1
-    ) {
-      id = s.id;
-      best = z;
-    }
-  }
-  if (id !== undefined) return id;
-  for (let i = d.fills.length - 1; i >= 0; i--) {
-    const f = d.fills[i]!;
-    let pos = false,
-      neg = false;
-    for (let j = 0; j < f.points.length; j++) {
-      const a = f.points[j]!,
-        b = f.points[(j + 1) % f.points.length]!;
-      const cross =
-        (b.x - a.x) * (p.y - a.y) -
-        (b.y - a.y) * (p.x - a.x);
-      pos ||= cross > 1e-8;
-      neg ||= cross < -1e-8;
-      if (pos && neg) break;
-    }
-    if (pos !== neg) return f.id;
-  }
-  return undefined;
-};
+): Option<string> =>
+  pipe(
+    labelAt(d, p),
+    otherwise(() => inkAt(d, p)),
+    otherwise(() => fillAt(d, p)),
+  );
 
+/** A label's cleared area. */
+type Clearance = Readonly<{
+  id: string;
+  box: Bounds;
+}>;
+const clearance = (l: DrawLabel): Clearance => ({
+  id: l.id,
+  box: {
+    left: l.box.left - 2,
+    right: l.box.right + 2,
+    top: l.box.top - 2,
+    bottom: l.box.bottom + 2,
+  },
+});
+
+const whole: Interval = { lo: 0, hi: 1 };
+/** Narrow the stretch inside a box along one axis. */
+const slab = (
+  state: Option<Interval>,
+  start: number,
+  delta: number,
+  min: number,
+  max: number,
+): Option<Interval> =>
+  pipe(
+    state,
+    chainOption(
+      (i: Interval): Option<Interval> =>
+        delta
+          ? some({
+              lo: Math.max(
+                i.lo,
+                Math.min(
+                  (min - start) / delta,
+                  (max - start) / delta,
+                ),
+              ),
+              hi: Math.min(
+                i.hi,
+                Math.max(
+                  (min - start) / delta,
+                  (max - start) / delta,
+                ),
+              ),
+            })
+          : start < min || start > max
+            ? none()
+            : some(i),
+    ),
+  );
+/** The stretch of a→b inside a box, if any. */
+const boxed = (
+  a: Point3,
+  b: Point3,
+  box: Bounds,
+): readonly Interval[] =>
+  pipe(
+    slab(
+      slab(
+        some(whole),
+        a.x,
+        b.x - a.x,
+        box.left,
+        box.right,
+      ),
+      a.y,
+      b.y - a.y,
+      box.top,
+      box.bottom,
+    ),
+    matchOption(
+      (): readonly Interval[] => [],
+      (i: Interval): readonly Interval[] =>
+        i.lo < i.hi ? [i] : [],
+    ),
+  );
+
+/** A sweep along a stroke: where it has reached, and
+ * the stretches left standing. */
+type Sweep = Readonly<{
+  cursor: number;
+  kept: readonly Interval[];
+}>;
+const sweep = (
+  s: Sweep,
+  cut: Interval,
+): Sweep => ({
+  cursor: Math.max(s.cursor, cut.hi),
+  kept:
+    cut.lo > s.cursor
+      ? [...s.kept, { lo: s.cursor, hi: cut.lo }]
+      : s.kept,
+});
+const standing = (
+  s: Sweep,
+): readonly Interval[] =>
+  s.cursor < 1
+    ? [...s.kept, { lo: s.cursor, hi: 1 }]
+    : s.kept;
+/** What is left of a stroke once the cleared areas of
+ * other items' labels are cut out of it. */
+const remaining = (
+  query: (box: Bounds) => readonly Clearance[],
+  s: Ink,
+): readonly Interval[] =>
+  standing(
+    query(segmentBounds(s.points[0], s.points[1]))
+      .flatMap((l) =>
+        l.id === s.id
+          ? []
+          : boxed(
+              s.points[0],
+              s.points[1],
+              l.box,
+            ),
+      )
+      .sort((u, v) => u.lo - v.lo)
+      .reduce(sweep, { cursor: 0, kept: [] }),
+  );
+
+/** One standing stretch of one original stroke. */
+type Piece = Readonly<{
+  stroke: Ink;
+  index: number;
+  k: number;
+  at: Interval;
+}>;
+const pieces = (
+  query: (box: Bounds) => readonly Clearance[],
+  strokes: readonly Ink[],
+): readonly Piece[] =>
+  strokes.flatMap((stroke, index) =>
+    remaining(query, stroke).map((at, k) => ({
+      stroke,
+      index,
+      k,
+      at,
+    })),
+  );
+const inked = (p: Piece): Ink =>
+  p.at.lo === 0 && p.at.hi === 1
+    ? p.stroke
+    : {
+        ...p.stroke,
+        points: [
+          mix(
+            p.stroke.points[0],
+            p.stroke.points[1],
+            p.at.lo,
+          ),
+          mix(
+            p.stroke.points[0],
+            p.stroke.points[1],
+            p.at.hi,
+          ),
+        ],
+      };
+
+/** Where a gap mark sits along its stroke. */
+const parameter = (
+  [a, b]: readonly [Point3, Point3],
+  m: DrawMark,
+): number =>
+  Math.abs(b.x - a.x) > Math.abs(b.y - a.y)
+    ? (m.point.x - a.x) / (b.x - a.x)
+    : (m.point.y - a.y) / (b.y - a.y);
+/** A gap mark follows the stretch it sits on to that
+ * stretch's new place; a mark whose stretch is gone
+ * goes with it. */
+const moved = (
+  all: readonly Piece[],
+  m: DrawMark,
+  index: number,
+  stroke: Ink,
+): readonly DrawMark[] =>
+  all
+    .flatMap((p, position) =>
+      p.index === index &&
+      parameter(stroke.points, m) >= p.at.lo &&
+      parameter(stroke.points, m) <= p.at.hi
+        ? [position]
+        : [],
+    )
+    .slice(-1)
+    .map((position) => ({
+      ...m,
+      strokeIndex: position,
+    }));
+const remark =
+  (
+    strokes: readonly Ink[],
+    all: readonly Piece[],
+  ) =>
+  (m: DrawMark): readonly DrawMark[] =>
+    pipe(
+      fromNullable(m.strokeIndex),
+      chainOption((index: number) =>
+        pipe(
+          fromNullable(strokes[index]),
+          chainOption((stroke: Ink) =>
+            some(moved(all, m, index, stroke)),
+          ),
+        ),
+      ),
+      matchOption(
+        (): readonly DrawMark[] => [m],
+        (ms: readonly DrawMark[]) => ms,
+      ),
+    );
+
+const recut = (
+  drawing: Drawing,
+  all: readonly Piece[],
+): Drawing => ({
+  ...drawing,
+  strokes: all.map(inked),
+  marks: drawing.marks.flatMap(
+    remark(drawing.strokes, all),
+  ),
+});
+
+const clearedOf = (
+  drawing: Drawing,
+  labels: readonly Clearance[],
+): Drawing =>
+  labels.length === 0
+    ? drawing
+    : recut(
+        drawing,
+        pieces(grid(labels), drawing.strokes),
+      );
+
+/** The drawing with every stroke cut where it would run
+ * through the cleared area of another item's label. */
 export const clearLabelStrokes = (
   drawing: Drawing,
   painted: readonly DrawLabel[] = drawing.labels,
-) => {
-  const labels = painted
-    .filter((l) => l.clear)
-    .map(({ id, box: b }) => ({
-      id,
-      box: {
-        left: b.left - 2,
-        right: b.right + 2,
-        top: b.top - 2,
-        bottom: b.bottom + 2,
-      },
-    }));
-  if (!labels.length) return;
-  const query = grid(labels);
-  const gaps = new Map<number, DrawMark[]>();
-  for (const mark of drawing.marks) {
-    if (mark.strokeIndex === undefined) continue;
-    const list = gaps.get(mark.strokeIndex) ?? [];
-    list.push(mark);
-    gaps.set(mark.strokeIndex, list);
-  }
-  const strokes: Ink[] = [];
-  const removed = new Set<DrawMark>();
-  for (const [
-    index,
-    s,
-  ] of drawing.strokes.entries()) {
-    const [a, b] = s.points,
-      dx = b.x - a.x,
-      dy = b.y - a.y;
-    const cuts: Interval[] = [];
-    query(segmentBounds(a, b), ({ id, box }) => {
-      if (id === s.id) return;
-      let lo = 0,
-        hi = 1;
-      for (const [start, delta, min, max] of [
-        [a.x, dx, box.left, box.right],
-        [a.y, dy, box.top, box.bottom],
-      ] satisfies [
-        number,
-        number,
-        number,
-        number,
-      ][]) {
-        if (!delta) {
-          if (start < min || start > max) return;
-          continue;
-        }
-        const u = (min - start) / delta,
-          v = (max - start) / delta;
-        lo = Math.max(lo, Math.min(u, v));
-        hi = Math.min(hi, Math.max(u, v));
-      }
-      if (lo < hi) cuts.push({ lo, hi });
-    });
-    const marks = gaps.get(index);
-    const emit = (lo: number, hi: number) => {
-      for (const m of marks ?? []) {
-        const t =
-          Math.abs(dx) > Math.abs(dy)
-            ? (m.point.x - a.x) / dx
-            : (m.point.y - a.y) / dy;
-        if (t >= lo && t <= hi) {
-          m.strokeIndex = strokes.length;
-          removed.delete(m);
-        }
-      }
-      strokes.push(
-        lo === 0 && hi === 1
-          ? s
-          : {
-              ...s,
-              points: [
-                mix(a, b, lo),
-                mix(a, b, hi),
-              ],
-            },
-      );
-    };
-    for (const m of marks ?? []) removed.add(m);
-    let cursor = 0;
-    for (const { lo, hi } of cuts.sort(
-      (u, v) => u.lo - v.lo,
-    )) {
-      if (lo > cursor) emit(cursor, lo);
-      cursor = Math.max(cursor, hi);
-    }
-    if (cursor < 1) emit(cursor, 1);
-  }
-  drawing.strokes = strokes;
-  if (removed.size)
-    drawing.marks = drawing.marks.filter(
-      (m) => !removed.has(m),
-    );
-};
+): Drawing =>
+  clearedOf(
+    drawing,
+    painted.filter((l) => l.clear).map(clearance),
+  );

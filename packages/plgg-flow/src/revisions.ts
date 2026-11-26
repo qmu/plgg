@@ -1,8 +1,13 @@
 import { neighborhood } from "plgg-flow/analysis";
 import {
+  pipe,
   isErr,
+  isOk,
   err,
   ok,
+  fromNullable,
+  matchOption,
+  mapResult,
   isSome,
   none,
   some,
@@ -347,6 +352,91 @@ export const revisionDrawing = (
   return ok({ nodes, edges });
 };
 
+/** A field a card always has. */
+type Required = "label" | "position";
+/** A field a card may lack. */
+type Optional =
+  | "width"
+  | "height"
+  | "origin"
+  | "type"
+  | "data"
+  | "value";
+const settings: readonly (Required | Optional)[] =
+  ["label", "type", "data", "value"];
+const geometry: readonly (Required | Optional)[] =
+  ["position", "width", "height", "origin"];
+const fieldsOf = (
+  mode: "settings" | "geometry" | "both",
+): readonly (Required | Optional)[] => [
+  ...(mode !== "geometry" ? settings : []),
+  ...(mode !== "settings" ? geometry : []),
+];
+const without = (
+  key: Optional,
+  { [key]: _gone, ...rest }: FlowNode,
+): FlowNode => rest;
+/** One field as the baseline had it: its value there,
+ * or absent as it was there. A field keeps its place
+ * among the card's fields. */
+const fieldFrom =
+  (old: FlowNode) =>
+  (
+    node: FlowNode,
+    key: Required | Optional,
+  ): FlowNode =>
+    key === "label" || key === "position"
+      ? { ...node, [key]: old[key] }
+      : old[key] === undefined
+        ? without(key, node)
+        : { ...node, [key]: old[key] };
+const restoredCard =
+  (
+    originals: ReadonlyMap<string, FlowNode>,
+    selected: ReadonlySet<string>,
+    fields: readonly (Required | Optional)[],
+  ) =>
+  (node: FlowNode): Result<FlowNode, string> =>
+    !selected.has(node.id)
+      ? ok(node)
+      : pipe(
+          fromNullable(originals.get(node.id)),
+          matchOption(
+            (): Result<FlowNode, string> =>
+              err(
+                "基準版に存在しないカード：" +
+                  node.id,
+              ),
+            (old: FlowNode) =>
+              ok(
+                fields.reduce(
+                  fieldFrom(old),
+                  node,
+                ),
+              ),
+          ),
+        );
+/** Every card when all are sound; the first refusal
+ * otherwise. */
+const allCards = (
+  results: readonly Result<FlowNode, string>[],
+): Result<readonly FlowNode[], string> =>
+  pipe(
+    fromNullable(
+      results.flatMap((r) =>
+        isErr(r) ? [r.content] : [],
+      )[0],
+    ),
+    matchOption(
+      (): Result<readonly FlowNode[], string> =>
+        ok(
+          results.flatMap((r) =>
+            isOk(r) ? [r.content] : [],
+          ),
+        ),
+      (refusal: string) => err(refusal),
+    ),
+  );
 /** Revert selected fields on existing cards, including fields absent in the
  * baseline. Identity, ownership and connection contracts stay in the current revision. */
 export const restoreCardFields = (
@@ -354,52 +444,24 @@ export const restoreCardFields = (
   current: Graph,
   ids: readonly string[],
   mode: "settings" | "geometry" | "both",
-): Result<Graph, string> => {
-  const originals = index(base.nodes, nodeKey),
-    selected = new Set(ids);
-  const fields: (
-    | "position"
-    | "width"
-    | "height"
-    | "origin"
-    | "label"
-    | "type"
-    | "data"
-    | "value"
-  )[] = [];
-  if (mode !== "geometry")
-    fields.push("label", "type", "data", "value");
-  if (mode !== "settings")
-    fields.push(
-      "position",
-      "width",
-      "height",
-      "origin",
-    );
-  const nodes: FlowNode[] = [];
-  for (const node of current.nodes) {
-    if (!selected.has(node.id)) {
-      nodes.push(node);
-      continue;
-    }
-    const old = originals.get(node.id);
-    if (!old)
-      return err(
-        "基準版に存在しないカード：" + node.id,
-      );
-    const entries = new Map(Object.entries(node));
-    for (const key of fields) {
-      const value = old[key];
-      if (value === undefined)
-        entries.delete(key);
-      else entries.set(key, value);
-    }
-    nodes.push(
-      Object.fromEntries(entries) as FlowNode,
-    );
-  }
-  return ok({ ...current, nodes });
-};
+): Result<Graph, string> =>
+  pipe(
+    allCards(
+      current.nodes.map(
+        restoredCard(
+          index(base.nodes, nodeKey),
+          new Set(ids),
+          fieldsOf(mode),
+        ),
+      ),
+    ),
+    mapResult(
+      (nodes: readonly FlowNode[]): Graph => ({
+        ...current,
+        nodes,
+      }),
+    ),
+  );
 
 /** Compare world displacement and movement relative to the same parent.
  * A reparented card has no shared parent frame for the latter comparison. */

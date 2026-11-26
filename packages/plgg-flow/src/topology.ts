@@ -315,7 +315,10 @@ export const feedbackEdges = (
   graph: Graph,
 ): readonly Edge[] => {
   const outgoing = new Map(
-    graph.nodes.map((n) => [n.id, [] as Edge[]]),
+    graph.nodes.map((n): [string, Edge[]] => [
+      n.id,
+      [],
+    ]),
   );
   for (const edge of graph.edges)
     if (outgoing.has(edge.target))
@@ -370,7 +373,7 @@ export const minimumWireCut = (
   )
     return [];
   const outgoing = graph.nodes.map(
-    () => [] as number[],
+    (): number[] => [],
   );
   const arcs: {
     to: number;

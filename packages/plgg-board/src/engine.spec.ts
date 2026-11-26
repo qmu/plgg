@@ -9,7 +9,12 @@ import {
   quad,
   type Scene,
   type Point3,
+  type Drawing,
 } from "plgg-board/index";
+import { getOr } from "plgg";
+/** What is under a point, or "" when nothing is. */
+const picked = (d: Drawing, at: Point3): string =>
+  getOr("")(pick(d, at));
 const p = (
   x: number,
   y: number,
@@ -43,8 +48,8 @@ test("intersecting sheets exchange depth across the cut", () => {
   );
   return check(
     [
-      pick(d, p(-3, 0, 0)),
-      pick(d, p(3, 0, 0)),
+      picked(d, p(-3, 0, 0)),
+      picked(d, p(3, 0, 0)),
       d.fills.length,
     ].join(),
     toBe("b,a,3"),
@@ -190,10 +195,10 @@ test("moving one solid preserves the prior drawing and updates picking", () => {
   );
   return check(
     [
-      pick(first, p(5, 0, 0)),
-      pick(next, p(5, 0, 0)),
-      pick(next, p(15, 0, 0)),
-      pick(next, p(-12, 0, 0)),
+      picked(first, p(5, 0, 0)),
+      picked(next, p(5, 0, 0)),
+      picked(next, p(15, 0, 0)),
+      picked(next, p(-12, 0, 0)),
     ].join(),
     toBe("box,,box,fixed"),
   );

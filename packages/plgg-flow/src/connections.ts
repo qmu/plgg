@@ -572,15 +572,23 @@ export const auditPortContracts = (
   const ports = new Map(
     graph.nodes.flatMap((n) =>
       (n.ports ?? []).map(
-        (port) =>
-          [
-            key(n.id, port.direction, port.id),
-            {
-              node: n.id,
-              port,
-              edges: Array<Edge>(),
-            },
-          ] as const,
+        (
+          port,
+        ): [
+          string,
+          {
+            node: string;
+            port: Port;
+            edges: Edge[];
+          },
+        ] => [
+          key(n.id, port.direction, port.id),
+          {
+            node: n.id,
+            port,
+            edges: [],
+          },
+        ],
       ),
     ),
   );
@@ -1098,7 +1106,12 @@ export const swapWiringRoles = (
         "target",
         edge.targetHandle,
       ],
-    ] as const)
+    ] satisfies readonly (readonly [
+      string,
+      string,
+      "source" | "target",
+      string | undefined,
+    ])[])
       if (
         node !== old &&
         handle !== undefined &&

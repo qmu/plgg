@@ -12,6 +12,7 @@ import {
   type Line,
   type Mark,
   type Label,
+  type DrawLabel,
   type Point,
   type Point3,
 } from "plgg-board";
@@ -21,7 +22,7 @@ import {
   text,
   type Html,
 } from "plgg-view";
-import { isSome } from "plgg";
+import { isSome, getOr } from "plgg";
 import {
   type Flow,
   type FlowNode,
@@ -747,17 +748,21 @@ export const engineView = (
       for (const id of block.ids)
         centres.set(id, centre.x);
     }
-  const placed: typeof drawing.labels = [];
-  drawing.labels.sort(
+  const placed: DrawLabel[] = [];
+  // every label in painting order, the placed ones where
+  // they were set down
+  const settled: DrawLabel[] = [];
+  for (const l of [...drawing.labels].sort(
     (a, b) =>
       Number(a.style === "tag") -
         Number(b.style === "tag") ||
       b.point.z - a.point.z,
-  );
-  for (const l of drawing.labels) {
-    if (l.covered && flow.hidden === "none")
+  )) {
+    if (l.covered && flow.hidden === "none") {
+      settled.push(l);
       continue;
-    const { box: b, matrix: m } = l,
+    }
+    const { box: b } = l,
       offset = offsets.get(l.id),
       node = captions.get(l.id);
     let x =
@@ -852,13 +857,25 @@ export const engineView = (
         ),
       );
     }
-    b.left += x;
-    b.right += x;
-    b.top += y;
-    b.bottom += y;
-    m[4] += x;
-    m[5] += y;
-    placed.push(l);
+    const set: DrawLabel = {
+      ...l,
+      box: {
+        left: l.box.left + x,
+        right: l.box.right + x,
+        top: l.box.top + y,
+        bottom: l.box.bottom + y,
+      },
+      matrix: [
+        l.matrix[0],
+        l.matrix[1],
+        l.matrix[2],
+        l.matrix[3],
+        l.matrix[4] + x,
+        l.matrix[5] + y,
+      ],
+    };
+    placed.push(set);
+    settled.push(set);
     const attributes = [
       attr(
         "class",
@@ -881,8 +898,8 @@ export const engineView = (
             attr(
               "transform",
               l.style === "tag"
-                ? `translate(${(b.left + b.right) / 2} ${(b.top + b.bottom) / 2})`
-                : `matrix(${[...m.slice(0, 4), (b.left + b.right) / 2, (b.top + b.bottom) / 2].join(" ")})`,
+                ? `translate(${(set.box.left + set.box.right) / 2} ${(set.box.top + set.box.bottom) / 2})`
+                : `matrix(${[...set.matrix.slice(0, 4), (set.box.left + set.box.right) / 2, (set.box.top + set.box.bottom) / 2].join(" ")})`,
             ),
           ],
           [caption(node)],
@@ -896,24 +913,26 @@ export const engineView = (
             ...attributes,
             attr(
               "transform",
-              "matrix(" + m.join(" ") + ")",
+              "matrix(" +
+                set.matrix.join(" ") +
+                ")",
             ),
           ],
           [text(l.text)],
         ),
       );
   }
-  clearLabelStrokes(drawing, placed);
+  const inked = {
+    ...clearLabelStrokes(drawing, placed),
+    labels: settled,
+  };
   const strokes: Html<Change>[] = [];
   const batches = new Map<
     string,
     Map<string, string>
   >();
-  const stroke = strokePath(drawing);
-  for (const [
-    i,
-    s,
-  ] of drawing.strokes.entries()) {
+  const stroke = strokePath(inked);
+  for (const [i, s] of inked.strokes.entries()) {
     if (
       s.style === "arrow" ||
       (s.kind === "hidden" &&
@@ -982,7 +1001,7 @@ export const engineView = (
     }
   children.splice(strokeIndex, 0, ...strokes);
   const hit = (p: Point) =>
-    targets.get(pick(drawing, p) ?? "");
+    targets.get(getOr("")(pick(inked, p)));
   return {
     html: el<Change>(
       "g",
@@ -991,6 +1010,6 @@ export const engineView = (
     ),
     placed,
     hit,
-    drawing,
+    drawing: inked,
   };
 };
