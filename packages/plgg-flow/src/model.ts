@@ -67,6 +67,12 @@ export type FlowNode = Readonly<{
   label: string;
   width?: number;
   height?: number;
+  /** The box is exactly as sized, however long the
+   * label: a mark or a bar, named beside it. */
+  bare?: boolean;
+  /** How far each face stands off the centre plane,
+   * when the height is not to decide it. */
+  depth?: number;
   type?: string;
   data?: JsonObject;
   origin?: readonly [number, number];

@@ -10,6 +10,9 @@ type Card = {
   label: string;
   width?: number;
   height?: number;
+  /** The box is exactly as sized; the label stands
+   * beside it and does not widen it. */
+  bare?: boolean;
 };
 const fullWidth =
   /(?![\uff61-\uffdc])[\p{Script=Han}\p{Script=Hangul}\p{Script=Katakana}\p{Script=Hiragana}\u3000-\u30ff\uff01-\uff60\uffe0-\uffe6]/u;
@@ -32,7 +35,7 @@ export const nodeSize = (node: Card) => {
   return {
     width:
       node.width !== undefined
-        ? fullWidth.test(node.label)
+        ? !node.bare && fullWidth.test(node.label)
           ? Math.max(
               node.width,
               labelWidth(node.label) + 24,

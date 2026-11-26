@@ -45,13 +45,15 @@ const faces = [
 
 /** How far each face stands off the node's centre plane. */
 export const bodyDepth = (node: FlowNode) =>
-  Math.min(
-    18,
-    Math.max(
-      7,
-      (nodeSize(node).height / 2) * 0.7,
-    ),
-  );
+  node.depth !== undefined
+    ? node.depth
+    : Math.min(
+        18,
+        Math.max(
+          7,
+          (nodeSize(node).height / 2) * 0.7,
+        ),
+      );
 
 /** Mid-depth keeps the socket on the physical flank. */
 export const portPosition = (

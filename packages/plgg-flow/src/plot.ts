@@ -56,11 +56,18 @@ export type Measure = Readonly<{
    * values. */
   written: boolean;
   better: Option<Better>;
+  /** The least and the most a value may be: a
+   * CONDITION the choice has to meet. */
+  least: Option<number>;
+  most: Option<number>;
 }>;
 export type Plot = Readonly<{
   x: Measure;
   y: Measure;
   z: Option<Measure>;
+  /** A measure shown as how LARGE a node is drawn,
+   * not where it stands. */
+  size: Option<Measure>;
 }>;
 
 /** The space a plot is drawn in, in world units. */
@@ -115,7 +122,54 @@ export const rangeOf = (
 type Said = Readonly<{
   range: Option<Range>;
   better: Option<Better>;
+  least: Option<number>;
+  most: Option<number>;
+  size: boolean;
 }>;
+const unsaid: Said = {
+  range: none(),
+  better: none(),
+  least: none(),
+  most: none(),
+  size: false,
+};
+/** `>=50` or `<=150` as a bound, when the word is one. */
+const bound = (
+  sign: string,
+  word: string,
+): Option<number> =>
+  word.startsWith(sign)
+    ? numberOf(word.slice(sign.length))
+    : none();
+const bounded = (
+  s: Said,
+  word: string,
+): Option<Said> =>
+  pipe(
+    bound(">=", word),
+    matchOption(
+      (): Option<Said> =>
+        pipe(
+          bound("<=", word),
+          mapOption(
+            (n: number): Said => ({
+              ...s,
+              most: some(n),
+            }),
+          ),
+        ),
+      (n: number): Option<Said> =>
+        some({ ...s, least: some(n) }),
+    ),
+  );
+const refused = (
+  word: string,
+): Result<Said, string> =>
+  err(
+    "axis 属性 [下限..上限] [lower|higher] [>=値] [<=値] [size] と書きます（「" +
+      word +
+      "」は読めません）",
+  );
 const saying = (
   said: Result<Said, string>,
   word: string,
@@ -126,22 +180,26 @@ const saying = (
       (s: Said): Result<Said, string> =>
         word === "lower" || word === "higher"
           ? ok({ ...s, better: some(word) })
-          : pipe(
-              rangeOf(word),
-              matchOption(
-                (): Result<Said, string> =>
-                  err(
-                    "axis 属性 [下限..上限] [lower|higher] と書きます（「" +
-                      word +
-                      "」は読めません）",
-                  ),
-                (range: Range) =>
-                  ok({
-                    ...s,
-                    range: some(range),
-                  }),
+          : word === "size"
+            ? ok({ ...s, size: true })
+            : pipe(
+                bounded(s, word),
+                matchOption(
+                  (): Result<Said, string> =>
+                    pipe(
+                      rangeOf(word),
+                      matchOption(
+                        () => refused(word),
+                        (range: Range) =>
+                          ok({
+                            ...s,
+                            range: some(range),
+                          }),
+                      ),
+                    ),
+                  (t: Said) => ok(t),
+                ),
               ),
-            ),
     ),
   );
 
@@ -174,12 +232,16 @@ const measured = (
         ...spanned(values),
         written: false,
         better: said.better,
+        least: said.least,
+        most: said.most,
       }),
       (r: Range): Measure => ({
         attribute,
         ...r,
         written: true,
         better: said.better,
+        least: said.least,
+        most: said.most,
       }),
     ),
   );
@@ -219,29 +281,34 @@ const valuesOf = (
     ),
   );
 
-const measureOf =
+/** A measure as an axis line told it, and whether the
+ * line gave it to size rather than to place. */
+export type Told = Readonly<{
+  measure: Measure;
+  size: boolean;
+}>;
+export const measureOf =
   (nodes: readonly FlowNode[]) =>
-  (axis: Axis): Result<Measure, string> =>
+  (axis: Axis): Result<Told, string> =>
     pipe(
-      axis.values.reduce(
-        saying,
-        ok<Said>({
-          range: none(),
-          better: none(),
-        }),
-      ),
+      axis.values.reduce(saying, ok(unsaid)),
       chainResult((said: Said) =>
         pipe(
           valuesOf(
             axis.attribute,
             nodes.filter((n) => !n.group),
           ),
-          mapResult((values: readonly number[]) =>
-            measured(
-              axis.attribute,
-              values,
-              said,
-            ),
+          mapResult(
+            (
+              values: readonly number[],
+            ): Told => ({
+              measure: measured(
+                axis.attribute,
+                values,
+                said,
+              ),
+              size: said.size,
+            }),
           ),
         ),
       ),
@@ -255,40 +322,68 @@ const inRoles = (
 ): readonly Axis[] =>
   roles.size === 0
     ? axes
-    : ["x", "y", "z"].flatMap((role) =>
-        axes
-          .filter(
-            (a) =>
-              roles.get(a.attribute) === role,
-          )
-          .slice(0, 1),
-      );
+    : [
+        ...["x", "y", "z"].flatMap((role) =>
+          axes
+            .filter(
+              (a) =>
+                roles.get(a.attribute) === role,
+            )
+            .slice(0, 1),
+        ),
+        ...axes.filter(
+          (a) => !roles.has(a.attribute),
+        ),
+      ];
 
+const placing = (
+  told: readonly Told[],
+): readonly Measure[] =>
+  told
+    .filter((t) => !t.size)
+    .map((t) => t.measure);
+const sizing = (
+  told: readonly Told[],
+): readonly Measure[] =>
+  told
+    .filter((t) => t.size)
+    .map((t) => t.measure);
 const spannedBy = (
-  measures: readonly Measure[],
+  told: readonly Told[],
 ): Result<Plot, string> =>
-  pipe(
-    fromNullable(measures[0]),
-    chainOption((x: Measure) =>
-      pipe(
-        fromNullable(measures[1]),
-        mapOption(
-          (y: Measure): Plot => ({
-            x,
-            y,
-            z: fromNullable(measures[2]),
-          }),
-        ),
-      ),
-    ),
-    matchOption(
-      (): Result<Plot, string> =>
-        err(
-          "layout plot には数値の軸が 2 つか 3 つ必要です",
-        ),
-      (plot: Plot) => ok(plot),
-    ),
-  );
+  sizing(told).length > 1
+    ? err("size と書ける軸は 1 つです")
+    : placing(told).length > 3
+      ? err(
+          "layout plot で場所に使える軸は 3 つまでです（もう 1 つは size と書けば大きさで表せます）",
+        )
+      : pipe(
+          fromNullable(placing(told)[0]),
+          chainOption((x: Measure) =>
+            pipe(
+              fromNullable(placing(told)[1]),
+              mapOption(
+                (y: Measure): Plot => ({
+                  x,
+                  y,
+                  z: fromNullable(
+                    placing(told)[2],
+                  ),
+                  size: fromNullable(
+                    sizing(told)[0],
+                  ),
+                }),
+              ),
+            ),
+          ),
+          matchOption(
+            (): Result<Plot, string> =>
+              err(
+                "layout plot には場所に使う数値の軸が 2 つか 3 つ必要です",
+              ),
+            (plot: Plot) => ok(plot),
+          ),
+        );
 
 /** Every result when all are sound; the first refusal
  * otherwise. */
@@ -319,23 +414,19 @@ export const asPlot = (
   roles: ReadonlyMap<string, string>,
   nodes: readonly FlowNode[],
 ): Result<Plot, string> =>
-  axes.length > 3
-    ? err(
-        "layout plot の軸は 3 つまでです（4 つ目は置けません）",
-      )
-    : pipe(
-        all(
-          inRoles(axes, roles).map(
-            measureOf(nodes),
-          ),
-        ),
-        chainResult(spannedBy),
-      );
+  pipe(
+    all(
+      inRoles(axes, roles).map(measureOf(nodes)),
+    ),
+    chainResult(spannedBy),
+  );
 
 /** How far along a measure a value is: 0 at its low end,
  * 1 at its high end. */
-const along = (m: Measure, v: number): number =>
-  (v - m.lo) / (m.hi - m.lo);
+export const along = (
+  m: Measure,
+  v: number,
+): number => (v - m.lo) / (m.hi - m.lo);
 /** Where a point of the unit cube stands in the world:
  * x to the right, y UP (the screen's y runs down), z
  * toward the eye. A flat plot has no depth. */
@@ -349,18 +440,32 @@ const placed = (
   y: (0.5 - ty) * size.y,
   z: isSome(plot.z) ? (tz - 0.5) * size.z : 0,
 });
+const maybe = (
+  m: Option<Measure>,
+): readonly Measure[] =>
+  pipe(
+    m,
+    matchOption(
+      (): readonly Measure[] => [],
+      (given: Measure) => [given],
+    ),
+  );
+/** Every measure of the plot: those that place, in the
+ * order x, y, z, then the one that sizes. */
 const measuresOf = (
   plot: Plot,
 ): readonly Measure[] => [
   plot.x,
   plot.y,
-  ...pipe(
-    plot.z,
-    matchOption(
-      (): readonly Measure[] => [],
-      (z: Measure) => [z],
-    ),
-  ),
+  ...maybe(plot.z),
+  ...maybe(plot.size),
+];
+const placesOf = (
+  plot: Plot,
+): readonly Measure[] => [
+  plot.x,
+  plot.y,
+  ...maybe(plot.z),
 ];
 /** A node's values on every measure of the plot, when
  * it has them all. */
@@ -474,7 +579,49 @@ const standings = (
       ),
     ),
   );
-/** The nodes some other node beats. */
+const within = (m: Measure, v: number): boolean =>
+  pipe(
+    m.least,
+    matchOption(
+      () => true,
+      (least: number) => v >= least,
+    ),
+  ) &&
+  pipe(
+    m.most,
+    matchOption(
+      () => true,
+      (most: number) => v <= most,
+    ),
+  );
+const meets =
+  (plot: Plot) =>
+  (node: FlowNode): boolean =>
+    pipe(
+      readings(plot, node),
+      matchOption(
+        () => true,
+        (values: readonly number[]) =>
+          measuresOf(plot).every((m, i) =>
+            values
+              .slice(i, i + 1)
+              .every((v) => within(m, v)),
+          ),
+      ),
+    );
+/** The nodes that break a condition some measure sets. */
+export const unfit = (
+  plot: Plot,
+  nodes: readonly FlowNode[],
+): ReadonlySet<string> =>
+  new Set(
+    nodes
+      .filter((n) => !n.group && !meets(plot)(n))
+      .map((n) => n.id),
+  );
+/** The nodes some other node beats, among those that
+ * meet every condition: one that breaks a condition
+ * neither beats nor is beaten. */
 export const dominated = (
   plot: Plot,
   nodes: readonly FlowNode[],
@@ -482,7 +629,9 @@ export const dominated = (
   pipe(
     standings(
       plot,
-      nodes.filter((n) => !n.group),
+      nodes.filter(
+        (n) => !n.group && meets(plot)(n),
+      ),
     ),
     (all) =>
       new Set(
@@ -496,6 +645,34 @@ export const dominated = (
       ),
   );
 
+/** The side of the mark a node is drawn as: one size
+ * for all, or as large as its value on the measure that
+ * sizes. */
+const dot = 14;
+const least = 10;
+const most = 44;
+const side = (
+  plot: Plot,
+  values: readonly number[],
+): number =>
+  pipe(
+    plot.size,
+    chainOption((m: Measure) =>
+      pipe(
+        fromNullable(values[values.length - 1]),
+        mapOption(
+          (v: number) =>
+            least +
+            (most - least) *
+              Math.min(
+                1,
+                Math.max(0, along(m, v)),
+              ),
+        ),
+      ),
+    ),
+    getOr(dot),
+  );
 const stood =
   (plot: Plot, beaten: ReadonlySet<string>) =>
   (node: FlowNode): FlowNode =>
@@ -508,6 +685,9 @@ const stood =
         ): FlowNode => ({
           ...node,
           position: at(plot, values),
+          width: side(plot, values),
+          height: side(plot, values),
+          bare: true,
           ...(beaten.has(node.id)
             ? { quiet: true }
             : {}),
@@ -522,7 +702,13 @@ export const plotGraph = (
 ): Graph => ({
   ...graph,
   nodes: graph.nodes.map(
-    stood(plot, dominated(plot, graph.nodes)),
+    stood(
+      plot,
+      new Set([
+        ...dominated(plot, graph.nodes),
+        ...unfit(plot, graph.nodes),
+      ]),
+    ),
   ),
 });
 
@@ -570,11 +756,11 @@ export const divisions: readonly number[] = [
 ];
 export const shown = (v: number): string =>
   String(Number(v.toFixed(2)));
-const tickText = (
+export const tickText = (
   m: Measure,
   t: number,
 ): string => shown(m.lo + (m.hi - m.lo) * t);
-const hint = (m: Measure): string =>
+export const hint = (m: Measure): string =>
   pipe(
     m.better,
     matchOption(
@@ -586,15 +772,16 @@ const hint = (m: Measure): string =>
           : "（高いほど良い）"),
     ),
   );
-/** The near edge of the space: the low end of the depth
- * measure in a deep plot (the eye looks along it). */
+/** The near edge of the space: the high end of the
+ * depth measure in a deep plot (the larger z is nearer
+ * the eye). */
 const front = (plot: Plot): number =>
-  isSome(plot.z) ? 0 : 0.5;
+  isSome(plot.z) ? 1 : 0.5;
 
 /** The far edge of the space, where the upright scale
  * stands clear of the nodes. */
 const rear = (plot: Plot): number =>
-  isSome(plot.z) ? 1 : 0.5;
+  isSome(plot.z) ? 0 : 0.5;
 
 /** The frame: the outline of the space. */
 const frame = (plot: Plot): readonly Segment[] =>
@@ -720,8 +907,8 @@ const zTicks = (
       ),
     ),
   lettering(
-    placed(plot, 1, 0, 1),
-    { x: 70, y: -16 },
+    placed(plot, 1, 0, 0),
+    { x: 70, y: -14 },
     hint(z),
     600,
     ink,
@@ -741,7 +928,7 @@ const bestEnd = (m: Measure): Option<number> =>
  * named when every measure says which end that is. */
 const ideal = (plot: Plot): readonly Scenery[] =>
   pipe(
-    measuresOf(plot).flatMap((m) =>
+    placesOf(plot).flatMap((m) =>
       pipe(
         bestEnd(m),
         matchOption(
@@ -751,7 +938,7 @@ const ideal = (plot: Plot): readonly Scenery[] =>
       ),
     ),
     (ends): readonly Scenery[] =>
-      ends.length === measuresOf(plot).length
+      ends.length === placesOf(plot).length
         ? [
             lettering(
               placed(
@@ -807,6 +994,187 @@ const plumbs = (
       ],
     );
 
+/** The part of a measure its conditions leave, as two
+ * places along it (0 to 1). */
+const leave = (m: Measure): Range => ({
+  lo: pipe(
+    m.least,
+    matchOption(
+      () => 0,
+      (v: number) =>
+        Math.min(1, Math.max(0, along(m, v))),
+    ),
+  ),
+  hi: pipe(
+    m.most,
+    matchOption(
+      () => 1,
+      (v: number) =>
+        Math.min(1, Math.max(0, along(m, v))),
+    ),
+  ),
+});
+const conditioned = (m: Measure): boolean =>
+  isSome(m.least) || isSome(m.most);
+const depthLeft = (plot: Plot): Range =>
+  pipe(
+    plot.z,
+    matchOption(
+      (): Range => ({ lo: 0.5, hi: 0.5 }),
+      (z: Measure) => leave(z),
+    ),
+  );
+/** The edges of the box the conditions leave. */
+const edgesLeft = (
+  plot: Plot,
+  x: Range,
+  y: Range,
+  z: Range,
+): readonly Segment[] =>
+  [y.lo, y.hi]
+    .flatMap((b) =>
+      [z.lo, z.hi].flatMap(
+        (c): readonly Segment[] => [
+          [
+            placed(plot, x.lo, b, c),
+            placed(plot, x.hi, b, c),
+          ],
+        ],
+      ),
+    )
+    .concat(
+      [x.lo, x.hi].flatMap((a) =>
+        [z.lo, z.hi].flatMap(
+          (c): readonly Segment[] => [
+            [
+              placed(plot, a, y.lo, c),
+              placed(plot, a, y.hi, c),
+            ],
+          ],
+        ),
+      ),
+      [x.lo, x.hi].flatMap((a) =>
+        [y.lo, y.hi].flatMap(
+          (b): readonly Segment[] => [
+            [
+              placed(plot, a, b, z.lo),
+              placed(plot, a, b, z.hi),
+            ],
+          ],
+        ),
+      ),
+    );
+/** The ground the conditions leave, hatched: the sheet
+ * itself in a flat plot, the floor in a deep one. Lines
+ * and not a wash, so it reads the same on any paper. */
+const hatches = 12;
+const stepped = (r: Range, k: number): number =>
+  r.lo + ((r.hi - r.lo) * k) / hatches;
+const groundLeft = (
+  plot: Plot,
+  x: Range,
+  y: Range,
+  z: Range,
+): readonly Segment[] =>
+  Array.from(
+    { length: hatches - 1 },
+    (_, k): Segment =>
+      isSome(plot.z)
+        ? [
+            placed(
+              plot,
+              x.lo,
+              0,
+              stepped(z, k + 1),
+            ),
+            placed(
+              plot,
+              x.hi,
+              0,
+              stepped(z, k + 1),
+            ),
+          ]
+        : [
+            placed(
+              plot,
+              x.lo,
+              stepped(y, k + 1),
+              0.5,
+            ),
+            placed(
+              plot,
+              x.hi,
+              stepped(y, k + 1),
+              0.5,
+            ),
+          ],
+  );
+/** WHERE THE CONDITIONS HOLD: the box they leave of the
+ * space, outlined, its ground hatched, and named. Nothing
+ * when no measure that places sets a condition. */
+const region = (
+  plot: Plot,
+): readonly Scenery[] =>
+  placesOf(plot).some(conditioned)
+    ? [
+        ...strokes(
+          pencil,
+          false,
+          groundLeft(
+            plot,
+            leave(plot.x),
+            leave(plot.y),
+            depthLeft(plot),
+          ),
+        ),
+        ...strokes(
+          ink,
+          true,
+          edgesLeft(
+            plot,
+            leave(plot.x),
+            leave(plot.y),
+            depthLeft(plot),
+          ),
+        ),
+        lettering(
+          placed(
+            plot,
+            leave(plot.x).hi,
+            leave(plot.y).lo,
+            depthLeft(plot).hi,
+          ),
+          { x: -26, y: -8 },
+          "条件内",
+          600,
+          ink,
+        ),
+      ]
+    : [];
+/** What the size of a mark says, written under the
+ * space. */
+const sizes = (plot: Plot): readonly Scenery[] =>
+  pipe(
+    plot.size,
+    matchOption(
+      (): readonly Scenery[] => [],
+      (m: Measure) => [
+        lettering(
+          placed(plot, 0.5, 0, front(plot)),
+          { x: 0, y: 60 },
+          "印の大きさ: " +
+            hint(m) +
+            " " +
+            shown(m.lo) +
+            "〜" +
+            shown(m.hi),
+          400,
+          pencil,
+        ),
+      ],
+    ),
+  );
+
 /** Everything drawn around the nodes of a plot: the
  * frame, the ruling, the scales with their names and
  * which way is better, and the plumb lines. */
@@ -816,6 +1184,8 @@ export const plotScenery = (
 ): readonly Scenery[] => [
   ...strokes(trace, false, ruling(plot)),
   ...strokes(pencil, false, frame(plot)),
+  ...region(plot),
+  ...sizes(plot),
   ...pipe(
     plot.z,
     matchOption(
@@ -836,11 +1206,15 @@ export const plotScenery = (
 export const plotExtent = (
   plot: Plot,
 ): readonly Point3[] => [
-  placed(plot, -0.12, -0.14, 0),
-  placed(plot, 1.12, 1.08, 0),
-  placed(plot, -0.12, -0.14, 1),
-  placed(plot, 1.12, 1.08, 1),
+  placed(plot, -0.12, -0.2, 0),
+  placed(plot, reach(plot), 1.08, 0),
+  placed(plot, -0.12, -0.2, 1),
+  placed(plot, reach(plot), 1.08, 1),
 ];
+/** How far right the scales reach: a deep plot names
+ * its depth out past the right edge. */
+const reach = (plot: Plot): number =>
+  isSome(plot.z) ? 1.4 : 1.12;
 
 /** The words of an axis line that say what a measure is. */
 export const measureWords = (
@@ -856,6 +1230,35 @@ export const measureWords = (
       (b: Better) => [b],
     ),
   ),
+  ...pipe(
+    m.least,
+    matchOption(
+      (): readonly string[] => [],
+      (v: number) => [">=" + shown(v)],
+    ),
+  ),
+  ...pipe(
+    m.most,
+    matchOption(
+      (): readonly string[] => [],
+      (v: number) => ["<=" + shown(v)],
+    ),
+  ),
 ];
-/** The measures of a plot in the order x, y, z. */
-export const plotMeasures = measuresOf;
+/** The lines of the DSL that say a plot. */
+export const plotLines = (
+  plot: Plot,
+): readonly (readonly string[])[] => [
+  ["layout", "plot"],
+  ...placesOf(plot).map((m) => [
+    "axis",
+    m.attribute,
+    ...measureWords(m),
+  ]),
+  ...maybe(plot.size).map((m) => [
+    "axis",
+    m.attribute,
+    ...measureWords(m),
+    "size",
+  ]),
+];

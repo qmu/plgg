@@ -60,7 +60,11 @@ export const spatialDrawing = (
   Boolean(
     flow.camera.yaw ||
       flow.camera.pitch ||
-      flow.nodes.some((n) => off(n.position)) ||
+      // a bare node is named beside it, which only
+      // this drawing does
+      flow.nodes.some(
+        (n) => n.bare || off(n.position),
+      ) ||
       wires.some((w) =>
         (w.edge.path ?? w.points).some(off),
       ) ||
@@ -460,7 +464,9 @@ export const engineView = (
         );
       });
     };
-    const tag = !tray && (upright || !fitsFace());
+    const tag =
+      !tray &&
+      (upright || !!n.bare || !fitsFace());
     const eye = {
       x:
         -Math.sin(camera.yaw) *

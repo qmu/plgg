@@ -969,7 +969,7 @@ const nodeWords = (f: Flow, n: FlowNode) => {
       ] satisfies (keyof FlowNode)[]
     ).flatMap((k) =>
       n[k] === undefined ||
-      (k === "width" &&
+      (k !== "value" &&
         f.chart !== undefined &&
         chartSizes(f.chart))
         ? []

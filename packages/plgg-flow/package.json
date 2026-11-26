@@ -247,6 +247,16 @@
         "types": "./dist/dsl.d.ts",
         "default": "./dist/dsl.cjs.js"
       }
+    },
+    "./bars": {
+      "import": {
+        "types": "./dist/bars.d.ts",
+        "default": "./dist/bars.es.js"
+      },
+      "require": {
+        "types": "./dist/bars.d.ts",
+        "default": "./dist/bars.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

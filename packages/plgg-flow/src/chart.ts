@@ -16,13 +16,21 @@ import type { Graph, Scenery } from "./model";
 import type { Axis } from "plgg-flow/classify";
 import {
   asPlot,
-  measureWords,
   plotExtent,
   plotGraph,
-  plotMeasures,
+  plotLines,
   plotScenery,
   type Plot,
 } from "plgg-flow/plot";
+import {
+  asBars,
+  barsDeep,
+  barsExtent,
+  barsGraph,
+  barsLines,
+  barsScenery,
+  type Bars,
+} from "plgg-flow/bars";
 import {
   asSequence,
   sequenceDeep,
@@ -51,22 +59,26 @@ import {
  *
  * - a {@link Plot} places nodes by their numbers;
  * - a {@link Sequence} places messages by their turn;
- * - a {@link Timeline} places nodes by their time.
+ * - a {@link Timeline} places nodes by their time;
+ * - {@link Bars} raise nodes as tall as their value.
  */
 export type Chart =
   | Box<"Plot", Plot>
   | Box<"Sequence", Sequence>
-  | Box<"Timeline", Timeline>;
+  | Box<"Timeline", Timeline>
+  | Box<"Bars", Bars>;
 
 const plot$ = () => pattern("Plot")();
 const sequence$ = () => pattern("Sequence")();
 const timeline$ = () => pattern("Timeline")();
+const bars$ = () => pattern("Bars")();
 
 /** The names `layout` knows a chart by. */
 const kinds: readonly string[] = [
   "plot",
   "sequence",
   "timeline",
+  "bars",
 ];
 export const isChartKind = (
   word: string,
@@ -109,7 +121,17 @@ export const asChart = (
               ),
             ),
           )
-        : none();
+        : kind === "bars"
+          ? some(
+              pipe(
+                asBars(axes, graph.nodes),
+                mapResult(
+                  (b: Bars): Chart =>
+                    box("Bars")(b),
+                ),
+              ),
+            )
+          : none();
 
 /** The graph laid out as the chart says. */
 export const chartGraph = (
@@ -131,6 +153,11 @@ export const chartGraph = (
       timeline$(),
       ({ content }): Graph =>
         timelineGraph(content, graph),
+    ],
+    [
+      bars$(),
+      ({ content }): Graph =>
+        barsGraph(content, graph),
     ],
   );
 
@@ -159,6 +186,11 @@ export const chartScenery = (
       ({ content }): readonly Scenery[] =>
         timelineScenery(content, graph.nodes),
     ],
+    [
+      bars$(),
+      ({ content }): readonly Scenery[] =>
+        barsScenery(content, graph.nodes),
+    ],
   );
 
 /** Points that bound the chart beyond its nodes, so that
@@ -186,6 +218,11 @@ export const chartExtent = (
       ({ content }): readonly Point3[] =>
         timelineExtent(content, graph.nodes),
     ],
+    [
+      bars$(),
+      ({ content }): readonly Point3[] =>
+        barsExtent(content),
+    ],
   );
 
 /** The lines of the DSL that say the chart, as words. */
@@ -197,14 +234,8 @@ export const chartLines = (
       plot$(),
       ({
         content,
-      }): readonly (readonly string[])[] => [
-        ["layout", "plot"],
-        ...plotMeasures(content).map((m) => [
-          "axis",
-          m.attribute,
-          ...measureWords(m),
-        ]),
-      ],
+      }): readonly (readonly string[])[] =>
+        plotLines(content),
     ],
     [
       sequence$(),
@@ -220,10 +251,19 @@ export const chartLines = (
       }): readonly (readonly string[])[] =>
         timelineLines(content),
     ],
+    [
+      bars$(),
+      ({
+        content,
+      }): readonly (readonly string[])[] =>
+        barsLines(content),
+    ],
   );
 
 /** The angle a chart is best first seen from: head-on
- * when it is flat, turned when it has depth. */
+ * when it is flat; turned and from ABOVE when it has
+ * depth (a negative pitch looks down: what is nearer,
+ * the larger z, is drawn lower). */
 export const chartCamera = (
   chart: Chart,
 ): Readonly<{ yaw: number; pitch: number }> =>
@@ -237,7 +277,7 @@ export const chartCamera = (
         pitch: number;
       }> =>
         isSome(content.z)
-          ? { yaw: -0.5, pitch: 0.36 }
+          ? { yaw: -0.5, pitch: -0.36 }
           : { yaw: 0, pitch: 0 },
     ],
     [
@@ -249,7 +289,7 @@ export const chartCamera = (
         pitch: number;
       }> =>
         sequenceDeep(content)
-          ? { yaw: -0.3, pitch: 0.24 }
+          ? { yaw: -0.3, pitch: -0.24 }
           : { yaw: 0, pitch: 0 },
     ],
     [
@@ -261,7 +301,19 @@ export const chartCamera = (
         pitch: number;
       }> =>
         timelineDeep(content)
-          ? { yaw: -0.42, pitch: 0.3 }
+          ? { yaw: -0.42, pitch: -0.3 }
+          : { yaw: 0, pitch: 0 },
+    ],
+    [
+      bars$(),
+      ({
+        content,
+      }): Readonly<{
+        yaw: number;
+        pitch: number;
+      }> =>
+        barsDeep(content)
+          ? { yaw: -0.5, pitch: -0.36 }
           : { yaw: 0, pitch: 0 },
     ],
   );
@@ -271,7 +323,8 @@ export const chartSizes = (
   chart: Chart,
 ): boolean =>
   match(chart)(
-    [plot$(), (): boolean => false],
+    [plot$(), (): boolean => true],
     [sequence$(), (): boolean => false],
     [timeline$(), (): boolean => true],
+    [bars$(), (): boolean => true],
   );

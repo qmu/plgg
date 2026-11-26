@@ -27,6 +27,7 @@ export default {
     "plot",
     "sequence",
     "timeline",
+    "bars",
     "chart",
     "dsl",
     "wiring",

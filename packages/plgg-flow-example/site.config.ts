@@ -68,6 +68,21 @@ export default {
           items: [],
         },
         {
+          text: "条件の中で選ぶ",
+          link: "/plots/conditions",
+          items: [],
+        },
+        {
+          text: "効果と手間で分ける",
+          link: "/plots/quadrant",
+          items: [],
+        },
+        {
+          text: "量を種類で比べる",
+          link: "/plots/bars",
+          items: [],
+        },
+        {
           text: "やりとりの順",
           link: "/plots/sequence",
           items: [],
