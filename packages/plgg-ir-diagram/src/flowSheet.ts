@@ -594,6 +594,17 @@ const arrangeSheet: Change = (f) => {
 };
 export const optimize: Change = (f) =>
   fitDemo(arrangeSheet(f));
+/** Bring the picture back to the centre of the sheet:
+ * the whole of it, fitted, seen from where it is being
+ * seen. Nothing is moved and nothing is re-laid — the
+ * shape stays the one the reader made. */
+export const recentreSheet: Change = (f) =>
+  fitDemo({
+    ...f,
+    focus: undefined,
+    roomMotion: undefined,
+    manualZoom: false,
+  });
 export const resetSheet: Change = (f) => {
   const laid = arrangeSheet(
     (f.rooms
@@ -1491,7 +1502,7 @@ export const sheetToolbar = <Action>(
           attr("aria-label", "表示と履歴"),
         ],
         [
-          recentre(change(resetSheet)),
+          recentre(change(recentreSheet)),
           ...history,
         ],
       ),

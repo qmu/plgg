@@ -23,6 +23,7 @@ import {
   sheetToolbar,
   sheetTools,
   resetSheet,
+  recentreSheet,
   addSheetNode,
   record,
   history,
@@ -282,6 +283,40 @@ test("the snapshots tool shares the edit history of its own sheet", () => {
     restored &&
       state.flow === edited &&
       other.saved.__tag === "None",
+    toBe(true),
+  );
+});
+
+test("bringing the picture back to the centre moves no node and keeps the angle", () => {
+  const parsed = parseSpec(
+    "node a at 0 0\nnode b at 320 96 40\na -> b",
+  );
+  if (parsed.__tag === "Err")
+    throw Error(parsed.content);
+  const flow = specFlow(parsed.content);
+  const turned = {
+    ...flow,
+    camera: {
+      ...flow.camera,
+      yaw: 0.4,
+      pitch: -0.3,
+      origin: { x: 900, y: 900 },
+      scale: 3,
+    },
+    manualZoom: true,
+  };
+  const centred = recentreSheet(turned);
+  return check(
+    JSON.stringify(
+      centred.nodes.map((n) => n.position),
+    ) ===
+      JSON.stringify(
+        turned.nodes.map((n) => n.position),
+      ) &&
+      centred.camera.yaw === 0.4 &&
+      centred.camera.pitch === -0.3 &&
+      centred.camera.scale !== 3 &&
+      centred.camera.origin.x !== 900,
     toBe(true),
   );
 });
