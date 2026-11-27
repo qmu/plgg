@@ -1,3 +1,4 @@
+import { statusClass } from "plggmatic";
 import { sheetCss } from "plgg-ir-diagram/sheetCss";
 import { ok, type Result } from "plgg";
 import {
@@ -59,7 +60,17 @@ export const flowWidget = (
     ? el(
         "figure",
         [attr("class", "plgg-flow-error")],
-        [el("p", [], [text(r.content)]), listing],
+        [
+          el(
+            "p",
+            [
+              attr("class", statusClass),
+              attr("data-error", ""),
+            ],
+            [text(r.content)],
+          ),
+          listing,
+        ],
       )
     : info.split(/\s+/).includes("fill")
       ? el(
@@ -114,8 +125,6 @@ ${root} .controls button:hover{background:var(--trace)}
 ${root} summary{cursor:pointer;padding:6px 0;font-size:12px;color:var(--graphite)}
 ${root} pre,${root} figure textarea{width:100%;margin:0;font:12.5px/1.65 ui-monospace,Menlo,monospace;padding:10px;border:1px solid var(--ink);background:var(--paper);color:var(--ink)}
 ${root} figure textarea{min-height:10rem;resize:vertical}
-${root} .error{padding:4px 10px;background:var(--ink);color:var(--paper);font-size:12px}
-${root} .plgg-flow-error p{margin:0 0 6px;padding:6px 10px;background:var(--ink);color:var(--paper)}
 ${root} :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 ${root}[data-fill] figure{height:100%;display:flex;flex-direction:column;min-height:0}
 ${root}[data-fill] figure .flow-board{flex:1;min-height:0}

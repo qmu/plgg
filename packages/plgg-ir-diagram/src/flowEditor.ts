@@ -1,3 +1,4 @@
+import { statusClass } from "plggmatic";
 import {
   fitFlow,
   flowView,
@@ -85,7 +86,8 @@ export const mountFlow = (
               el(
                 "div",
                 [
-                  attr("class", "error"),
+                  attr("class", statusClass),
+                  attr("data-error", ""),
                   attr("aria-live", "polite"),
                 ],
                 [text(m.error)],

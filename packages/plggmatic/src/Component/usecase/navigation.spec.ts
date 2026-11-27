@@ -8,6 +8,7 @@ import { renderToString, text } from "plgg-view";
 import { some, none } from "plgg";
 import {
   accordion,
+  floatingIconButton,
   iconButton,
   menuButton,
   pageNumbers,
@@ -203,5 +204,20 @@ test("a toolbar is a named toolbar of named groups", () =>
     ),
     toBe(
       '<div class="pm-toolbar" role="toolbar" aria-label="図の操作"><div class="pm-tool-group" role="group" aria-label="履歴">ab</div></div>',
+    ),
+  ));
+
+test("a floating icon button is the icon button, marked round", () =>
+  check(
+    renderToString(
+      floatingIconButton({
+        label: "追加",
+        glyph: "+",
+        onPress: "p",
+        disabled: false,
+      }),
+    ),
+    toBe(
+      '<button type="button" class="pm-icon-btn pm-icon-btn-round" aria-label="追加"><span aria-hidden="true">+</span></button>',
     ),
   ));

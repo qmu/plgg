@@ -117,38 +117,6 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     border-bottom: 1px solid var(--rule, var(--ink));
     border-right: 1px solid var(--rule, var(--ink));
   }
-  .add-node {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--rule, var(--ink));
-    background: var(--paper);
-    color: var(--ink);
-    font: 400 22px/1 var(--display);
-    cursor: pointer;
-    pointer-events: auto;
-  }
-  .add-node:hover {
-    background: var(--ink);
-    color: var(--paper);
-  }
-  .board-controls .remove {
-    position: absolute;
-    top: 56px;
-    right: 12px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid var(--rule, var(--ink));
-    background: var(--ink);
-    color: var(--paper);
-    font: 400 20px/1 var(--display);
-    cursor: pointer;
-    pointer-events: auto;
-  }
   .ground-side {
     pointer-events: none;
     position: absolute;
@@ -344,8 +312,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .stage .dsl textarea{background:transparent}
   .stage:has(.dsl) .board-controls{right:calc(var(--panel) + 12px)}
   .dsl-handle,.tool-trigger{display:none}
-  .maximise{position:absolute;right:calc(var(--panel) + 12px);bottom:12px;width:34px;height:34px;padding:0;display:grid;place-items:center;border:1px solid var(--rule, var(--ink));border-radius:50%;background:var(--paper);color:var(--ink);cursor:pointer}
-  .maximise:hover,.maximise[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+  .maximise{position:absolute;right:calc(var(--panel) + 12px);bottom:12px}
   :scope[data-max="true"]{position:fixed;inset:0;z-index:100;height:auto;padding:0;background:var(--paper)}
   :scope[data-max="true"] .stage{--panel:0px}
   :scope[data-max="true"] .stage .dsl{display:none}
@@ -415,32 +382,10 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     white-space: nowrap;
   }
 
-  /* the round buttons sit on the toolbar's own line, the
-       sign drawn exactly in the middle */
-  .board-controls .add-node,
-  .board-controls .remove {
-    position: static;
+  /* the round buttons sit on the toolbar's own line */
+  .board-controls :is(.add-node, .remove) {
     flex: none;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    display: grid;
-    place-items: center;
-    place-content: center;
-    font-size: 0;
-  }
-
-  .board-controls .add-node::before,
-  .board-controls .add-node::after,
-  .board-controls .remove::before {
-    content: '';
-    grid-area: 1 / 1;
-    width: 12px;
-    height: 1px;
-    background: currentColor;
-  }
-  .board-controls .add-node::after {
-    transform: rotate(90deg);
+    pointer-events: auto;
   }
 
   /* the hint under the board names the gestures of the

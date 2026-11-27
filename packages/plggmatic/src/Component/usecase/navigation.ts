@@ -16,6 +16,7 @@ import {
   accordionClass,
   accordionItemClass,
   iconButtonClass,
+  iconButtonRoundClass,
   menuButtonClass,
   menuItemClass,
   menuListClass,
@@ -331,6 +332,36 @@ export const iconButton = <Msg>(
     [
       attr("type", "button"),
       attr("class", iconButtonClass),
+      attr("aria-label", props.label),
+      ...(props.disabled
+        ? [attr("disabled", "")]
+        : [onClick(props.onPress)]),
+    ],
+    [
+      el(
+        "span",
+        [attr("aria-hidden", "true")],
+        [text(props.glyph)],
+      ),
+    ],
+  );
+
+/**
+ * A FLOATING ICON BUTTON: an icon button that stands
+ * over the thing it acts on — add to a canvas, fill the
+ * window — round, and lifted off what is under it.
+ */
+export const floatingIconButton = <Msg>(
+  props: IconButtonProps<Msg>,
+): Html<Msg> =>
+  el(
+    "button",
+    [
+      attr("type", "button"),
+      attr(
+        "class",
+        `${iconButtonClass} ${iconButtonRoundClass}`,
+      ),
       attr("aria-label", props.label),
       ...(props.disabled
         ? [attr("disabled", "")]

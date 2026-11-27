@@ -38,7 +38,6 @@ plgg-ir-diagram edge-hit   # drawing
 plgg-ir-diagram edge-label   # drawing
 plgg-ir-diagram editing-tools   # ui
 plgg-ir-diagram engine-drawing   # drawing
-plgg-ir-diagram error   # ui
 plgg-ir-diagram feature   # ui
 plgg-ir-diagram flow-board   # drawing
 plgg-ir-diagram flow-sheet   # ui
@@ -60,7 +59,6 @@ plgg-ir-diagram marquee   # drawing
 plgg-ir-diagram maximise   # ui
 plgg-ir-diagram minimap   # drawing
 plgg-ir-diagram node   # drawing
-plgg-ir-diagram plgg-flow-error   # ui
 plgg-ir-diagram quiet   # drawing
 plgg-ir-diagram quiet-node   # drawing
 plgg-ir-diagram quiet-wire   # drawing

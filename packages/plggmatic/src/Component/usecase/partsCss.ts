@@ -238,6 +238,7 @@ ${toned("alert")}
 .${p}-icon-btn{padding:0;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:1rem;line-height:1;transition:background-color ${l.quick} ease,color ${l.quick} ease}
 .${p}-icon-btn:hover:not(:disabled),.${p}-icon-btn:focus-visible{${l.press};outline:0}
 .${p}-icon-btn:disabled{opacity:.45}
+.${p}-icon-btn-round{border-radius:50%;box-shadow:${l.elevation}}
 .${p}-radios{gap:.4rem;padding:0;border:0}
 .${p}-radios legend{padding:0;margin-bottom:.35rem}
 .${p}-radio{gap:.5rem;font-size:.875rem;color:${l.text}}

@@ -780,3 +780,9 @@ export const siteBarNoteClass: SoftStr = hook(
 export const siteDrawerNoteClass: SoftStr = hook(
   "site-drawer-note",
 );
+
+/** Set on an icon button that floats over what it acts
+ * on: round, and lifted off it. */
+export const iconButtonRoundClass: SoftStr = hook(
+  "icon-btn-round",
+);

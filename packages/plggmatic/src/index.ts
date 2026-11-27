@@ -717,6 +717,10 @@ export {
   siteDrawerNoteClass,
 } from "plggmatic/Meta/model/classHooks";
 export {
+  iconButtonClass,
+  iconButtonRoundClass,
+} from "plggmatic/Meta/model/classHooks";
+export {
   toolbarClass,
   toolGroupClass,
   toolClass,
@@ -777,6 +781,7 @@ export {
   toolbar,
   menuButton,
   iconButton,
+  floatingIconButton,
   popover,
 } from "plggmatic/Component/usecase/navigation";
 export {

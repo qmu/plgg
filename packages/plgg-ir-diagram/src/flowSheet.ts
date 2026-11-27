@@ -1,6 +1,8 @@
 import { observeToolbar } from "plgg-ir-diagram/toolbarOverflow";
 import {
   codeInputClass,
+  iconButtonClass,
+  iconButtonRoundClass,
   splitterClass,
   statusClass,
   toolClass,
@@ -1103,7 +1105,13 @@ const maximiseButton = el<never>(
   "button",
   [
     attr("type", "button"),
-    attr("class", "maximise"),
+    attr(
+      "class",
+      "maximise " +
+        iconButtonClass +
+        " " +
+        iconButtonRoundClass,
+    ),
     attr("aria-label", "図を最大化"),
     attr("aria-pressed", "false"),
   ],
@@ -1194,7 +1202,13 @@ export const addButton = <Action>(
     "button",
     [
       attr("type", "button"),
-      attr("class", "add-node"),
+      attr(
+        "class",
+        "add-node " +
+          iconButtonClass +
+          " " +
+          iconButtonRoundClass,
+      ),
       attr("aria-label", "ノードを追加"),
       attr("title", "ノードを追加"),
       onClick(action),
@@ -1208,7 +1222,13 @@ export const removeButton = <Action>(
     "button",
     [
       attr("type", "button"),
-      attr("class", "remove"),
+      attr(
+        "class",
+        "remove " +
+          iconButtonClass +
+          " " +
+          iconButtonRoundClass,
+      ),
       attr("aria-label", "選択を削除"),
       attr("title", "選択を削除（Delete）"),
       onClick(action),
