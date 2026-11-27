@@ -349,3 +349,16 @@ test("the origins a page may frame are read as exact origins too", () =>
       .join(),
     toBe("true,false,false"),
   ));
+
+test("a joined site's host is one a browser's policy reads as one host", () =>
+  check(
+    [
+      "https://a,b.example",
+      "https://a;b.example",
+      "https://docs.example.com:8443",
+      "HTTPS://docs.example.com",
+    ]
+      .map((word) => isOk(asOrigin(word)))
+      .join(),
+    toBe("false,false,true,false"),
+  ));

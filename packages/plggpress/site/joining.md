@@ -29,7 +29,7 @@ A column opens only when both sides agree: the opening site lists the other as a
 - The address carries the whole strip, so reloading or sharing it restores the same columns.
 - Switching between light and dark on the opening site switches the partner's columns with it.
 - A sideways scroll made over a partner's column moves the strip to the neighbouring column.
-- A partner that does not answer within four seconds — it is down, or does not allow the framing — is not kept as a column: the link is followed as an ordinary one.
+- A partner that does not answer within four seconds — it is down, or does not allow the framing — is not kept as a frame: the column shows a plain link to the page instead. The reader's own page is never moved for them.
 
 ## How it is kept safe
 
@@ -44,7 +44,9 @@ A partner's page is never fetched and never placed in the opening site's documen
 | A forged message opening a column | the page's script: a message counts only when its origin is a partner, its sender is a frame this page opened, and that frame was opened for that partner |
 | A stranger framing this site | a response header (`frame-ancestors`), written to `_headers` by the build |
 
-A framed page can say two things to the site it stands in: its title, which is used as text, and a link to open beside it, which is opened only when it leads to the opening site or to a partner. The opening site says one thing to a framed page: light or dark.
+A framed page can say three things to the site it stands in: its title, which is used as text and shown with the partner's host beside it; a link to open beside it, which is opened only when it leads to the opening site or to a partner; and a sideways scroll, which moves the strip by one column. The opening site says one thing to a framed page: light or dark. A page stands its own chrome down only after it has heard that from a site it allows — a stranger framing it gets the page as it is.
+
+A column of the site's own is a path on the site's own origin and nothing else. An address that names a scheme or a host — `data:`, `blob:`, `//host` — is never fetched; what comes back for a path must be HTML from this origin. An address names at most twelve columns.
 
 What is trusted is the partner itself. If a partner's site is compromised, what its columns show can change; the opening site's own pages cannot be touched from there.
 

@@ -93,12 +93,26 @@ export const navigationInitScript: SoftStr =
   "function metaList(n){var m=document.querySelector('meta[name=\"'+n+'\"]');" +
   "return m?(m.getAttribute('content')||'').split(' ').filter(Boolean):[];}" +
   "var PT=metaList(PM),EB=metaList(EM);" +
-  "function abs(r){return r.indexOf('https://')===0||r.indexOf('http://')===0;}" +
-  "function partner(u){try{return PT.indexOf(new URL(u).origin)>=0;}catch(e){return false;}}" +
+  // ANYTHING THAT NAMES A SCHEME or a host is an address of
+  // somewhere else — `data:`, `blob:`, `HTTPS://`, `//host`
+  // — and is never fetched: it is a partner's page, shown in
+  // a frame, or it is nothing.
+  "function abs(r){return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(r)||r.charAt(0)!=='/'||r.charAt(1)==='/'||r.charAt(1)==='\\\\';}" +
+  "function partner(u){try{var x=new URL(u);" +
+  "return (x.protocol==='https:'||x.protocol==='http:')&&PT.indexOf(x.origin)>=0;}catch(e){return false;}}" +
+  // A PAGE OF THIS SITE is a path on this origin and nothing
+  // else: resolved once, and held to this origin before
+  // anything is asked for.
+  "function local(r){if(abs(r)){return null;}var x;" +
+  "try{x=new URL(r,window.location.origin);}catch(e){return null;}" +
+  "return x.origin===window.location.origin&&(x.protocol==='https:'||x.protocol==='http:')?x:null;}" +
   "function bare0(p){return p.length>1?p.replace(/\\/+$/,''):p;}" +
   // this page, shown as a column of a site it allows
   "var EMB=window.parent!==window&&EB.length>0&&new URL(window.location.href).searchParams.get(EP)==='1';" +
-  "if(EMB){document.documentElement.setAttribute(EA,'');}" +
+  // ...but nothing changes until that site has been heard
+  // from: a stranger framing this page gets the page as it
+  // is, its own name and chrome on it.
+  "var HS=false;" +
   // say something to the page this one is a column of:
   // addressed to each allowed embedder by its exact origin,
   // so no other page can hear it
@@ -118,7 +132,8 @@ export const navigationInitScript: SoftStr =
   ".split('%3A').join(F);}" +
   "function ps(){return new URL(window.location.href).searchParams;}" +
   // the columns to the head's right, as raw entries
-  "function entries(){var v=ps().get(R);return v?v.split(N):[];}" +
+  // an address names a handful of columns, not a flood
+  "function entries(){var v=ps().get(R);return v?v.split(N).slice(0,12):[];}" +
   "function entryOf(r,s){return esc(r)+(s?F+esc(s):'');}" +
   "function routeOf(e){var i=e.indexOf(F);" +
   "return unesc(i<0?e:e.slice(0,i));}" +
@@ -204,18 +219,25 @@ export const navigationInitScript: SoftStr =
   // site may be down, or may not let this one frame it, and
   // the frame would stand empty. A partner's page says its
   // title as soon as it runs; when none has come in time,
-  // the column is closed and the link is simply followed.
+  // the frame gives way to a plain link to the page. The
+  // reader's own page is never moved for them.
   "col.appendChild(f);" +
   "setTimeout(function(){if(col.hasAttribute(RD)||!col.isConnected){return;}" +
-  "var at=columnOf(col);if(at>0){truncate(at-1,true);" +
-  "window.history.replaceState(null,'',urlFor(current().slice(1)));}" +
-  "window.location.assign(x.origin+x.pathname);},FT);" +
+  "f.remove();var bd=base.querySelector(':scope>div');" +
+  "var box=document.createElement('div');box.className=bd?bd.className:'';" +
+  "var ln=document.createElement('a');ln.href=x.origin+x.pathname;ln.target='_top';ln.rel='noopener';" +
+  "ln.textContent=x.host+x.pathname;box.appendChild(ln);col.appendChild(box);},FT);" +
   "return col;}" +
   "function fetchCol(route,span){" +
   "if(abs(route)){return partner(route)&&strip()&&cols().length" +
   "?Promise.resolve(frameCol(route)):Promise.reject(new Error('nav'));}" +
-  "return fetch(colUrl(route,span),{credentials:'same-origin',mode:'same-origin'})" +
-  ".then(function(r){if(!r.ok){throw new Error('nav');}return r.text();})" +
+  "var lu=local(route);if(!lu){return Promise.reject(new Error('nav'));}" +
+  // what comes back must be this site's own HTML, from
+  // where it was asked for
+  "return fetch(colUrl(lu.pathname,span),{credentials:'same-origin',mode:'same-origin',redirect:'follow'})" +
+  ".then(function(r){var at;try{at=new URL(r.url).origin;}catch(e){at='';}" +
+  "if(!r.ok||at!==window.location.origin||(r.headers.get('content-type')||'').indexOf('text/html')!==0){throw new Error('nav');}" +
+  "return r.text();})" +
   ".then(function(t){" +
   "var d=new DOMParser().parseFromString(t,'text/html');" +
   "var col=d.querySelector('['+C+']');" +
@@ -242,7 +264,10 @@ export const navigationInitScript: SoftStr =
   "if(rep){col.setAttribute(RP,'');}" +
   "truncate(at,rep);place(col,at);" +
   "window.history.pushState(null,'',url);return true;}).catch(function(){" +
-  "window.location.assign(abs(route)?route:url);return false;});}" +
+  // a column that cannot be opened leaves the reader where
+  // they are when it named another site; a page of this
+  // site is simply gone to
+  "if(!abs(route)&&local(route)){window.location.assign(url);}return false;});}" +
   // the strip's rightmost column — where an open with no
   // originating column lands
   "function last(){return cols().length-1;}" +
@@ -383,11 +408,13 @@ export const navigationInitScript: SoftStr =
   // reader's own choice for this site is left as it was.
   "if(EMB){window.addEventListener('message',function(ev){" +
   "if(ev.source!==window.parent||EB.indexOf(ev.origin)<0||!ev.data||ev.data.type!=='pm:scheme'){return;}" +
+  "if(ev.data.scheme!=='dark'&&ev.data.scheme!=='light'){return;}" +
+  "if(!HS){HS=true;document.documentElement.setAttribute(EA,'');}" +
   "if(ev.data.scheme==='dark'){document.documentElement.classList.add('dark');}" +
   "else if(ev.data.scheme==='light'){document.documentElement.classList.remove('dark');}});" +
   // a sideways scroll that nothing here can take is the
   // strip's: hand it to the site this page stands in
-  "window.addEventListener('wheel',function(ev){" +
+  "window.addEventListener('wheel',function(ev){if(!HS){return;}" +
   "var dx=ev.deltaX*(ev.deltaMode===1?16:1);" +
   "if(!dx||Math.abs(dx)<=Math.abs(ev.deltaY)){return;}" +
   "var e=ev.target;while(e&&e!==document&&e.nodeType===1){" +
@@ -406,7 +433,7 @@ export const navigationInitScript: SoftStr =
   "var d=ev.data;" +
   "if(d.type==='pm:title'&&typeof d.title==='string'){" +
   "c[at].setAttribute(RD,'');shade(c[at]);" +
-  "var sp=c[at].querySelector(':scope>header>span');if(sp){sp.textContent=d.title.slice(0,120);}sync();return;}" +
+  "var sp=c[at].querySelector(':scope>header>span');if(sp){sp.textContent=d.title.slice(0,120)+' \u2014 '+ev.origin.replace(/^https?:\\/\\//,'');}sync();return;}" +
   // a sideways scroll made inside a frame belongs to the
   // strip the frame stands in. The strip rests on a column
   // edge, so the scroll is gathered until it is plainly
@@ -438,7 +465,7 @@ export const navigationInitScript: SoftStr =
   // shown as a column of another site: a link that could
   // be a column there is handed to that site to open
   // beside this one; this page itself stays put
-  "if(EMB){var a0=anchorOf(ev.target);" +
+  "if(EMB&&HS){var a0=anchorOf(ev.target);" +
   "if(a0&&plain(ev,a0)&&(a0.origin===window.location.origin||partner(a0.href))" +
   "&&!(a0.pathname===window.location.pathname&&a0.hash!=='')){" +
   "ev.preventDefault();tell({type:'pm:open',href:a0.origin+a0.pathname});}return;}" +

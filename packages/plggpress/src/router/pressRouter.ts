@@ -358,6 +358,13 @@ const rendered = (
  * composition, which is a decoration of the pages that
  * already exist.
  */
+/** A route with no slash at its end, so `/a` and `/a/`
+ * are one page. */
+const bareRoute = (route: SoftStr): SoftStr =>
+  route.length > 1
+    ? route.replace(/\/+$/, "")
+    : route;
+
 const pageHandler =
   (
     contentDir: SoftStr,
@@ -365,6 +372,7 @@ const pageHandler =
     base: SoftStr,
     parts: readonly Part[],
     url: (part: Part) => string,
+    known: ReadonlySet<SoftStr>,
   ): Handler =>
   (
     c: Context,
@@ -389,14 +397,24 @@ const pageHandler =
             parts,
           )(composition.head),
           Promise.all(
-            composition.rest.map(
-              renderColumn(
-                contentDir,
-                config,
-                base,
-                parts,
+            // a column to the right is a page of this site
+            // or it is nothing: a route the site did not
+            // register never becomes a file name
+            composition.rest
+              .filter((column: Column) =>
+                known.has(
+                  bareRoute(column.route),
+                ),
+              )
+              .slice(0, 12)
+              .map(
+                renderColumn(
+                  contentDir,
+                  config,
+                  base,
+                  parts,
+                ),
               ),
-            ),
           ).then(rendered),
         ]).then(
           ([head, rest]: readonly [
@@ -467,6 +485,7 @@ export const pressRouter = (
         base,
         parts,
         url,
+        new Set(paths.map(bareRoute)),
       ),
     );
   if (emit) return router(emit);

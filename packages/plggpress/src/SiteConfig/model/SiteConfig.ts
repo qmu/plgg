@@ -295,6 +295,10 @@ export const asOrigin = (
   typeof value === "string" &&
   originOf(value) === value &&
   !value.includes("*") &&
+  // only what a browser's policy reads as ONE host: a
+  // comma or a semicolon in the name would end the entry
+  // there and start another
+  /^https?:\/\/[a-z0-9.-]+(:\d+)?$/.test(value) &&
   (value.startsWith("https://") ||
     (value.startsWith("http://") && local(value)))
     ? ok(value)

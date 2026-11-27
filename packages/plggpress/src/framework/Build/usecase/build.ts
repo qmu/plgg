@@ -1,9 +1,11 @@
 import { dirname, join } from "node:path";
 import {
   mkdir,
+  readFile,
   writeFile,
   rm,
 } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import {
   type SoftStr,
   type Result,
@@ -218,7 +220,20 @@ export const build = <E>(
                 await mkdir(dirname(dest), {
                   recursive: true,
                 });
-                await writeFile(dest, bytes);
+                // a `_headers` the site already ships is
+                // kept: what the build adds is appended, so
+                // no policy the site set is lost
+                await writeFile(
+                  dest,
+                  file === "_headers" &&
+                    existsSync(dest)
+                    ? Buffer.concat([
+                        await readFile(dest),
+                        Buffer.from("\n"),
+                        bytes,
+                      ])
+                    : bytes,
+                );
                 return dest;
               },
             ),
