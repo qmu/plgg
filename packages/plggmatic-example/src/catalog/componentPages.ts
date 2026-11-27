@@ -18,6 +18,10 @@ import {
   toolButton,
   toolGroup,
   toolbar,
+  splitter,
+  rowList,
+  codeInput,
+  statusLine,
   accordion,
   alert,
   avatar,
@@ -579,6 +583,37 @@ export const componentPages: ReadonlyArray<Page> =
       ],
     }),
     sheet({
+      id: "splitter",
+      title: "分割の境界",
+      group: act,
+      lead: "2 つの領域の境界です。ドラッグして、片方を広げた分だけもう片方を狭めます。",
+      live: () => [
+        el(
+          "div",
+          [attr("class", "cat-split")],
+          [
+            el("div", [], [t("左の領域")]),
+            splitter<Msg>({
+              label: "左右の幅を変える",
+              orientation: "vertical",
+            }),
+            el("div", [], [t("右の領域")]),
+          ],
+        ),
+      ],
+      code: [
+        "splitter({",
+        '  label: "左右の幅を変える",',
+        '  orientation: "vertical", // 上下なら "horizontal"',
+        "})",
+      ],
+      notes: [
+        "この部品は、ポインターでつかむ境界そのものです。領域の大きさを変える処理は、画面側で受け持ちます。",
+        "何の大きさを変えるのかをラベルに書きます。読み上げでは区切りとして伝わります。",
+        "ポインターを重ねたときとドラッグ中だけ、線が見えます。",
+      ],
+    }),
+    sheet({
       id: "popover",
       title: "ポップオーバー",
       group: act,
@@ -908,6 +943,36 @@ export const componentPages: ReadonlyArray<Page> =
       notes: [],
     }),
 
+    sheet({
+      id: "code-input",
+      title: "コード入力欄",
+      group: input,
+      lead: "ソースコードを入力する欄です。等幅で表示し、折り返しとスペルチェックは行いません。",
+      live: (model) => [
+        codeInput<Msg>({
+          name: "sample-code",
+          label: "図の DSL",
+          value: sampleOf(
+            model,
+            "code",
+            "node 受付\nnode 審査\n受付 -> 審査",
+          ),
+          onInput: msg.setSample("code"),
+        }),
+      ],
+      code: [
+        "codeInput({",
+        '  name: "dsl",',
+        '  label: "図の DSL",',
+        "  value: model.source,",
+        "  onInput: setSource,",
+        "})",
+      ],
+      notes: [
+        "ラベルは表示せず、読み上げ用に持ちます。何の欄かは、置かれたパネルの見出しで示します。",
+        "高さは置かれた場所に合わせます。欄そのものは大きさを変えられません。",
+      ],
+    }),
     sheet({
       id: "suggest-input",
       title: "入力候補付きの入力欄",
@@ -1288,6 +1353,71 @@ export const componentPages: ReadonlyArray<Page> =
       notes: [],
     }),
 
+    sheet({
+      id: "row-list",
+      title: "行のリスト",
+      group: show,
+      lead: "ソースコードやログのような行の並びから、1 行を選びます。",
+      live: (model) => [
+        rowList<Msg>({
+          label: "図のソース",
+          rows: [
+            {
+              id: "1",
+              text: "node 受付",
+              invalid: false,
+            },
+            {
+              id: "2",
+              text: "node 審査",
+              invalid: false,
+            },
+            {
+              id: "3",
+              text: "受付 -> 審査",
+              invalid: false,
+            },
+            {
+              id: "4",
+              text: "審査 -> ",
+              invalid: true,
+            },
+          ],
+          selected: some(
+            sampleOf(model, "row", "2"),
+          ),
+          onSelect: msg.setSample("row"),
+        }),
+        statusLine<Msg>(
+          sampleOf(model, "row", "2") === "4"
+            ? {
+                text: "4 行目：接続先がありません",
+                tone: some("danger"),
+              }
+            : {
+                text: `${sampleOf(model, "row", "2")} 行目を選択中`,
+                tone: none(),
+              },
+        ),
+      ],
+      code: [
+        "rowList({",
+        '  label: "図のソース",',
+        "  rows: [",
+        '    { id: "1", text: "node 受付", invalid: false },',
+        '    { id: "4", text: "審査 -> ", invalid: true },',
+        "  ],",
+        "  selected: some(model.row),",
+        "  onSelect: selectRow,",
+        "})",
+        "",
+        'statusLine({ text: "4 行目：接続先がありません", tone: some("danger") })',
+      ],
+      notes: [
+        "選択中の行は、ホバーより濃い背景で示します。誤りのある行には波線が付きます。",
+        "ステータス行は、画面の状態を 1 行で伝えます。内容が変わると読み上げられます。",
+      ],
+    }),
     sheet({
       id: "sort-table",
       title: "並べ替え可能な表",

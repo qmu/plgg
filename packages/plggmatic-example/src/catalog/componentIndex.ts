@@ -83,6 +83,11 @@ export const families: ReadonlyArray<Family> = [
         "toolbar",
       ),
       have(
+        "分割の境界",
+        "領域の大きさをドラッグで変える",
+        "splitter",
+      ),
+      have(
         "ポップオーバー",
         "補足説明や設定をその場で開く",
         "popover",
@@ -168,6 +173,11 @@ export const families: ReadonlyArray<Family> = [
         "file-input",
       ),
       have(
+        "コード入力欄",
+        "ソースコードを入力する",
+        "code-input",
+      ),
+      have(
         "入力候補付きの入力欄",
         "入力に応じて候補を表示する",
         "suggest-input",
@@ -228,6 +238,11 @@ export const families: ReadonlyArray<Family> = [
         "データがない場合",
         "データがない理由と次の操作を案内する",
         "empty-state",
+      ),
+      have(
+        "行のリストとステータス行",
+        "行を選び、状態を 1 行で伝える",
+        "row-list",
       ),
       have(
         "並べ替え可能な表",

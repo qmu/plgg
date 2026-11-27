@@ -1,5 +1,8 @@
 import { observeToolbar } from "plgg-ir-diagram/toolbarOverflow";
 import {
+  codeInputClass,
+  splitterClass,
+  statusClass,
   toolClass,
   toolGroupClass,
   toolIconClass,
@@ -816,7 +819,11 @@ export const sheetDsl = <Action>(
       el(
         "div",
         [
-          attr("class", "dsl-size dsl-size-x"),
+          attr(
+            "class",
+            "dsl-size dsl-size-x " +
+              splitterClass,
+          ),
           attr("role", "separator"),
           attr("aria-orientation", "vertical"),
           attr("aria-label", "DSL の幅を変える"),
@@ -944,6 +951,7 @@ export const sheetDsl = <Action>(
       el(
         "textarea",
         [
+          attr("class", codeInputClass),
           attr("spellcheck", "false"),
           attr("aria-label", "図の DSL"),
           attr("value", source),
@@ -956,7 +964,11 @@ export const sheetDsl = <Action>(
       el(
         "div",
         [
-          attr("class", "dsl-size dsl-size-y"),
+          attr(
+            "class",
+            "dsl-size dsl-size-y " +
+              splitterClass,
+          ),
           attr("role", "separator"),
           attr("aria-orientation", "horizontal"),
           attr(
@@ -1003,7 +1015,10 @@ export const sheetDsl = <Action>(
             el(
               "output",
               [
-                attr("class", "dsl-status"),
+                attr(
+                  "class",
+                  "dsl-status " + statusClass,
+                ),
                 attr("aria-live", "polite"),
                 attr("data-error", ""),
               ],

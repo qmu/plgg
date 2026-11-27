@@ -295,10 +295,9 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .toolbar-item {display:inline-flex;flex:none;width:max-content}
   /* the bars the panel is sized by: thin, found by the
      cursor, drawn only while pointed at or dragged */
-  .dsl-size { flex: none; z-index: 5; touch-action: none; background: transparent; }
-  .dsl-size-x { position: absolute; inset: 0 auto 0 0; width: 6px; cursor: col-resize; }
-  .dsl-size-y { position: relative; height: 8px; margin: -4px 0; cursor: row-resize; }
-  .dsl-size:hover, .dsl-size[data-dragging] { background: color-mix(in srgb, var(--ink) 35%, transparent); }
+  .dsl-size { z-index: 5; }
+  .dsl-size-x { position: absolute; inset: 0 auto 0 0; }
+  .dsl-size-y { margin: -4px 0; }
   .board-controls .feature {
     min-height: 0;
     margin: 0;
@@ -338,28 +337,6 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     flex: 1;
     min-height: 240px;
     width: 100%;
-    resize: none;
-    border: 0;
-    padding: 14px;
-    font:
-      13px/1.7 ui-monospace,
-      'SF Mono',
-      Menlo,
-      monospace;
-    white-space: pre;
-    overflow: auto;
-    tab-size: 2;
-  }
-  .dsl-status {
-    padding: 8px 14px;
-    border-top: 1px solid var(--rule, var(--ink));
-    font-size: 12px;
-    line-height: 1.6;
-    color: var(--graphite);
-  }
-  .dsl-status[data-error] {
-    background: var(--ink);
-    color: var(--paper);
   }
   .stage {--panel:var(--dsl-wide,320px);position:relative;display:block;flex:1;min-height:0; margin:0}
   .stage .canvas-wrap {height:100%;aspect-ratio:auto}
@@ -545,31 +522,6 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .dsl:has(.dsl-mode input:checked)
     :is(.dsl-rows, .dsl-overlay) {
     display: none;
-  }
-  .dsl-row {
-    user-select: none;
-    -webkit-user-select: none;
-    position: relative;
-    min-height: 1.7em;
-    width: max-content;
-    min-width: 100%;
-  }
-  .dsl-row:hover {
-    background: var(--wash);
-  }
-  /* a selected row is told from a hovered one by its
-     ground, stronger than the wash and kept under the
-     pointer too; no bar at its side */
-  .dsl-row[aria-selected='true'],
-  .dsl-row[aria-selected='true']:hover {
-    background: color-mix(
-      in srgb,
-      var(--ink) 18%,
-      var(--paper)
-    );
-  }
-  .dsl-row[aria-invalid='true'] {
-    text-decoration: underline wavy var(--ink);
   }
   .dsl-field {
     position: absolute;

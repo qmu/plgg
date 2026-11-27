@@ -709,3 +709,17 @@ export const toolClass: SoftStr = hook("tool");
 /** Set on a tool drawn as a glyph alone. */
 export const toolIconClass: SoftStr =
   hook("tool-icon");
+
+/** The boundary between two panes, dragged to size them. */
+export const splitterClass: SoftStr =
+  hook("splitter");
+/** Rows of text, one of them chosen. */
+export const rowsClass: SoftStr = hook("rows");
+export const rowsRowClass: SoftStr =
+  hook("rows-row");
+/** A field for code: fixed-pitch, unwrapped. */
+export const codeInputClass: SoftStr =
+  hook("code-input");
+/** The line a surface says its state on. */
+export const statusClass: SoftStr =
+  hook("status");

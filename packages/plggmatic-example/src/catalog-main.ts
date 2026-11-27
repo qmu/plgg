@@ -37,6 +37,8 @@ body{margin:0;background:${cssVarRef("surface")};}
 .cat-example p:last-child{margin-bottom:0;}
 .cat-example > * + *{margin-top:.9rem;}
 .cat-row{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;}
+.cat-split{display:flex;height:7rem;border:1px solid ${cssVarRef("border")};}
+.cat-split > div:not([role]){flex:1 1 0;display:grid;place-items:center;}
 .cat-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:.6rem;margin:.75rem 0;}
 .cat-swatch{display:grid;grid-template-columns:2.25rem 1fr;grid-template-rows:auto auto;column-gap:.7rem;align-items:center;padding:.5rem;border:1px solid ${cssVarRef("border")};}
 .cat-chip{grid-row:1 / 3;width:2.25rem;height:2.25rem;border:1px solid ${cssVarRef("text")};}

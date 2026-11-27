@@ -1,3 +1,7 @@
+import {
+  rowsClass,
+  rowsRowClass,
+} from "plggmatic";
 import { some, none } from "plgg";
 import {
   lazy,
@@ -228,7 +232,10 @@ export const dslRows = <A>(
       el<A>(
         "div",
         [
-          attr("class", "dsl-row"),
+          attr(
+            "class",
+            "dsl-row " + rowsRowClass,
+          ),
           attr("role", "option"),
           attr("data-row", String(i)),
           attr("tabindex", "0"),
@@ -360,7 +367,7 @@ export const dslRows = <A>(
   return el<A>(
     "div",
     [
-      attr("class", "dsl-rows"),
+      attr("class", "dsl-rows " + rowsClass),
       attr("role", "listbox"),
       attr("aria-label", "図の DSL"),
       attr("aria-multiselectable", "true"),

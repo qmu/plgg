@@ -81,6 +81,13 @@ export const partsSystemCss = (
 .${p}-tool:disabled{cursor:not-allowed}
 .${p}-tool-group .${p}-tool + .${p}-tool{margin-left:-1px}
 .${p}-tool-group .${p}-tool:is(:hover,:focus-visible,[aria-pressed="true"]){position:relative;z-index:1}
+.${p}-splitter{flex:none;position:relative;z-index:1;touch-action:none}
+.${p}-splitter[aria-orientation="vertical"]{width:6px;cursor:col-resize}
+.${p}-splitter[aria-orientation="horizontal"]{height:8px;cursor:row-resize}
+.${p}-rows{overflow:auto;white-space:pre}
+.${p}-rows-row{position:relative;width:max-content;min-width:100%;min-height:1.7em;cursor:default;user-select:none;-webkit-user-select:none}
+.${p}-code-input{display:block;width:100%;min-height:8rem;resize:none;overflow:auto;white-space:pre;tab-size:2}
+.${p}-status{display:block}
 .${p}-popover{position:relative;display:inline-block}
 .${p}-popover summary{display:inline-flex;align-items:center;cursor:pointer;list-style:none}
 .${p}-popover summary::-webkit-details-marker{display:none}
@@ -242,6 +249,16 @@ ${toned("alert")}
 .${p}-tool:disabled{opacity:.45}
 .${p}-tool-group .${p}-tool:not(:first-child){border-top-left-radius:0;border-bottom-left-radius:0}
 .${p}-tool-group .${p}-tool:not(:last-child){border-top-right-radius:0;border-bottom-right-radius:0}
+.${p}-splitter{background:transparent;transition:background-color ${l.quick} ease}
+.${p}-splitter:is(:hover,:focus-visible,[data-dragging]){background:color-mix(in srgb,${l.text} 35%,transparent);outline:0}
+.${p}-rows,.${p}-code-input{padding:.875rem;border:0;background:none;color:${l.text};font-family:${l.mono};font-size:.8125rem;line-height:1.7}
+.${p}-rows-row:hover{${l.hover}}
+.${p}-rows-row[aria-selected="true"],.${p}-rows-row[aria-selected="true"]:hover{background:color-mix(in srgb,${l.text} 18%,${l.surface})}
+.${p}-rows-row[aria-invalid="true"]{text-decoration:underline wavy ${l.danger}}
+.${p}-rows-row:focus-visible{outline:${l.rule};outline-offset:-1px}
+.${p}-code-input:focus-visible{outline:0;box-shadow:inset 0 -1px 0 ${l.text}}
+.${p}-status{padding:.5rem .875rem;border-top:${l.rule};font-size:.75rem;line-height:1.6;color:${l.muted}}
+.${p}-status[data-error]{${l.current}}
 .${p}-popover summary{padding:.45rem .8rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;font-weight:500}
 .${p}-popover summary:hover,.${p}-popover summary:focus-visible,.${p}-popover[open] summary{${l.press};outline:0}
 .${p}-popover-body{padding:.75rem .9rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;line-height:1.6;box-shadow:${l.elevation}}

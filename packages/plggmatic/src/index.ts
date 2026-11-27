@@ -677,6 +677,24 @@ export {
   switchLabelClass,
 } from "plggmatic/Meta/model/classHooks";
 export {
+  type SplitterProps,
+  type TextRow,
+  type RowListProps,
+  type CodeInputProps,
+  type StatusLineProps,
+  splitter,
+  rowList,
+  codeInput,
+  statusLine,
+} from "plggmatic/Component/usecase/workbench";
+export {
+  splitterClass,
+  rowsClass,
+  rowsRowClass,
+  codeInputClass,
+  statusClass,
+} from "plggmatic/Meta/model/classHooks";
+export {
   toolbarClass,
   toolGroupClass,
   toolClass,
