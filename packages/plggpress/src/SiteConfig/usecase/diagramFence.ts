@@ -28,6 +28,10 @@ export type Part = Readonly<{
   tools?: ReadonlyMap<string, SheetTool>;
   css: string;
   runtime: string;
+  /** A block written with no options reads complete as
+   * it is drawn on the page: its runtime is fetched only
+   * when a reader reaches for it. */
+  lazy?: boolean;
 }>;
 
 export const builtins: readonly Part[] = [
@@ -37,6 +41,7 @@ export const builtins: readonly Part[] = [
     tools: sheetTools,
     css: flowCss,
     runtime: "plgg-ir-diagram/flow-interactive",
+    lazy: true,
   },
   {
     name: "plgg-diagram",
@@ -58,6 +63,15 @@ export const islandFence =
         attr("data-island", part.name),
         ...(info.split(/\s+/).includes("fill")
           ? [attr("data-fill", "")]
+          : []),
+        ...(part.lazy === true &&
+        info
+          .split(/\s+/)
+          .every(
+            (word) =>
+              word === "" || word === part.name,
+          )
+          ? [attr("data-island-lazy", "")]
           : []),
       ],
       [
@@ -89,7 +103,13 @@ export const islandAsset = (part: Part) => {
   };
 };
 
-const loader = `const modules=new Map(),mounted=new Map();
+const loader = `const modules=new Map(),mounted=new Map(),waiting=new WeakSet();
+function load(root,url,data){
+ mounted.set(root,null);
+ import(url).then(({default:mount})=>{
+  if(root.isConnected && mounted.has(root))mounted.set(root,mount(root,JSON.parse(data.textContent)));
+ }).catch(error=>{mounted.delete(root);console.error(error);});
+}
 function scan(){
  for(const [root,dispose] of mounted){
   if(!root.isConnected){mounted.delete(root);dispose?.();}
@@ -99,11 +119,11 @@ function scan(){
  }
  for(const root of document.querySelectorAll('[data-island]')){
   const url=modules.get(root.dataset.island), data=root.querySelector(':scope > script[type="application/json"]');
-  if(!url||!data||mounted.has(root))continue;
-  mounted.set(root,null);
-  import(url).then(({default:mount})=>{
-   if(root.isConnected && mounted.has(root))mounted.set(root,mount(root,JSON.parse(data.textContent)));
-  }).catch(error=>{mounted.delete(root);console.error(error);});
+  if(!url||!data||mounted.has(root)||waiting.has(root))continue;
+  if(!root.hasAttribute('data-island-lazy')){load(root,url,data);continue;}
+  waiting.add(root);
+  const reach=()=>{if(waiting.delete(root))load(root,url,data);};
+  for(const type of ['pointerenter','pointerdown','focusin','touchstart'])root.addEventListener(type,reach,{once:true,passive:true});
  }
 }
 document.addEventListener('plgg:columns',scan);scan();`;

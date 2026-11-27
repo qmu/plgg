@@ -11,6 +11,7 @@ export default {
       render: flowWidget,
       tools: sheetTools,
       runtime: "plgg-ir-diagram/flow-interactive",
+      lazy: true,
     },
   ],
 };
