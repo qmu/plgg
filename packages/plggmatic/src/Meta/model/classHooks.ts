@@ -751,3 +751,32 @@ export const previewClass: SoftStr =
 export const previewBarClass: SoftStr = hook(
   "preview-bar",
 );
+
+/** The body of a page of a site of documents. */
+export const siteBodyClass: SoftStr =
+  hook("site");
+/** The strip of such a site. */
+export const siteStripClass: SoftStr =
+  hook("site-strip");
+/** The column a drilled section's contents stand in. */
+export const siteSectionClass: SoftStr = hook(
+  "site-section",
+);
+/** A page that shares the width with its neighbours. */
+export const siteFillClass: SoftStr =
+  hook("site-fill");
+/** The main content of a page column. */
+export const siteMainClass: SoftStr =
+  hook("site-main");
+/** The site's name on a narrow window's bar. */
+export const siteBarHomeClass: SoftStr = hook(
+  "site-bar-home",
+);
+/** What the page is about, on a narrow window's bar. */
+export const siteBarNoteClass: SoftStr = hook(
+  "site-bar-note",
+);
+/** The same words, in the drawer. */
+export const siteDrawerNoteClass: SoftStr = hook(
+  "site-drawer-note",
+);

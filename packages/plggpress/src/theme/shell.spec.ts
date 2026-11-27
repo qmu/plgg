@@ -1,4 +1,8 @@
 import {
+  siteBodyClass,
+  siteStripClass,
+} from "plggmatic";
+import {
   test,
   check,
   all,
@@ -98,7 +102,9 @@ test("emits a leading doctype + complete <html> document", () =>
     // the root carries the `vp` scope class
     check(
       rendered,
-      toContain('<body class="vp">'),
+      toContain(
+        `<body class="vp ${siteBodyClass}">`,
+      ),
     ),
     check(
       rendered.slice(-14),
@@ -106,14 +112,16 @@ test("emits a leading doctype + complete <html> document", () =>
     ),
   ]));
 
-test('wraps the pre-rendered body in a slot <div> under <body class="vp">', () =>
+test('wraps the pre-rendered body in a slot <div> under the site body', () =>
   all([
     // the opaque body rides into the typed shell through
-    // the slot <div>, directly inside <body class="vp">
+    // the slot <div>, directly inside the site body
     // (page.ts owns any <main>, the shell adds none)
     check(
       rendered,
-      toContain('<body class="vp"><div'),
+      toContain(
+        `<body class="vp ${siteBodyClass}"><div`,
+      ),
     ),
     check(rendered, not(toContain("<main"))),
     check(
@@ -154,7 +162,10 @@ test("composes plggmatic framework blocks ahead of baseCss, then the body's coll
       toContain(`.${themeToggleClass}{`),
     ),
     // then the bespoke layout sheet (a stable baseCss marker)
-    check(rendered, toContain(".vp-app{")),
+    check(
+      rendered,
+      toContain(`.${siteStripClass}{`),
+    ),
     // and the body's atomic CSS closes the single
     // <style> block, byte-for-byte
     check(

@@ -47,6 +47,11 @@ import {
   shellSideLinkClass,
   docFootClass,
   docClass,
+  siteStripClass,
+  siteSectionClass,
+  siteFillClass,
+  siteMainClass,
+  siteDrawerNoteClass,
 } from "plggmatic";
 import {
   type SiteConfig,
@@ -296,7 +301,12 @@ const sectionsColumn = (
       ...(description?.__tag === "Some"
         ? [
             p(
-              [class_("vp-drawer-description")],
+              [
+                class_(
+                  "vp-drawer-description " +
+                    siteDrawerNoteClass,
+                ),
+              ],
               [text(description.content)],
             ),
           ]
@@ -375,7 +385,7 @@ const drilledColumn = (
     () => [],
     (active: SidebarGroup) => [
       column(
-        ["vp-section"],
+        ["vp-section", siteSectionClass],
         [
           colHead([colTitle(active.text)]),
           colBody([
@@ -444,6 +454,7 @@ const contentColumn = (
             "vp-content",
             "vp-sheet",
             "vp-fill",
+            siteFillClass,
             spanTwoClass,
             shellPageClass,
             figurePageClass,
@@ -458,6 +469,7 @@ const contentColumn = (
         ? [
             "vp-content",
             "vp-fill",
+            siteFillClass,
             shellPageClass,
           ]
         : ["vp-content", shellPageClass],
@@ -485,7 +497,7 @@ const contentColumn = (
       ]),
       colBody([
         main_(
-          [class_("vp-main")],
+          [class_("vp-main " + siteMainClass)],
           [
             div(
               [
@@ -562,8 +574,8 @@ export const page = (
       backdrop,
       strip(
         fills(config)
-          ? ["vp-app", shareClass]
-          : ["vp-app"],
+          ? ["vp-app", siteStripClass, shareClass]
+          : ["vp-app", siteStripClass],
         [
           sectionsColumn(
             config,

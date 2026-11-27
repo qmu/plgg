@@ -10,6 +10,8 @@ import {
   chromeLinksClass,
   chromeLinkClass,
   chromeLinkLabelClass,
+  siteBarHomeClass,
+  siteBarNoteClass,
 } from "plggmatic";
 import { type SoftStr } from "plgg";
 import {
@@ -213,6 +215,8 @@ export const mobileBar = (
         attr("aria-current", "page"),
         class_(
           "vp-mobilebar-home " +
+            siteBarHomeClass +
+            " " +
             shellBarBrandClass,
         ),
       ]
@@ -220,6 +224,8 @@ export const mobileBar = (
         attr("href", hrefOf("/")),
         class_(
           "vp-mobilebar-home " +
+            siteBarHomeClass +
+            " " +
             shellBarBrandClass,
         ),
       ];
@@ -249,7 +255,12 @@ export const mobileBar = (
         ...(description
           ? [
               span(
-                [class_("vp-mobile-description")],
+                [
+                  class_(
+                    "vp-mobile-description " +
+                      siteBarNoteClass,
+                  ),
+                ],
                 [span([], [text(description)])],
               ),
             ]

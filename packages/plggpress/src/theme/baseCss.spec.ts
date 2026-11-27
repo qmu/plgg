@@ -134,7 +134,9 @@ test("scheme scroll motion is framework-owned; plggpress keeps its link-fade res
     ),
     check(
       css,
-      toContain(".vp-doc a{transition:none}"),
+      toContain(
+        `.${docClass} a{transition:none}`,
+      ),
     ),
     // and the positive smooth-scroll stays
     check(

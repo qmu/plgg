@@ -29,6 +29,7 @@ import {
   monochrome,
   partnersMeta,
   embeddersMeta,
+  siteBodyClass,
 } from "plggmatic";
 import {
   type Theme,
@@ -264,6 +265,9 @@ export const shell = (
         body,
         resolveTheme(config),
       ),
-      bodyEl([class_("vp")], [slot([], [body])]),
+      bodyEl(
+        [class_("vp " + siteBodyClass)],
+        [slot([], [body])],
+      ),
     ],
   );

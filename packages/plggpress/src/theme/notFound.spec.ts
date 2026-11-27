@@ -1,3 +1,4 @@
+import { siteBodyClass } from "plggmatic";
 import { none } from "plgg";
 import {
   test,
@@ -40,7 +41,9 @@ test("renders through the full document shell", () =>
     check(rendered, toContain("<head>")),
     check(
       rendered,
-      toContain('<body class="vp">'),
+      toContain(
+        `<body class="vp ${siteBodyClass}">`,
+      ),
     ),
     check(
       rendered.slice(-14),
