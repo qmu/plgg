@@ -676,6 +676,12 @@ export {
   switchThumbClass,
   switchLabelClass,
 } from "plggmatic/Meta/model/classHooks";
+export {
+  toolbarClass,
+  toolGroupClass,
+  toolClass,
+  toolIconClass,
+} from "plggmatic/Meta/model/classHooks";
 
 // --- Basic parts: what stands in a column's body ---
 export {

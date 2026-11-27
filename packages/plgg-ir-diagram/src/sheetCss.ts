@@ -1,4 +1,5 @@
 import { boardCss } from "plgg-ir-diagram/boardCss";
+import { toolClass } from "plggmatic";
 export const sheetCss = `
 ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
 @scope (.flow-sheet) {
@@ -31,9 +32,8 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
 
   /* ---------- controls ---------- */
-  .toolbar button,
   .feature button,
-  :where(:scope) > div button,
+  :where(:scope) > div button:where(:not(.${toolClass})),
   .editing-tools button {
     padding: 6px 14px;
     border: 1px solid var(--rule, var(--ink));
@@ -42,18 +42,16 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     font-size: 13px;
     line-height: 1.5;
   }
-  .toolbar button:hover:not(:disabled),
   .feature button:hover:not(:disabled),
   :where(:scope)
     > div
-    button:hover:not(:disabled) {
+    button:where(:not(.${toolClass})):hover:not(:disabled) {
     background: var(--wash);
   }
-  .toolbar button[aria-pressed='true'],
   .feature button,
   :where(:scope)
     > div
-    button[aria-pressed='true'] {
+    button:where(:not(.${toolClass}))[aria-pressed='true'] {
     background: var(--ink);
     color: var(--paper);
   }
@@ -67,12 +65,6 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .feature button:disabled {
     background: var(--paper);
-  }
-  .toolbar {
-    gap: 0;
-  }
-  .toolbar button + button {
-    margin-left: -1px;
   }
   .feature {
     min-height: 44px;
@@ -293,15 +285,6 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   .board-controls > * {
     pointer-events: auto;
   }
-  .board-controls .toolbar button {
-    background: var(--paper);
-  }
-  /* the pressed state must outrank the rule above, or a
-     pressed button is paper on paper */
-  .board-controls .toolbar button[aria-pressed='true'] {
-    background: var(--ink);
-    color: var(--paper);
-  }
   .board-controls .toolbar {
     flex-wrap: nowrap;
     min-width: 0;
@@ -310,18 +293,12 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     white-space: nowrap;
   }
   .toolbar-item {display:inline-flex;flex:none;width:max-content}
-  .sheet-history { display: inline-flex; }
-  .toolbar-gap { display: inline-block; width: 12px; }
   /* the bars the panel is sized by: thin, found by the
      cursor, drawn only while pointed at or dragged */
   .dsl-size { flex: none; z-index: 5; touch-action: none; background: transparent; }
   .dsl-size-x { position: absolute; inset: 0 auto 0 0; width: 6px; cursor: col-resize; }
   .dsl-size-y { position: relative; height: 8px; margin: -4px 0; cursor: row-resize; }
   .dsl-size:hover, .dsl-size[data-dragging] { background: color-mix(in srgb, var(--ink) 35%, transparent); }
-  .toolbar .sheet-history + * , .toolbar-item:has(.toolbar-gap) + .toolbar-item button { margin-left: 0; }
-  .toolbar .sheet-history button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--ink); }
-  .toolbar .sheet-history button + button { margin-left: -1px; }
-  .toolbar .sheet-history button:disabled { color: var(--pencil); }
   .board-controls .feature {
     min-height: 0;
     margin: 0;

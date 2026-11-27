@@ -1,4 +1,10 @@
 import { observeToolbar } from "plgg-ir-diagram/toolbarOverflow";
+import {
+  toolClass,
+  toolGroupClass,
+  toolIconClass,
+  toolbarClass,
+} from "plggmatic";
 import type { Travel } from "plgg-ir-diagram/sheetHistory";
 export * from "plgg-ir-diagram/sheetHistory";
 import {
@@ -1443,62 +1449,125 @@ export const sheetToolbar = <Action>(
   });
   // what this sheet alone has: its views, its blocks, its
   // own tools — set apart from the controls every sheet has
+  const group = (
+    label: string,
+    items: readonly Html<Action>[],
+  ): Html<Action> =>
+    el(
+      "span",
+      [
+        attr("class", toolGroupClass),
+        attr("role", "group"),
+        attr("aria-label", label),
+      ],
+      items,
+    );
   const own: readonly Html<Action>[] = [
     ...(views
       ? [
-          button("見方", change(nextSheetView)),
-          ...(views === "layer"
-            ? layerViews
-            : roomViews
-          ).map(([label, yaw, pitch]) =>
-            button(
-              label,
-              change((f) => {
-                const scene =
-                  label === "立体"
-                    ? { ...f, focus: undefined }
-                    : f;
-                const to = fitDemo(
-                  viewAt(yaw, pitch)(scene),
-                );
-                return views === "layer"
-                  ? to
-                  : turnRooms(f, to, 300);
-              }),
+          group("見方", [
+            button("見方", change(nextSheetView)),
+            ...(views === "layer"
+              ? layerViews
+              : roomViews
+            ).map(([label, yaw, pitch]) =>
+              button(
+                label,
+                change((f) => {
+                  const scene =
+                    label === "立体"
+                      ? { ...f, focus: undefined }
+                      : f;
+                  const to = fitDemo(
+                    viewAt(yaw, pitch)(scene),
+                  );
+                  return views === "layer"
+                    ? to
+                    : turnRooms(f, to, 300);
+                }),
+              ),
             ),
-          ),
+          ]),
         ]
       : []),
     ...(blocks.length > 1
       ? [
-          button("◀", change(step(-1))),
-          ...blocks.map((b) =>
-            button(
-              b.name,
-              change((f) =>
-                fitDemo({
-                  ...f,
-                  focus: b.ids,
-                  roomMotion: undefined,
-                }),
+          group("区画", [
+            button("◀", change(step(-1))),
+            ...blocks.map((b) =>
+              button(
+                b.name,
+                change((f) =>
+                  fitDemo({
+                    ...f,
+                    focus: b.ids,
+                    roomMotion: undefined,
+                  }),
+                ),
               ),
             ),
-          ),
-          button("▶", change(step(1))),
+            button("▶", change(step(1))),
+          ]),
         ]
       : []),
     ...tools,
   ];
+  // every control here is the kit's tool: a button that
+  // came without a class of its own is given the tool's,
+  // so a sample's own tools are dressed like the rest
+  const tool = (
+    html: Html<Action>,
+  ): Html<Action> =>
+    html.__tag !== "Element"
+      ? html
+      : {
+          ...html,
+          content: {
+            ...html.content,
+            attributes:
+              html.content.tag === "button" &&
+              !html.content.attributes.some(
+                (a) =>
+                  a.__tag === "Attr" &&
+                  a.content.name === "class",
+              )
+                ? [
+                    ...html.content.attributes,
+                    attr(
+                      "class",
+                      html.content.children.some(
+                        (c) =>
+                          c.__tag === "Element" &&
+                          c.content.tag === "svg",
+                      )
+                        ? toolClass +
+                            " " +
+                            toolIconClass
+                        : toolClass,
+                    ),
+                  ]
+                : html.content.attributes,
+            children:
+              html.content.children.map(tool),
+          },
+        };
   return el(
     "div",
-    [attr("class", "toolbar")],
+    [
+      attr("class", "toolbar " + toolbarClass),
+      attr("role", "toolbar"),
+      attr("aria-label", "図の操作"),
+    ],
     [
       // the controls every sheet has, joined as one: bring
       // the picture back to the centre, then walk its history
-      el(
+      el<Action>(
         "span",
         [
-          attr("class", "sheet-history"),
+          attr(
+            "class",
+            "sheet-history " + toolGroupClass,
+          ),
           attr("role", "group"),
           attr("aria-label", "表示と履歴"),
         ],
@@ -1507,37 +1576,16 @@ export const sheetToolbar = <Action>(
           ...history,
         ],
       ),
-
       // laying the sheet out afresh changes its shape, so
       // it stands on its own: never pressed by mistake for
       // the target beside it
-      el<Action>(
-        "span",
-        [
-          attr("class", "toolbar-gap"),
-          attr("aria-hidden", "true"),
-        ],
-        [],
-      ),
       button("最適配置", change(resetSheet)),
-      ...(own.length > 0
-        ? [
-            el<Action>(
-              "span",
-              [
-                attr("class", "toolbar-gap"),
-                attr("aria-hidden", "true"),
-              ],
-              [],
-            ),
-          ]
-        : []),
       ...own,
     ].map((item) =>
       el(
         "span",
         [attr("class", "toolbar-item")],
-        [item],
+        [tool(item)],
       ),
     ),
   );
