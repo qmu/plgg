@@ -162,6 +162,13 @@ export type SiteConfig = Readonly<{
   // joined, and every link out leaves as before.
   partners?: Option<ReadonlyArray<SoftStr>>;
   embedders?: Option<ReadonlyArray<SoftStr>>;
+  // With partners named, every page says which origins it
+  // may hold in a frame: itself, its partners, and the
+  // ones listed here (a third-party widget the site
+  // already embeds). The browser then refuses any other —
+  // so a partner's page cannot hand its column on to a
+  // stranger by redirecting.
+  frames?: Option<ReadonlyArray<SoftStr>>;
   // The resolved theme (palette + geometry) the doc site
   // renders through — a validated override layered onto
   // plggmatic's monochrome default. `None` ⇒ the B&W qmu
@@ -382,6 +389,7 @@ export type SiteConfigInput = Readonly<{
   linkIgnore?: ReadonlyArray<string>;
   partners?: ReadonlyArray<string>;
   embedders?: ReadonlyArray<string>;
+  frames?: ReadonlyArray<string>;
   // Optional palette override — absent ⇒ the B&W qmu
   // default. Validated into a `Theme` at load.
   theme?: PaletteInput;
@@ -521,6 +529,10 @@ export const asSiteConfig = (
         ),
         forOptionProp(
           "embedders",
+          asReadonlyArray(asOrigin),
+        ),
+        forOptionProp(
+          "frames",
           asReadonlyArray(asOrigin),
         ),
       );

@@ -153,6 +153,54 @@ const joined = (
         ),
       );
 
+const listed = (
+  origins: SiteConfig["partners"],
+): ReadonlyArray<SoftStr> =>
+  origins === undefined
+    ? []
+    : pipe(
+        origins,
+        matchOption<
+          ReadonlyArray<SoftStr>,
+          ReadonlyArray<SoftStr>
+        >(
+          () => [],
+          (list: ReadonlyArray<SoftStr>) => list,
+        ),
+      );
+/**
+ * WHAT THIS PAGE MAY HOLD IN A FRAME, said to the browser
+ * when partners are named: the page's own site, its
+ * partners, and the origins the site lists as framed
+ * already. A column's frame that is sent anywhere else —
+ * a partner's page redirecting to a stranger — is refused
+ * by the browser itself, whatever the page's script does.
+ */
+const framed = (
+  config: SiteConfig,
+): ReadonlyArray<Html<never, "meta">> =>
+  listed(config.partners).length === 0
+    ? []
+    : [
+        meta(
+          [
+            attr(
+              "http-equiv",
+              "Content-Security-Policy",
+            ),
+            attr(
+              "content",
+              [
+                "frame-src 'self'",
+                ...listed(config.partners),
+                ...listed(config.frames),
+              ].join(" "),
+            ),
+          ],
+          [],
+        ),
+      ];
+
 const documentHead = (
   config: SiteConfig,
   doc: MarkdownDoc,
@@ -175,6 +223,7 @@ const documentHead = (
         [],
       ),
       title([], [text(titleOf(config, doc))]),
+      ...framed(config),
       ...joined(partnersMeta, config.partners),
       ...joined(embeddersMeta, config.embedders),
       link(

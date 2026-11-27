@@ -337,3 +337,15 @@ test("a joined site is read only as an exact https origin", () =>
       "true,false,false,false,false,true,false,false",
     ),
   ));
+
+test("the origins a page may frame are read as exact origins too", () =>
+  check(
+    [
+      "https://challenges.cloudflare.com",
+      "https://*.cloudflare.com",
+      "challenges.cloudflare.com",
+    ]
+      .map((word) => isOk(asOrigin(word)))
+      .join(),
+    toBe("true,false,false"),
+  ));
