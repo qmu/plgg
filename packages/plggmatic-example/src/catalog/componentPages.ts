@@ -1,5 +1,20 @@
-import { type SoftStr, some, none } from "plgg";
 import {
+  type SoftStr,
+  type Option,
+  some,
+  none,
+} from "plgg";
+import {
+  type Sort,
+  calendar,
+  checkGroup,
+  drawer,
+  popover,
+  sortTable,
+  sortedBy,
+  sortedOn,
+  suggestInput,
+  toggled,
   accordion,
   alert,
   avatar,
@@ -133,6 +148,108 @@ const units = [
   { id: "week", label: "週" },
   { id: "month", label: "月" },
 ];
+
+const states = [
+  { id: "open", label: "営業中" },
+  { id: "ready", label: "準備中" },
+  { id: "closed", label: "休み" },
+];
+const perms = [
+  { id: "read", label: "読む" },
+  { id: "write", label: "書く" },
+  { id: "invite", label: "人を招く" },
+  { id: "remove", label: "消す" },
+];
+/** A sample's list, kept as words between commas. */
+const listOf = (
+  model: Model,
+  key: SoftStr,
+  initial: SoftStr,
+): ReadonlyArray<SoftStr> =>
+  sampleOf(model, key, initial)
+    .split(",")
+    .filter((word: SoftStr) => word !== "");
+
+type Shop = Readonly<{
+  name: SoftStr;
+  sales: number;
+  staff: number;
+  note: SoftStr;
+}>;
+const shops: ReadonlyArray<Shop> = [
+  {
+    name: "東店",
+    sales: 1240000,
+    staff: 9,
+    note: "駅前",
+  },
+  {
+    name: "西店",
+    sales: 86000,
+    staff: 12,
+    note: "—",
+  },
+  {
+    name: "南店",
+    sales: 430000,
+    staff: 4,
+    note: "改装中",
+  },
+  {
+    name: "北店",
+    sales: 915000,
+    staff: 7,
+    note: "—",
+  },
+];
+/** The sample table's order, kept as `column:direction`. */
+const written = (sort: Sort): SoftStr =>
+  `${sort.by}:${sort.descending ? "down" : "up"}`;
+const sortOf = (model: Model): Sort => ({
+  by: sampleOf(model, "sort", "name:up")
+    .split(":")
+    .slice(0, 1)
+    .join(""),
+  descending: sampleOf(
+    model,
+    "sort",
+    "name:up",
+  ).endsWith(":down"),
+});
+
+/** The sample calendar's month, kept as `year-month`. */
+type Month = Readonly<{
+  year: number;
+  month: number;
+}>;
+const monthOf = (model: Model): Month =>
+  sampleOf(model, "month", "2026-11")
+    .split("-")
+    .map((part: SoftStr) => Number(part))
+    .reduce(
+      (m: Month, n: number, i: number): Month =>
+        i === 0
+          ? { ...m, year: n }
+          : { ...m, month: n },
+      { year: 2026, month: 11 },
+    );
+/** The month so many months on, written. */
+const stepped = (m: Month, by: number): SoftStr =>
+  `${m.year + Math.floor((m.month - 1 + by) / 12)}-${((((m.month - 1 + by) % 12) + 12) % 12) + 1}`;
+/** The picked day, when it is in the month shown. */
+const dayOf = (model: Model): Option<number> =>
+  sampleOf(model, "day", "2026-11-27").startsWith(
+    `${stepped(monthOf(model), 0)}-`,
+  )
+    ? some(
+        Number(
+          sampleOf(model, "day", "2026-11-27")
+            .split("-")
+            .slice(2)
+            .join(""),
+        ),
+      )
+    : none();
 
 export const componentPages: ReadonlyArray<Page> =
   [
@@ -379,6 +496,111 @@ export const componentPages: ReadonlyArray<Page> =
       ],
     }),
 
+    sheet({
+      id: "popover",
+      title: "ポップオーバー",
+      group: act,
+      lead: "押すと小さな箱が下に出ます。そばにあるものの説明や、ちょっとした設定を入れます。",
+      live: () => [
+        popover<Msg>({
+          label: "料金の内訳",
+          body: [
+            descList<Msg>([
+              {
+                term: "基本",
+                value: [t("980 円")],
+              },
+              {
+                term: "追加の席",
+                value: [t("300 円 × 2")],
+              },
+              {
+                term: "合計",
+                value: [t("1,580 円")],
+              },
+            ]),
+          ],
+        }),
+      ],
+      code: [
+        "popover({",
+        '  label: "料金の内訳",',
+        "  body: [descList([...])],",
+        "})",
+      ],
+      notes: [
+        "メニューと同じく、ブラウザの開閉の仕組みでできています。スクリプトなしで開きます。",
+        "選択肢を並べるならメニュー、説明や小さな入力を入れるならポップオーバーです。",
+      ],
+    }),
+    sheet({
+      id: "drawer",
+      title: "ドロワー",
+      group: act,
+      lead: "画面の端から出てくる面です。いまのページを残したまま、絞り込みや補助の作業をします。",
+      live: (model) => [
+        plainButton(
+          "絞り込みを開く",
+          msg.setSample("drawer")("open"),
+        ),
+        ...(sampleOf(model, "drawer", "") ===
+        "open"
+          ? [
+              drawer<Msg>({
+                title: "絞り込み",
+                side: "right",
+                closeLabel: "閉じる",
+                onClose:
+                  msg.setSample("drawer")(""),
+                body: [
+                  checkGroup<Msg>({
+                    name: "sample-drawer-state",
+                    label: "状態",
+                    options: states,
+                    chosen: listOf(
+                      model,
+                      "states",
+                      "open",
+                    ),
+                    onToggle: (
+                      id: SoftStr,
+                    ): Msg =>
+                      msg.setSample("states")(
+                        toggled(
+                          listOf(
+                            model,
+                            "states",
+                            "open",
+                          ),
+                          id,
+                        ).join(","),
+                      ),
+                  }),
+                ],
+              }),
+            ]
+          : []),
+      ],
+      code: [
+        "model.open",
+        "  ? [",
+        "      drawer({",
+        '        title: "絞り込み",',
+        '        side: "right",',
+        '        closeLabel: "閉じる",',
+        "        onClose: close,",
+        "        body: [...],",
+        "      }),",
+        "    ]",
+        "  : []",
+      ],
+      notes: [
+        "開いているかどうかは呼ぶ側が持ちます。開いている間だけ描きます。",
+        "うしろの暗い所を押しても、× を押しても閉じます。",
+        "ページを置き換える作業には使いません。それは右に列を開きます。",
+      ],
+    }),
+
     // --- 入力 ---
     sheet({
       id: "radio",
@@ -600,6 +822,86 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [],
+    }),
+
+    sheet({
+      id: "suggest-input",
+      title: "候補つきの入力欄",
+      group: input,
+      lead: "自由に打てて、打つと知っている答えが候補に出ます。候補にないものも入れられます。",
+      live: (model) => [
+        suggestInput<Msg>({
+          name: "sample-city",
+          label: "都市",
+          value: sampleOf(model, "city", ""),
+          error: none(),
+          disabled: false,
+          options: [
+            "札幌",
+            "仙台",
+            "東京",
+            "名古屋",
+            "大阪",
+            "福岡",
+          ],
+          onInput: msg.setSample("city"),
+        }),
+      ],
+      code: [
+        "suggestInput({",
+        '  name: "city",',
+        '  label: "都市",',
+        "  value: model.city,",
+        "  error: none(),",
+        "  disabled: false,",
+        '  options: ["札幌", "東京", "大阪"],',
+        "  onInput: setCity,",
+        "})",
+      ],
+      notes: [
+        "候補はブラウザが出します。見た目はブラウザごとに違います。",
+        "候補の中からしか選ばせないなら、選択欄かラジオを使います。",
+      ],
+    }),
+    sheet({
+      id: "check-group",
+      title: "複数の選択",
+      group: input,
+      lead: "いくつかの中から、いくつでも選びます。選択肢はすべて見えています。",
+      live: (model) => [
+        checkGroup<Msg>({
+          name: "sample-perms",
+          label: "できること",
+          options: perms,
+          chosen: listOf(model, "perms", "read"),
+          onToggle: (id: SoftStr): Msg =>
+            msg.setSample("perms")(
+              toggled(
+                listOf(model, "perms", "read"),
+                id,
+              ).join(","),
+            ),
+        }),
+        para(
+          `選んだもの：${listOf(model, "perms", "read").length} 個`,
+        ),
+      ],
+      code: [
+        "checkGroup({",
+        '  name: "perms",',
+        '  label: "できること",',
+        "  options: [",
+        '    { id: "read", label: "読む" },',
+        '    { id: "write", label: "書く" },',
+        "  ],",
+        "  chosen: model.perms,",
+        "  onToggle: (id) => setPerms(toggled(model.perms, id)),",
+        "})",
+      ],
+      notes: [
+        "選んだものは呼ぶ側が一覧で持ちます。toggled が、押された 1 つを足すか外すかします。",
+        "1 つだけ選ぶならラジオです。",
+      ],
     }),
 
     // --- 見せる ---
@@ -894,6 +1196,141 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [],
+    }),
+
+    sheet({
+      id: "sort-table",
+      title: "並べ替えできる表",
+      group: show,
+      lead: "見出しを押すと、その列で並べ替わります。もう一度押すと逆順になります。",
+      live: (model) => [
+        sortTable<Msg>({
+          caption: "店ごとの売上",
+          columns: [
+            {
+              id: "name",
+              label: "店",
+              numeric: false,
+              sortable: true,
+            },
+            {
+              id: "sales",
+              label: "売上",
+              numeric: true,
+              sortable: true,
+            },
+            {
+              id: "staff",
+              label: "人数",
+              numeric: true,
+              sortable: true,
+            },
+            {
+              id: "note",
+              label: "備考",
+              numeric: false,
+              sortable: false,
+            },
+          ],
+          rows: sortedBy(
+            shops,
+            (shop: Shop): SoftStr | number =>
+              sortOf(model).by === "sales"
+                ? shop.sales
+                : sortOf(model).by === "staff"
+                  ? shop.staff
+                  : shop.name,
+            sortOf(model).descending,
+          ).map((shop: Shop) => [
+            t(shop.name),
+            t(shop.sales.toLocaleString("ja-JP")),
+            t(String(shop.staff)),
+            t(shop.note),
+          ]),
+          sort: sortOf(model),
+          onSort: (id: SoftStr): Msg =>
+            msg.setSample("sort")(
+              written(
+                sortedOn(sortOf(model), id),
+              ),
+            ),
+        }),
+      ],
+      code: [
+        "sortTable({",
+        '  caption: "店ごとの売上",',
+        "  columns: [",
+        '    { id: "name", label: "店", numeric: false, sortable: true },',
+        '    { id: "sales", label: "売上", numeric: true, sortable: true },',
+        "  ],",
+        "  rows: sortedBy(",
+        "    shops,",
+        "    (shop) => shop.sales,",
+        "    model.sort.descending,",
+        "  ).map(toCells),",
+        "  sort: model.sort,",
+        "  onSort: (id) => setSort(sortedOn(model.sort, id)),",
+        "})",
+      ],
+      notes: [
+        "どの列でどちら向きに並んでいるかは呼ぶ側が持ちます。行を並べるのも呼ぶ側で、sortedBy がそれをします。",
+        "数の列は数の大きさで、文字の列は文字の順で並びます。",
+        "並べ替えられる見出しは本物のボタンです。いまの並びは読み上げにも伝わります。",
+      ],
+    }),
+    sheet({
+      id: "calendar",
+      title: "カレンダー",
+      group: show,
+      lead: "ひと月を、1 日 1 マスで見せます。日を押して選びます。",
+      live: (model) => [
+        calendar<Msg>({
+          title: `${monthOf(model).year}年${monthOf(model).month}月`,
+          year: monthOf(model).year,
+          month: monthOf(model).month,
+          chosen: dayOf(model),
+          weekdays: [
+            "日",
+            "月",
+            "火",
+            "水",
+            "木",
+            "金",
+            "土",
+          ],
+          previousLabel: "前の月",
+          nextLabel: "次の月",
+          onPrevious: msg.setSample("month")(
+            stepped(monthOf(model), -1),
+          ),
+          onNext: msg.setSample("month")(
+            stepped(monthOf(model), 1),
+          ),
+          onPick: (day: number): Msg =>
+            msg.setSample("day")(
+              `${stepped(monthOf(model), 0)}-${day}`,
+            ),
+        }),
+      ],
+      code: [
+        "calendar({",
+        '  title: "2026年11月",',
+        "  year: 2026,",
+        "  month: 11,",
+        "  chosen: some(27),",
+        '  weekdays: ["日", "月", "火", "水", "木", "金", "土"],',
+        '  previousLabel: "前の月",',
+        '  nextLabel: "次の月",',
+        "  onPrevious: previous,",
+        "  onNext: next,",
+        "  onPick: pick,",
+        "})",
+      ],
+      notes: [
+        "どの月を見せるか、どの日を選んでいるかは呼ぶ側が持ちます。",
+        "月の名前は呼ぶ側の言葉です。ページの言語のまま出せます。",
+        "日付を 1 つ入れるだけなら、日付の入力欄のほうが軽く済みます。",
+      ],
     }),
 
     // --- 知らせる ---

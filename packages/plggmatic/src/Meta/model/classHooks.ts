@@ -659,3 +659,41 @@ export const rangeValueClass: SoftStr = hook(
 /** A field with a mark before its input. */
 export const searchClass: SoftStr =
   hook("search");
+
+/** A button that lets a small panel down. */
+export const popoverClass: SoftStr =
+  hook("popover");
+export const popoverBodyClass: SoftStr = hook(
+  "popover-body",
+);
+/** A panel that comes in from an edge, over the page. */
+export const drawerClass: SoftStr =
+  hook("drawer");
+export const drawerHeadClass: SoftStr = hook(
+  "drawer-head",
+);
+export const drawerBodyClass: SoftStr = hook(
+  "drawer-body",
+);
+/** Says which edge a drawer comes in from. */
+export const sideAttr: SoftStr = `data-${cssPrefix}-side`;
+/** Several of a few choices, all of them in view. */
+export const checksClass: SoftStr =
+  hook("checks");
+export const checksItemClass: SoftStr = hook(
+  "checks-item",
+);
+/** A column heading that orders the table. */
+export const sortClass: SoftStr = hook("sort");
+/** A month, a day to a cell. */
+export const calendarClass: SoftStr =
+  hook("calendar");
+export const calendarHeadClass: SoftStr = hook(
+  "calendar-head",
+);
+export const calendarGridClass: SoftStr = hook(
+  "calendar-grid",
+);
+export const calendarDayClass: SoftStr = hook(
+  "calendar-day",
+);

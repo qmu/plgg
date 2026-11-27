@@ -25,10 +25,6 @@ const have = (
   what: SoftStr,
   page: SoftStr,
 ): Entry => ({ name, what, page });
-const lack = (
-  name: SoftStr,
-  what: SoftStr,
-): Entry => ({ name, what, page: "" });
 
 type Family = Readonly<{
   title: SoftStr;
@@ -85,11 +81,16 @@ export const families: ReadonlyArray<Family> = [
         "見出しごとに開閉する",
         "accordion",
       ),
-      lack(
+      have(
         "ポップオーバー",
         "押すと出る小さな箱",
+        "popover",
       ),
-      lack("ドロワー", "端から出る補助の面"),
+      have(
+        "ドロワー",
+        "端から出る補助の面",
+        "drawer",
+      ),
     ],
   },
   {
@@ -161,11 +162,16 @@ export const families: ReadonlyArray<Family> = [
         "ファイルを渡す",
         "file-input",
       ),
-      lack(
+      have(
         "候補つきの入力欄",
         "打つと候補が出る",
+        "suggest-input",
       ),
-      lack("複数の選択", "一覧からいくつか"),
+      have(
+        "複数の選択",
+        "一覧からいくつか",
+        "check-group",
+      ),
     ],
   },
   {
@@ -214,11 +220,16 @@ export const families: ReadonlyArray<Family> = [
         "何もないときの案内",
         "empty-state",
       ),
-      lack(
+      have(
         "並べ替えできる表",
         "見出しを押して並べ替える",
+        "sort-table",
       ),
-      lack("カレンダー", "月の中の日付"),
+      have(
+        "カレンダー",
+        "月の中の日付",
+        "calendar",
+      ),
     ],
   },
   {

@@ -717,8 +717,10 @@ export {
   pagination,
   steps,
   accordion,
+  type PopoverProps,
   menuButton,
   iconButton,
+  popover,
 } from "plggmatic/Component/usecase/navigation";
 export {
   type RadioGroupProps,
@@ -733,6 +735,24 @@ export {
   numberInput,
   dateInput,
   searchField,
+  type SuggestInputProps,
+  type CheckGroupProps,
   slider,
   fileInput,
+  suggestInput,
+  checkGroup,
+  toggled,
 } from "plggmatic/Component/usecase/choices";
+export {
+  type DrawerProps,
+  type Sort,
+  type SortColumn,
+  type SortTableProps,
+  type CalendarProps,
+  drawer,
+  sortedOn,
+  sortedBy,
+  sortTable,
+  monthWeeks,
+  calendar,
+} from "plggmatic/Component/usecase/compound";

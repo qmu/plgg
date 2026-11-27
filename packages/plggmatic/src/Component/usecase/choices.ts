@@ -14,6 +14,9 @@ import {
 } from "plgg-view";
 import { type Selectable } from "plggmatic/Component/usecase/navigation";
 import {
+  checkboxClass,
+  checksClass,
+  checksItemClass,
   fieldClass,
   fieldLabelClass,
   inputClass,
@@ -340,3 +343,120 @@ export const fileInput = <Msg>(
       ),
     ],
   );
+
+/**
+ * A SUGGESTING INPUT: free text, with known answers
+ * offered as it is typed. Built on the browser's own
+ * list of suggestions: what is typed need not be one of
+ * them.
+ */
+export type SuggestInputProps<Msg> =
+  TypedFieldProps<Msg> &
+    Readonly<{
+      options: ReadonlyArray<SoftStr>;
+    }>;
+export const suggestInput = <Msg>(
+  props: SuggestInputProps<Msg>,
+): Html<Msg> =>
+  el(
+    "div",
+    [attr("class", fieldClass)],
+    [
+      fieldLabel<Msg>(props.name, props.label),
+      el(
+        "input",
+        [
+          attr("id", props.name),
+          attr("name", props.name),
+          attr("type", "text"),
+          attr("value", props.value),
+          attr("class", inputClass),
+          attr("list", `${props.name}-options`),
+          attr("autocomplete", "off"),
+          ...errorAria(props.name, props.error),
+          ...(props.disabled
+            ? [attr("disabled", "")]
+            : []),
+          onInput(props.onInput),
+        ],
+        [],
+      ),
+      el(
+        "datalist",
+        [attr("id", `${props.name}-options`)],
+        props.options.map((option: SoftStr) =>
+          el<Msg>(
+            "option",
+            [attr("value", option)],
+            [],
+          ),
+        ),
+      ),
+      ...fieldError<Msg>(props.name, props.error),
+    ],
+  );
+
+/**
+ * A CHECK GROUP: several of a few choices, all of them
+ * in view. Real checkboxes under one legend; the chosen
+ * ones are the caller's list, and a press says which one
+ * to add or take away.
+ */
+export type CheckGroupProps<Msg> = Readonly<{
+  name: SoftStr;
+  label: SoftStr;
+  options: ReadonlyArray<Selectable>;
+  chosen: ReadonlyArray<SoftStr>;
+  onToggle: (id: SoftStr) => Msg;
+}>;
+export const checkGroup = <Msg>(
+  props: CheckGroupProps<Msg>,
+): Html<Msg> =>
+  el(
+    "fieldset",
+    [attr("class", checksClass)],
+    [
+      el(
+        "legend",
+        [attr("class", fieldLabelClass)],
+        [text(props.label)],
+      ),
+      ...props.options.map((option: Selectable) =>
+        el<Msg>(
+          "label",
+          [attr("class", checksItemClass)],
+          [
+            el(
+              "input",
+              [
+                attr("type", "checkbox"),
+                attr("name", props.name),
+                attr("value", option.id),
+                attr("class", checkboxClass),
+                ...(props.chosen.includes(
+                  option.id,
+                )
+                  ? [attr("checked", "")]
+                  : []),
+                onChange(() =>
+                  props.onToggle(option.id),
+                ),
+              ],
+              [],
+            ),
+            el("span", [], [text(option.label)]),
+          ],
+        ),
+      ),
+    ],
+  );
+
+/** The chosen ones after one is pressed: taken away when
+ * it was among them, added when it was not. */
+export const toggled = (
+  chosen: ReadonlyArray<SoftStr>,
+  id: SoftStr,
+): ReadonlyArray<SoftStr> =>
+  chosen.includes(id)
+    ? chosen.filter((c: SoftStr) => c !== id)
+    : [...chosen, id];

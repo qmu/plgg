@@ -1,4 +1,9 @@
-import { test, check, toBe } from "plgg-test";
+import {
+  test,
+  check,
+  toBe,
+  toEqual,
+} from "plgg-test";
 import { some, none } from "plgg";
 import { renderToString } from "plgg-view";
 import {
@@ -9,6 +14,9 @@ import {
   searchField,
   segmented,
   slider,
+  suggestInput,
+  checkGroup,
+  toggled,
 } from "plggmatic/Component/usecase/choices";
 
 const two = [
@@ -130,4 +138,47 @@ test("a file input accepts only what it was told to", () =>
     toBe(
       '<div class="pm-field"><label for="f" class="pm-field-label">ファイル</label><input id="f" name="f" type="file" class="pm-input" accept=".csv" /></div>',
     ),
+  ));
+
+test("a suggesting input is a text field tied to its list of suggestions", () =>
+  check(
+    renderToString(
+      suggestInput({
+        name: "city",
+        label: "都市",
+        value: "東",
+        error: none(),
+        disabled: false,
+        options: ["東京", "大阪"],
+        onInput: same,
+      }),
+    ).includes(
+      'list="city-options" autocomplete="off" /><datalist id="city-options"><option value="東京"></option><option value="大阪"></option></datalist>',
+    ),
+    toBe(true),
+  ));
+
+test("a check group checks every chosen one and no other", () =>
+  check(
+    renderToString(
+      checkGroup({
+        name: "unit",
+        label: "単位",
+        options: two,
+        chosen: ["b"],
+        onToggle: same,
+      }),
+    ),
+    toBe(
+      '<fieldset class="pm-checks"><legend class="pm-field-label">単位</legend><label class="pm-checks-item"><input type="checkbox" name="unit" value="a" class="pm-checkbox" /><span>月</span></label><label class="pm-checks-item"><input type="checkbox" name="unit" value="b" class="pm-checkbox" checked="" /><span>年</span></label></fieldset>',
+    ),
+  ));
+
+test("pressing a chosen one takes it away; pressing another adds it", () =>
+  check(
+    [
+      toggled(["a", "b"], "a"),
+      toggled(["a"], "b"),
+    ],
+    toEqual([["b"], ["a", "b"]]),
   ));

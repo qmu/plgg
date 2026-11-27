@@ -75,6 +75,26 @@ export const partsSystemCss = (
 .${p}-range-value{flex:none;min-width:2.5rem;text-align:right;font-variant-numeric:tabular-nums}
 .${p}-search{display:flex}
 .${p}-search .${p}-input{flex:1 1 auto;min-width:0;width:100%}
+.${p}-popover{position:relative;display:inline-block}
+.${p}-popover summary{display:inline-flex;align-items:center;cursor:pointer;list-style:none}
+.${p}-popover summary::-webkit-details-marker{display:none}
+.${p}-popover-body{position:absolute;z-index:${overlay};top:calc(100% + .35rem);left:0;width:max-content;max-width:min(20rem,80vw)}
+.${p}-drawer{position:fixed;z-index:${overlay};top:0;bottom:0;right:0;display:flex;flex-direction:column;width:min(22rem,88vw)}
+.${p}-drawer[data-${p}-side="left"]{right:auto;left:0}
+.${p}-drawer-head{flex:none;display:flex;align-items:center;justify-content:space-between}
+.${p}-drawer-body{flex:1 1 auto;min-height:0;overflow-y:auto}
+.${p}-checks{display:flex;flex-direction:column;margin:0;min-width:0}
+.${p}-checks-item{display:inline-flex;align-items:center;cursor:pointer}
+.${p}-checks-item input{flex:none;margin:0}
+.${p}-sort{display:inline-flex;align-items:center;cursor:pointer;white-space:nowrap}
+.${p}-sort::after{content:"↕";flex:none}
+th[aria-sort="ascending"] .${p}-sort::after{content:"↑"}
+th[aria-sort="descending"] .${p}-sort::after{content:"↓"}
+.${p}-calendar{display:inline-flex;flex-direction:column}
+.${p}-calendar-head{display:flex;align-items:center;justify-content:space-between}
+.${p}-calendar-grid{border-collapse:collapse}
+.${p}-calendar-grid :is(th,td){text-align:center}
+.${p}-calendar-day{display:inline-flex;align-items:center;justify-content:center;width:2.1rem;height:2.1rem;cursor:pointer}
 `;
 
 /** What the appearance sheet hands the parts: its own
@@ -208,6 +228,30 @@ ${toned("alert")}
 .${p}-range-value{font-size:.8125rem;color:${l.muted}}
 .${p}-input[type="file"]{padding:.3rem}
 .${p}-input[type="file"]::file-selector-button{margin-right:.6rem;padding:.25rem .6rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font:inherit;font-size:.8125rem;cursor:pointer}
+.${p}-popover summary{padding:.45rem .8rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;font-weight:500}
+.${p}-popover summary:hover,.${p}-popover summary:focus-visible,.${p}-popover[open] summary{${l.press};outline:0}
+.${p}-popover-body{padding:.75rem .9rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;line-height:1.6;box-shadow:${l.elevation}}
+.${p}-popover-body :is(p,ul,ol):first-child{margin-top:0}
+.${p}-popover-body :is(p,ul,ol):last-child{margin-bottom:0}
+.${p}-drawer{border-left:${l.rule};background:${l.surface};color:${l.text};box-shadow:${l.elevation}}
+.${p}-drawer[data-${p}-side="left"]{border-left:0;border-right:${l.rule}}
+.${p}-drawer-head{gap:1rem;padding:.6rem .75rem .6rem 1rem;border-bottom:${l.rule};font-size:.9375rem;font-weight:600}
+.${p}-drawer-body{padding:1rem;font-size:.875rem}
+.${p}-checks{gap:.4rem;padding:0;border:0}
+.${p}-checks legend{padding:0;margin-bottom:.35rem}
+.${p}-checks-item{gap:.5rem;font-size:.875rem;color:${l.text}}
+.${p}-sort{gap:.35rem;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:600}
+.${p}-sort::after{font-size:.75rem;color:${l.muted}}
+.${p}-sort:hover{text-decoration:underline}
+.${p}-sort:focus-visible{outline:${l.rule};outline-offset:2px}
+th[aria-sort="ascending"] .${p}-sort::after,th[aria-sort="descending"] .${p}-sort::after{color:${l.text}}
+.${p}-calendar{gap:.5rem;padding:.75rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text}}
+.${p}-calendar-head{gap:.5rem;font-size:.9375rem;font-weight:600}
+.${p}-calendar-grid th{padding:.2rem 0;font-size:.75rem;font-weight:500;color:${l.muted}}
+.${p}-calendar-grid td{padding:1px}
+.${p}-calendar-day{padding:0;border:0;border-radius:${l.radius};background:none;color:${l.text};font:inherit;font-size:.8125rem;transition:background-color ${l.quick} ease,color ${l.quick} ease}
+.${p}-calendar-day:hover,.${p}-calendar-day:focus-visible{${l.press};outline:0}
+.${p}-calendar-day[aria-pressed="true"]{${l.current}}
 @media (prefers-reduced-motion:reduce){.${p}-spinner-mark,.${p}-skeleton-line,.${p}-progress[data-${p}-busy] .${p}-progress-bar{animation:none}.${p}-tip::after{transition:none}}
 `;
 };

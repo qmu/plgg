@@ -11,6 +11,7 @@ import {
   menuButton,
   pageNumbers,
   pagination,
+  popover,
   steps,
   tabs,
 } from "plggmatic/Component/usecase/navigation";
@@ -135,5 +136,18 @@ test("an icon button is named, its glyph unheard", () =>
       ),
     toBe(
       '<button type="button" class="pm-icon-btn" aria-label="足す"><span aria-hidden="true">+</span></button><button type="button" class="pm-icon-btn" aria-label="足す" disabled=""><span aria-hidden="true">+</span></button>',
+    ),
+  ));
+
+test("a popover is a native disclosure: its label, then its panel", () =>
+  check(
+    renderToString(
+      popover({
+        label: "くわしく",
+        body: [text("中身")],
+      }),
+    ),
+    toBe(
+      '<details class="pm-popover"><summary>くわしく</summary><div class="pm-popover-body">中身</div></details>',
     ),
   ));

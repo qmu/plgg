@@ -16,6 +16,8 @@ import {
   menuListClass,
   pagerClass,
   pagerItemClass,
+  popoverBodyClass,
+  popoverClass,
   stepClass,
   stepsClass,
   tabClass,
@@ -330,6 +332,32 @@ export const iconButton = <Msg>(
         "span",
         [attr("aria-hidden", "true")],
         [text(props.glyph)],
+      ),
+    ],
+  );
+
+/**
+ * A POPOVER: a button that lets a small panel down,
+ * holding whatever explains or adjusts the thing beside
+ * it. Built on the native disclosure, like the menu: it
+ * opens on a press or Enter with no script.
+ */
+export type PopoverProps<Msg> = Readonly<{
+  label: SoftStr;
+  body: ReadonlyArray<Html<Msg>>;
+}>;
+export const popover = <Msg>(
+  props: PopoverProps<Msg>,
+): Html<Msg> =>
+  el(
+    "details",
+    [attr("class", popoverClass)],
+    [
+      el("summary", [], [text(props.label)]),
+      el(
+        "div",
+        [attr("class", popoverBodyClass)],
+        props.body,
       ),
     ],
   );
