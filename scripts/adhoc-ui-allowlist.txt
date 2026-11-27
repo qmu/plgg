@@ -1,0 +1,104 @@
+# One-off UI that was already there when the rule was made (2026-11-27):
+# "a UI part exists once, as a standardized plggmatic component".
+# scripts/gate-no-adhoc-ui.sh fails on any class not listed here, and on any
+# line whose class is gone — so this list only shrinks.
+#
+#   <package> <class>   # <kind>
+#
+# drawing — the diagram's own picture (a node, a wire, a shadow). Not a UI
+#           part; it stays.
+# ui      — a UI part the package still styles itself. Debt: move it onto a
+#           plggmatic component, then delete the line.
+# frame   — plggpress's own names for the site frame it builds from the
+#           kit's shell. Debt: the rules behind them belong to the kit's
+#           shell as options.
+
+plgg-ir-diagram active   # drawing
+plgg-ir-diagram add-node   # ui
+plgg-ir-diagram animated   # drawing
+plgg-ir-diagram arrow   # drawing
+plgg-ir-diagram board   # drawing
+plgg-ir-diagram board-controls   # ui
+plgg-ir-diagram canvas-wrap   # ui
+plgg-ir-diagram controls   # ui
+plgg-ir-diagram covered   # drawing
+plgg-ir-diagram crease   # drawing
+plgg-ir-diagram dsl   # ui
+plgg-ir-diagram dsl-field   # ui
+plgg-ir-diagram dsl-handle   # ui
+plgg-ir-diagram dsl-head   # ui
+plgg-ir-diagram dsl-help   # ui
+plgg-ir-diagram dsl-hover   # ui
+plgg-ir-diagram dsl-mode   # ui
+plgg-ir-diagram dsl-overlay   # ui
+plgg-ir-diagram dsl-properties   # ui
+plgg-ir-diagram dsl-row   # ui
+plgg-ir-diagram dsl-rows   # ui
+plgg-ir-diagram dsl-size   # ui
+plgg-ir-diagram dsl-size-x   # ui
+plgg-ir-diagram dsl-size-y   # ui
+plgg-ir-diagram edge-hit   # drawing
+plgg-ir-diagram edge-label   # drawing
+plgg-ir-diagram editing-tools   # ui
+plgg-ir-diagram engine-drawing   # drawing
+plgg-ir-diagram error   # ui
+plgg-ir-diagram feature   # ui
+plgg-ir-diagram flow-board   # drawing
+plgg-ir-diagram flow-sheet   # ui
+plgg-ir-diagram ground-side   # drawing
+plgg-ir-diagram help-close   # ui
+plgg-ir-diagram help-lead   # ui
+plgg-ir-diagram help-rows   # ui
+plgg-ir-diagram help-toast   # ui
+plgg-ir-diagram hidden   # drawing
+plgg-ir-diagram hint   # ui
+plgg-ir-diagram hint-mouse   # ui
+plgg-ir-diagram hint-touch   # ui
+plgg-ir-diagram hole   # drawing
+plgg-ir-diagram leader   # drawing
+plgg-ir-diagram line   # drawing
+plgg-ir-diagram lit   # drawing
+plgg-ir-diagram mark   # drawing
+plgg-ir-diagram marquee   # drawing
+plgg-ir-diagram maximise   # ui
+plgg-ir-diagram minimap   # drawing
+plgg-ir-diagram node   # drawing
+plgg-ir-diagram plgg-flow-error   # ui
+plgg-ir-diagram quiet   # drawing
+plgg-ir-diagram quiet-node   # drawing
+plgg-ir-diagram quiet-wire   # drawing
+plgg-ir-diagram remove   # ui
+plgg-ir-diagram scroll-hint   # ui
+plgg-ir-diagram session-tool   # ui
+plgg-ir-diagram shade   # drawing
+plgg-ir-diagram shadow   # drawing
+plgg-ir-diagram sheet-history   # ui
+plgg-ir-diagram silhouette   # drawing
+plgg-ir-diagram stage   # ui
+plgg-ir-diagram tool-content   # ui
+plgg-ir-diagram tool-trigger   # ui
+plgg-ir-diagram toolbar   # ui
+plgg-ir-diagram toolbar-item   # ui
+plgg-ir-diagram tray-label   # ui
+plgg-ir-diagram up   # drawing
+plgg-ir-diagram world-grid   # drawing
+plggpress vp   # frame
+plggpress vp-app   # frame
+plggpress vp-backdrop   # frame
+plggpress vp-col-body   # frame
+plggpress vp-col-head   # frame
+plggpress vp-content   # frame
+plggpress vp-doc   # frame
+plggpress vp-drawer-description   # frame
+plggpress vp-fill   # frame
+plggpress vp-main   # frame
+plggpress vp-menu-btn   # frame
+plggpress vp-menu-cb   # frame
+plggpress vp-mobile-description   # frame
+plggpress vp-mobilebar   # frame
+plggpress vp-mobilebar-home   # frame
+plggpress vp-rail   # frame
+plggpress vp-section   # frame
+plggpress vp-sheet   # frame
+plggpress vp-shell   # frame
+plggpress vp-sidebar   # frame

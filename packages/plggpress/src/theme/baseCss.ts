@@ -49,7 +49,6 @@ export const baseCss = (
 ): SoftStr => {
   const cvar = colorVar(theme);
   const mvar = metricVar(theme);
-  const rule = `${a.ruleWidth} solid ${cvar(a.rule)}`;
   return `
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -109,30 +108,6 @@ body.vp{
 }
 .vp-section .vp-col-body{
   padding:0;font-size:0.875rem;
-}
-${selector(trailClass)}{
-  flex:none;display:flex;align-items:stretch;
-  height:2rem;overflow-x:auto;
-  border-bottom:${rule};
-  background:${cvar("surface")};
-  font-size:0.75rem;
-}
-${selector(trailClass)} button{
-  flex:none;border:0;background:none;
-  color:${cvar("muted")};font:inherit;
-  padding:0 0.75rem;cursor:pointer;
-  white-space:nowrap;max-width:14rem;
-  overflow:hidden;text-overflow:ellipsis;
-}
-${selector(trailClass)} button + button::before{
-  content:"›";margin-right:0.75rem;
-  color:${cvar("muted")};
-}
-${selector(trailClass)} button[aria-current]{
-  color:${cvar("text")};font-weight:600;
-}
-${selector(trailClass)} button:hover{
-  color:${cvar("text")};
 }
 /* the phone bar and the drawer are the kit's; plggpress
    adds the appearance toggle and the social links to the

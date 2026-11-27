@@ -36,6 +36,13 @@ REPO_ROOT=$(git rev-parse --show-toplevel) && cd $REPO_ROOT
 # compiler checks (scripts/gate-framework-names.sh).
 ./scripts/gate-framework-names.sh
 
+# Gate: no one-off UI outside plggmatic — a UI part exists once, as a
+# standardized plggmatic component. A UI package that defines a class of its
+# own in a stylesheet fails here unless the class is in the shrinking list of
+# what was already there (scripts/gate-no-adhoc-ui.sh,
+# scripts/adhoc-ui-allowlist.txt).
+./scripts/gate-no-adhoc-ui.sh
+
 # Gate: the repository's own TS tooling scripts (scripts/*.ts — the publish
 # preflight and its pure helpers) typecheck strictly and their unit tests pass.
 # They run under Node's native type-stripping; the typecheck uses the

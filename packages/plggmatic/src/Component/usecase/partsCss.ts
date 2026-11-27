@@ -99,6 +99,9 @@ export const partsSystemCss = (
 .${p}-swatch-chip{grid-row:1 / 3;width:2.25rem;height:2.25rem}
 .${p}-preview-bar{display:flex;align-items:center;justify-content:space-between;height:2.25rem}
 .${p}-preview iframe{display:block;width:100%;height:min(34rem,62vh);border-style:none}
+.${p}-trail{flex:none;display:flex;align-items:stretch;height:2rem;overflow-x:auto}
+.${p}-trail button{flex:none;cursor:pointer;white-space:nowrap;max-width:14rem;overflow:hidden;text-overflow:ellipsis}
+.${p}-trail button + button::before{content:"›"}
 .${p}-popover{position:relative;display:inline-block}
 .${p}-popover summary{display:inline-flex;align-items:center;cursor:pointer;list-style:none}
 .${p}-popover summary::-webkit-details-marker{display:none}
@@ -285,6 +288,11 @@ ${toned("alert")}
 .${p}-preview-bar{gap:1rem;padding:0 .4rem 0 .9rem;border-bottom:${l.rule};font-size:.8125rem;font-weight:600}
 .${p}-preview-bar a{font-weight:400;font-size:.75rem}
 .${p}-preview iframe{background:${l.surface}}
+.${p}-trail{border-bottom:${l.rule};background:${l.surface};font-size:.75rem}
+.${p}-trail button{padding:0 .75rem;border:0;background:none;color:${l.muted};font:inherit}
+.${p}-trail button + button::before{margin-right:.75rem;color:${l.muted}}
+.${p}-trail button[aria-current]{color:${l.text};font-weight:600}
+.${p}-trail button:hover{color:${l.text}}
 .${p}-popover summary{padding:.45rem .8rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;font-weight:500}
 .${p}-popover summary:hover,.${p}-popover summary:focus-visible,.${p}-popover[open] summary{${l.press};outline:0}
 .${p}-popover-body{padding:.75rem .9rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;line-height:1.6;box-shadow:${l.elevation}}
