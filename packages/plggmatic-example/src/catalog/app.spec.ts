@@ -105,7 +105,7 @@ test("a link opens its target to the right of its own page, replacing what stood
     check(
       h,
       toContain(
-        'href="/index.html?p=overview&amp;c=rules"',
+        'href="/index.html?p=overview&amp;c=layout"',
       ),
     ),
     // from the second page: the first two stay

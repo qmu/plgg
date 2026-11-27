@@ -35,7 +35,6 @@ import {
 } from "plgg-view";
 import { type Msg, msg } from "./model.ts";
 import {
-  type Ctx,
   type Node,
   h1,
   h2,
@@ -50,18 +49,17 @@ import {
   screen,
   swatch,
 } from "./parts.ts";
+import { type Page } from "./page.ts";
+import {
+  layoutRules,
+  columnPage,
+  openPage,
+  narrowPage,
+  motionPage,
+} from "./layoutChapter.ts";
+import { componentIndex } from "./componentIndex.ts";
 
-/**
- * One page of the catalog. `wide` asks for two columns'
- * worth — a page that shows a whole screen.
- */
-export type Page = Readonly<{
-  id: SoftStr;
-  title: SoftStr;
-  group: SoftStr;
-  wide: boolean;
-  body: (ctx: Ctx) => ReadonlyArray<Node>;
-}>;
+export type { Page } from "./page.ts";
 
 /** A plain hook-styled button, for the three weights. */
 const plain = (
@@ -94,24 +92,32 @@ const overview: Page = {
     ),
     para(
       "左にサイドバー、その右に開いているページが並びます。ページの中のリンクを押すと、行き先が右の列に開きます。試しに ",
-      link("rules", "既定の見た目"),
+      link("layout", "レイアウトの決まり"),
       " か ",
       link("buttons", "ボタン"),
-      " を押してみてください。",
+      " を押してみてください。最初に読むのは ",
+      link("layout", "レイアウトの決まり"),
+      " です。",
     ),
     h2("何が入っているか"),
     list(
       [
+        link("layout", "レイアウトの決まり"),
+        "・",
         link("shell", "標準の画面"),
-        " — サイドバーと、幅を分け合うページの列",
+        "・",
+        link("share", "列を分け合う"),
+        "・",
+        link("metrics", "寸法"),
+        " — レイアウトの仕組み。画面がどう組まれ、どう動くか",
       ],
       [
+        link("looks", "スキンを差し替える"),
+        "・",
         link("colors", "色"),
         "・",
         link("type", "文字"),
-        "・",
-        link("metrics", "寸法"),
-        " — 見た目の土台",
+        " — スキン。レイアウトの仕組みとは別に持ち、差し替えられます",
       ],
       [
         link("buttons", "ボタン"),
@@ -121,7 +127,7 @@ const overview: Page = {
         link("dialog", "ダイアログ"),
         "・",
         link("toasts", "トースト"),
-        " — 部品",
+        " — コンポーネント",
       ],
       [
         link("tpl-business", "業務アプリ"),
@@ -159,14 +165,14 @@ const overview: Page = {
 
 const rules: Page = {
   id: "rules",
-  title: "既定の見た目：モノトーン",
-  group: "はじめに",
+  title: "既定のスキン：モノトーン",
+  group: "スキン",
   wide: false,
   body: ({ link }) => [
-    h1("既定の見た目：モノトーン"),
+    h1("既定のスキン：モノトーン"),
     para(
-      "何も指定しないときの見た目です。線・角・強調・動きを、こう決めています。別の見た目にする方法は ",
-      link("looks", "見た目を差し替える"),
+      "何も指定しないときのスキンです。線・角・強調・動きを、こう決めています。別のスキンにする方法は ",
+      link("looks", "スキンを差し替える"),
       " にあります。",
     ),
     h2("線は1色"),
@@ -183,19 +189,11 @@ const rules: Page = {
     para(
       "いま居る場所（サイドバーの行、右の列を開いたリンク、トップページでのロゴ）は、その文字の部分だけ、文字と背景を入れ替えて示します。マウスを乗せた行は、薄い色が付くだけです。色のアクセントは使いません。",
     ),
-    h2("どの列も同じ作り"),
+    h2("動きは速い"),
     para(
-      "サイドバーもページも、上に名前の帯、その下に自分でスクロールする本文、という同じ作りです。",
-    ),
-    h2("動きは、何が変わったかを言う"),
-    list(
-      [
-        "ページが開くとき：幅 0 から広がり、隣が場所をゆずります。",
-      ],
-      ["ページを閉じるとき：その逆です。"],
-      [
-        "同じ場所で入れ替えるとき：幅は動かず、中身だけがふわっと出ます。",
-      ],
+      "開く・閉じる・入れ替えるの動きは短く、すぐ終わります。どう動くかはスキンではなく、",
+      link("layout", "レイアウトの決まり"),
+      " が決めています。",
     ),
     para(
       "列の幅の決まりは ",
@@ -207,13 +205,13 @@ const rules: Page = {
 
 const looks: Page = {
   id: "looks",
-  title: "見た目を差し替える",
-  group: "はじめに",
+  title: "スキンを差し替える",
+  group: "スキン",
   wide: false,
   body: ({ model, link }) => [
-    h1("見た目を差し替える"),
+    h1("スキンを差し替える"),
     para(
-      "plggmatic は、仕組み（UI システム）と見た目（アピアランス）を分けて持ちます。同じ仕組みの上で、まったく違う見た目になるのは、ふつうのことです。",
+      "plggmatic は、レイアウトの仕組みとスキン（色・線・角・文字・動きの速さ）を分けて持ちます。同じ仕組みの上で、まったく違うスキンになるのは、ふつうのことです。",
     ),
     h2("切り替えてみる"),
     example(
@@ -256,7 +254,7 @@ const looks: Page = {
         "いま居る場所と、右の列を開いたリンクに「印」が付くこと。",
       ],
     ),
-    h2("見た目が決めること"),
+    h2("スキンが決めること"),
     table(
       ["決めること", "モノトーン", "ソフト"],
       [
@@ -278,7 +276,7 @@ const looks: Page = {
     ),
     h2("書き方"),
     para(
-      "見た目はデータです。既定を写して、変えたいところだけ書き換えられます。",
+      "スキンはデータです。既定を写して、変えたいところだけ書き換えられます。",
     ),
     source(
       [
@@ -287,7 +285,7 @@ const looks: Page = {
         "// 既定（モノトーン）",
         "kitCss(theme);",
         "",
-        "// 自分の見た目",
+        "// 自分のスキン",
         "kitCss(theme, {",
         "  ...monochrome,",
         '  radius: "6px",',
@@ -297,7 +295,7 @@ const looks: Page = {
     ),
     para(
       "既定の決まりは ",
-      link("rules", "既定の見た目"),
+      link("rules", "既定のスキン"),
       " にあります。あれは「モノトーンの決まり」で、仕組みの決まりではありません。",
     ),
   ],
@@ -306,7 +304,7 @@ const looks: Page = {
 const colors: Page = {
   id: "colors",
   title: "色",
-  group: "基礎",
+  group: "スキン",
   wide: false,
   body: ({ link }) => [
     h1("色"),
@@ -346,7 +344,7 @@ const colors: Page = {
 const type: Page = {
   id: "type",
   title: "文字",
-  group: "基礎",
+  group: "スキン",
   wide: false,
   body: () => [
     h1("文字"),
@@ -386,7 +384,7 @@ const type: Page = {
 const metrics: Page = {
   id: "metrics",
   title: "寸法",
-  group: "基礎",
+  group: "レイアウトの仕組み",
   wide: false,
   body: ({ link }) => [
     h1("寸法"),
@@ -429,7 +427,7 @@ const metrics: Page = {
 const buttons: Page = {
   id: "buttons",
   title: "ボタン",
-  group: "部品",
+  group: "コンポーネント：操作",
   wide: false,
   body: ({ model, link }) => [
     h1("ボタン"),
@@ -523,7 +521,7 @@ const buttons: Page = {
 const fields: Page = {
   id: "fields",
   title: "入力欄",
-  group: "部品",
+  group: "コンポーネント：入力",
   wide: false,
   body: ({ model, link }) => [
     h1("入力欄"),
@@ -625,7 +623,7 @@ const fields: Page = {
 const properties: Page = {
   id: "properties",
   title: "設定の行",
-  group: "部品",
+  group: "コンポーネント：入力",
   wide: false,
   body: ({ model, link }) => [
     h1("設定の行"),
@@ -747,7 +745,7 @@ const properties: Page = {
 const dialog: Page = {
   id: "dialog",
   title: "ダイアログ",
-  group: "部品",
+  group: "コンポーネント：知らせる",
   wide: false,
   body: ({ model }) => [
     h1("ダイアログ"),
@@ -793,7 +791,7 @@ const dialog: Page = {
 const toasts: Page = {
   id: "toasts",
   title: "トースト",
-  group: "部品",
+  group: "コンポーネント：知らせる",
   wide: false,
   body: () => [
     h1("トースト"),
@@ -849,7 +847,7 @@ const toasts: Page = {
 const links: Page = {
   id: "links",
   title: "リンクとパンくず",
-  group: "部品",
+  group: "コンポーネント：操作",
   wide: false,
   body: ({ link }) => [
     h1("リンクとパンくず"),
@@ -891,7 +889,7 @@ const links: Page = {
 const theme: Page = {
   id: "theme",
   title: "テーマ切り替え",
-  group: "部品",
+  group: "コンポーネント：操作",
   wide: false,
   body: ({ model, link }) => [
     h1("テーマ切り替え"),
@@ -915,8 +913,8 @@ const theme: Page = {
 
 const shellPage: Page = {
   id: "shell",
-  title: "標準の画面",
-  group: "レイアウト",
+  title: "標準の画面（書き方）",
+  group: "レイアウトの仕組み",
   wide: false,
   body: ({ link }) => [
     h1("標準の画面"),
@@ -968,7 +966,7 @@ const shellPage: Page = {
       " を1回入れるだけです。色は ",
       link("colors", "色"),
       "、決まりは ",
-      link("rules", "既定の見た目"),
+      link("rules", "既定のスキン"),
       " にあります。",
     ),
   ],
@@ -977,7 +975,7 @@ const shellPage: Page = {
 const share: Page = {
   id: "share",
   title: "列を分け合う",
-  group: "レイアウト",
+  group: "レイアウトの仕組み",
   wide: false,
   body: ({ link }) => [
     h1("列を分け合う"),
@@ -1026,7 +1024,7 @@ const share: Page = {
 const sidebar: Page = {
   id: "sidebar",
   title: "サイドバー",
-  group: "レイアウト",
+  group: "レイアウトの仕組み",
   wide: false,
   body: ({ link }) => [
     h1("サイドバー"),
@@ -1124,21 +1122,27 @@ const tplForms: Page = {
 /** Every page, in the order the sidebar lists them. */
 export const pages: ReadonlyArray<Page> = [
   overview,
-  rules,
+  layoutRules,
+  columnPage,
+  openPage,
+  share,
+  sidebar,
+  narrowPage,
+  motionPage,
+  metrics,
+  shellPage,
   looks,
+  rules,
   colors,
   type,
-  metrics,
+  componentIndex,
   buttons,
+  links,
+  theme,
   fields,
   properties,
   dialog,
   toasts,
-  links,
-  theme,
-  shellPage,
-  share,
-  sidebar,
   tplBusiness,
   tplWorkspace,
   tplForms,
