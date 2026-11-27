@@ -366,6 +366,37 @@ export const navigationInitScript: SoftStr =
   // which is set as text, or ask for a link to be opened
   // beside it, which is opened only when it leads to this
   // site or to a partner. Anything else is dropped.
+  // LIGHT OR DARK is this page's to say: each partner's
+  // column is told when it first answers and whenever the
+  // reader switches, addressed to that partner's origin
+  // alone.
+  "function shade(col){var f=col.querySelector(':scope>iframe.'+FR);if(!f||!f.contentWindow){return;}" +
+  "var o;try{o=new URL(col.getAttribute(C)||'').origin;}catch(e){return;}" +
+  "if(PT.indexOf(o)<0){return;}" +
+  "f.contentWindow.postMessage({type:'pm:scheme',scheme:document.documentElement.classList.contains('dark')?'dark':'light'},o);}" +
+  "if(PT.length&&window.MutationObserver){new MutationObserver(function(){" +
+  "var c=cols();for(var i=0;i<c.length;i++){shade(c[i]);}})" +
+  ".observe(document.documentElement,{attributes:true,attributeFilter:['class']});}" +
+  // SHOWN AS A COLUMN, this page hears one thing from the
+  // site it stands in, and only from that site: whether to
+  // be light or dark. Nothing else is read, and the
+  // reader's own choice for this site is left as it was.
+  "if(EMB){window.addEventListener('message',function(ev){" +
+  "if(ev.source!==window.parent||EB.indexOf(ev.origin)<0||!ev.data||ev.data.type!=='pm:scheme'){return;}" +
+  "if(ev.data.scheme==='dark'){document.documentElement.classList.add('dark');}" +
+  "else if(ev.data.scheme==='light'){document.documentElement.classList.remove('dark');}});" +
+  // a sideways scroll that nothing here can take is the
+  // strip's: hand it to the site this page stands in
+  "window.addEventListener('wheel',function(ev){" +
+  "var dx=ev.deltaX*(ev.deltaMode===1?16:1);" +
+  "if(!dx||Math.abs(dx)<=Math.abs(ev.deltaY)){return;}" +
+  "var e=ev.target;while(e&&e!==document&&e.nodeType===1){" +
+  "var ox=window.getComputedStyle(e).overflowX;" +
+  "if((ox==='auto'||ox==='scroll')&&e.scrollWidth>e.clientWidth+1){" +
+  "if(dx<0?e.scrollLeft>0:e.scrollLeft+e.clientWidth<e.scrollWidth-1){return;}}" +
+  "e=e.parentNode;}" +
+  "ev.preventDefault();tell({type:'pm:scroll',dx:dx});},{passive:false});}" +
+  "var SX=0,SL=0,SW=0;" +
   "window.addEventListener('message',function(ev){" +
   "if(PT.indexOf(ev.origin)<0||!ev.data||typeof ev.data!=='object'){return;}" +
   "var c=cols(),at=-1;for(var i=0;i<c.length;i++){" +
@@ -374,8 +405,21 @@ export const navigationInitScript: SoftStr =
   "try{if(new URL(c[at].getAttribute(C)||'').origin!==ev.origin){return;}}catch(e){return;}" +
   "var d=ev.data;" +
   "if(d.type==='pm:title'&&typeof d.title==='string'){" +
-  "c[at].setAttribute(RD,'');" +
+  "c[at].setAttribute(RD,'');shade(c[at]);" +
   "var sp=c[at].querySelector(':scope>header>span');if(sp){sp.textContent=d.title.slice(0,120);}sync();return;}" +
+  // a sideways scroll made inside a frame belongs to the
+  // strip the frame stands in. The strip rests on a column
+  // edge, so the scroll is gathered until it is plainly
+  // meant, then the neighbouring column is brought into
+  // view — one column a gesture, however long it coasts.
+  "if(d.type==='pm:scroll'&&typeof d.dx==='number'&&isFinite(d.dx)){" +
+  "var now=Date.now();if(now<SW){return;}" +
+  "if(now-SL>250){SX=0;}SL=now;SX+=Math.max(-600,Math.min(600,d.dx));" +
+  "if(Math.abs(SX)<60){return;}" +
+  "var to=c[at+(SX>0?1:-1)];SX=0;SW=now+450;" +
+  "if(to){to.scrollIntoView({inline:'nearest',block:'nearest',behavior:R0?'auto':'smooth'});}" +
+  "else{var st=strip();if(st){st.scrollBy({left:SX>0?st.clientWidth:-st.clientWidth,behavior:R0?'auto':'smooth'});}}" +
+  "return;}" +
   "if(d.type==='pm:open'&&typeof d.href==='string'){var u;try{u=new URL(d.href);}catch(e){return;}" +
   "if(u.protocol!=='https:'&&u.protocol!=='http:'){return;}" +
   "if(u.origin===window.location.origin){openFrom(at,u.pathname);}" +

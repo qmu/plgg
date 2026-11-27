@@ -115,5 +115,6 @@ export const frameReadyAttr: SoftStr = `data-${cssPrefix}-frame-ready`;
 export const frameCss = (p: SoftStr): SoftStr => `
 .${p}-frame{flex:1 1 auto;min-height:0;width:100%;border-style:none}
 [data-${p}-embedded] :is(.${p}-shell-bar,.${p}-shell-side,.${p}-shell-backdrop,.${p}-shell-head,.${p}-trail){display:none}
-[data-${p}-embedded] .${p}-shell-page{flex:1 1 auto;width:100%;max-width:none}
+[data-${p}-embedded] .${p}-shell-page{flex:1 1 0;width:100%;min-width:0;max-width:none}
+[data-${p}-embedded] .${p}-row{overflow-x:hidden}
 `;
