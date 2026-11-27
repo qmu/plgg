@@ -1,0 +1,18 @@
+// The delivery surface of plggpress's own site: a
+// Cloudflare Worker that serves the plggpress build output
+// as static assets — no script of its own. The hostname is
+// a custom domain of the Worker, so wrangler creates and
+// holds its DNS record.
+{
+  "name": "plggpress-site",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "plggpress.qmu.co.jp", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist-site",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

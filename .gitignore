@@ -71,3 +71,7 @@ packages/*/package-lock.json
 # Playwright MCP session output (screenshots, snapshots, console logs)
 .playwright-mcp/
 **/.playwright-mcp/
+
+# plggpress own site build
+packages/plggpress/dist-site/
+packages/plggpress/.site-content/
