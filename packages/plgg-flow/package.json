@@ -277,6 +277,16 @@
         "types": "./dist/area.d.ts",
         "default": "./dist/area.cjs.js"
       }
+    },
+    "./radar": {
+      "import": {
+        "types": "./dist/radar.d.ts",
+        "default": "./dist/radar.es.js"
+      },
+      "require": {
+        "types": "./dist/radar.d.ts",
+        "default": "./dist/radar.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

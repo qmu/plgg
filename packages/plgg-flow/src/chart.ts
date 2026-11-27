@@ -33,6 +33,8 @@ import {
 } from "plgg-flow/bars";
 import {
   asArea,
+  asLine,
+  asStack,
   areaDeep,
   areaExtent,
   areaGraph,
@@ -40,6 +42,15 @@ import {
   areaScenery,
   type Area,
 } from "plgg-flow/area";
+import {
+  asRadar,
+  radarDeep,
+  radarExtent,
+  radarGraph,
+  radarLines,
+  radarScenery,
+  type Radar,
+} from "plgg-flow/radar";
 import {
   asSankey,
   sankeyDeep,
@@ -90,6 +101,7 @@ export type Chart =
   | Box<"Timeline", Timeline>
   | Box<"Bars", Bars>
   | Box<"Area", Area>
+  | Box<"Radar", Radar>
   | Box<"Sankey", Sankey>;
 
 const plot$ = () => pattern("Plot")();
@@ -98,6 +110,7 @@ const timeline$ = () => pattern("Timeline")();
 const bars$ = () => pattern("Bars")();
 const sankey$ = () => pattern("Sankey")();
 const area$ = () => pattern("Area")();
+const radar$ = () => pattern("Radar")();
 
 /** The names `layout` knows a chart by. */
 const kinds: readonly string[] = [
@@ -107,6 +120,9 @@ const kinds: readonly string[] = [
   "bars",
   "sankey",
   "area",
+  "line",
+  "stack",
+  "radar",
 ];
 export const isChartKind = (
   word: string,
@@ -159,27 +175,46 @@ export const asChart = (
                 ),
               ),
             )
-          : kind === "area"
+          : kind === "area" ||
+              kind === "line" ||
+              kind === "stack"
             ? some(
                 pipe(
-                  asArea(axes, graph.nodes),
+                  (kind === "line"
+                    ? asLine
+                    : kind === "stack"
+                      ? asStack
+                      : asArea)(
+                    axes,
+                    graph.nodes,
+                  ),
                   mapResult(
                     (a: Area): Chart =>
                       box("Area")(a),
                   ),
                 ),
               )
-            : kind === "sankey"
+            : kind === "radar"
               ? some(
                   pipe(
-                    asSankey(axes, graph),
+                    asRadar(axes, graph.nodes),
                     mapResult(
-                      (s: Sankey): Chart =>
-                        box("Sankey")(s),
+                      (r: Radar): Chart =>
+                        box("Radar")(r),
                     ),
                   ),
                 )
-              : none();
+              : kind === "sankey"
+                ? some(
+                    pipe(
+                      asSankey(axes, graph),
+                      mapResult(
+                        (s: Sankey): Chart =>
+                          box("Sankey")(s),
+                      ),
+                    ),
+                  )
+                : none();
 
 /** The graph laid out as the chart says. */
 export const chartGraph = (
@@ -216,6 +251,11 @@ export const chartGraph = (
       area$(),
       ({ content }): Graph =>
         areaGraph(content, graph),
+    ],
+    [
+      radar$(),
+      ({ content }): Graph =>
+        radarGraph(content, graph),
     ],
   );
 
@@ -259,6 +299,11 @@ export const chartScenery = (
       ({ content }): readonly Scenery[] =>
         areaScenery(content, graph.nodes),
     ],
+    [
+      radar$(),
+      ({ content }): readonly Scenery[] =>
+        radarScenery(content, graph.nodes),
+    ],
   );
 
 /** Points that bound the chart beyond its nodes, so that
@@ -300,6 +345,11 @@ export const chartExtent = (
       area$(),
       ({ content }): readonly Point3[] =>
         areaExtent(content),
+    ],
+    [
+      radar$(),
+      ({ content }): readonly Point3[] =>
+        radarExtent(content),
     ],
   );
 
@@ -349,6 +399,13 @@ export const chartLines = (
         content,
       }): readonly (readonly string[])[] =>
         areaLines(content),
+    ],
+    [
+      radar$(),
+      ({
+        content,
+      }): readonly (readonly string[])[] =>
+        radarLines(content),
     ],
   );
 
@@ -432,6 +489,18 @@ export const chartCamera = (
           ? { yaw: -0.5, pitch: -0.36 }
           : { yaw: 0, pitch: 0 },
     ],
+    [
+      radar$(),
+      ({
+        content,
+      }): Readonly<{
+        yaw: number;
+        pitch: number;
+      }> =>
+        radarDeep(content)
+          ? { yaw: -0.42, pitch: -0.16 }
+          : { yaw: 0, pitch: 0 },
+    ],
   );
 
 /** Whether the chart gives nodes their width. */
@@ -445,4 +514,5 @@ export const chartSizes = (
     [bars$(), (): boolean => true],
     [sankey$(), (): boolean => true],
     [area$(), (): boolean => true],
+    [radar$(), (): boolean => true],
   );

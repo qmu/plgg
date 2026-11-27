@@ -238,3 +238,105 @@ test("a third axis beside listed series is refused", () =>
       "系列を 1 行で書くときは、3 つ目の軸は要りません（node がそのまま系列になります）",
     ),
   ));
+
+const asForm = (form: string) =>
+  listed.replace("layout area", "layout " + form);
+
+test("lines share one plane, so they are read against each other", () =>
+  check(
+    flowOf(asForm("line"))
+      .nodes.map((n) => n.position.z)
+      .join(),
+    toBe("0,0"),
+  ));
+
+test("a line chart fills nothing", () =>
+  check(
+    sceneryOf(asForm("line")).filter(
+      (s) => s.kind === "plane",
+    ).length,
+    toBe(0),
+  ));
+
+test("a line's name stands at its end", () =>
+  check(
+    sceneryOf(asForm("line"))
+      .flatMap((s) =>
+        s.kind === "label" &&
+        s.text.startsWith("■")
+          ? [
+              s.text +
+                "@" +
+                s.anchor.x +
+                "," +
+                s.anchor.y,
+            ]
+          : [],
+      )
+      .join(" "),
+    toBe("■ 東@82,140 ■ 西@82,0"),
+  ));
+
+test("a pile unwritten is measured to its tallest total", () =>
+  check(
+    printSpec(
+      flowOf(
+        asForm("stack").replace(" 0..100", ""),
+      ),
+      [],
+    ).split("\n")[1],
+    toBe("axis 売上 higher"),
+  ));
+
+test("in a pile each series stands on the ones before it", () =>
+  check(
+    sceneryOf(
+      asForm("stack").replace("0..100", "0..200"),
+    )
+      .flatMap((s) =>
+        s.kind === "plane"
+          ? [s.points.map((p) => p.y).join()]
+          : [],
+      )
+      .join(" "),
+    toBe("140,70,0,140 70,35,-105,0"),
+  ));
+
+test("a pile reaches from nothing to its tallest total when no range is written", () =>
+  check(
+    sceneryOf(
+      asForm("stack").replace(" 0..100", ""),
+    )
+      .flatMap((s) =>
+        s.kind === "line" && s.width === 2
+          ? [
+              Math.min(
+                ...s.points.map((p) => p.y),
+              ),
+            ]
+          : [],
+      )
+      .join(),
+    toBe("0,-105"),
+  ));
+
+test("line and stack read back as they were written", () =>
+  check(
+    ["line", "stack"]
+      .map((form) =>
+        [parseSpec(asForm(form))]
+          .flatMap((spec) =>
+            isOk(spec)
+              ? [
+                  printSpec(
+                    specFlow(spec.content),
+                    [],
+                  ) === asForm(form),
+                ]
+              : [],
+          )
+          .join(),
+      )
+      .join(),
+    toBe("true,true"),
+  ));

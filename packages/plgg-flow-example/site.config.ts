@@ -203,6 +203,21 @@ export default {
           items: [],
         },
         {
+          text: "推移を線で読み比べる",
+          link: "/plots/line",
+          items: [],
+        },
+        {
+          text: "合計と内訳を積む",
+          link: "/plots/stack",
+          items: [],
+        },
+        {
+          text: "いくつもの条件で形を比べる",
+          link: "/plots/radar",
+          items: [],
+        },
+        {
           text: "量がどこへ流れるか",
           link: "/plots/sankey",
           items: [],

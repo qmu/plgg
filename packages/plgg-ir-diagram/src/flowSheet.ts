@@ -1293,6 +1293,7 @@ export const sheetToolbar = <Action>(
           "data-icon",
           new Map(
             Object.entries({
+              最適配置: "▦",
               見方: "◎",
               正面: "▣",
               上: "◩",
@@ -1507,6 +1508,18 @@ export const sheetToolbar = <Action>(
         ],
       ),
 
+      // laying the sheet out afresh changes its shape, so
+      // it stands on its own: never pressed by mistake for
+      // the target beside it
+      el<Action>(
+        "span",
+        [
+          attr("class", "toolbar-gap"),
+          attr("aria-hidden", "true"),
+        ],
+        [],
+      ),
+      button("最適配置", change(resetSheet)),
       ...(own.length > 0
         ? [
             el<Action>(
