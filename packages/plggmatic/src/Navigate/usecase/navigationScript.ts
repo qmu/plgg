@@ -4,6 +4,11 @@ import {
   columnAttr,
   spanAttr,
   navHookName,
+  partnersMeta,
+  embeddersMeta,
+  embedParam,
+  embeddedAttr,
+  frameClass,
 } from "plggmatic/Navigate/model/marker";
 import {
   foldClass,
@@ -73,6 +78,27 @@ export const navigationInitScript: SoftStr =
   `var E=${q(escapeChar)},N=${q(
     entrySeparator,
   )},F=${q(fieldSeparator)};` +
+  // COLUMNS ACROSS SITES. The sites this page opens as
+  // columns (partners) and the sites it lets open it as one
+  // (embedders) are exact origins named in the head. A
+  // partner's page is only ever shown in a frame of its
+  // own — never fetched, never placed in this document —
+  // and what a frame says is believed only when it comes
+  // from the partner that frame was opened for.
+  `var PM=${q(partnersMeta)},EM=${q(embeddersMeta)},EP=${q(embedParam)},EA=${q(embeddedAttr)},FR=${q(frameClass)};` +
+  "function metaList(n){var m=document.querySelector('meta[name=\"'+n+'\"]');" +
+  "return m?(m.getAttribute('content')||'').split(' ').filter(Boolean):[];}" +
+  "var PT=metaList(PM),EB=metaList(EM);" +
+  "function abs(r){return r.indexOf('https://')===0||r.indexOf('http://')===0;}" +
+  "function partner(u){try{return PT.indexOf(new URL(u).origin)>=0;}catch(e){return false;}}" +
+  "function bare0(p){return p.length>1?p.replace(/\\/+$/,''):p;}" +
+  // this page, shown as a column of a site it allows
+  "var EMB=window.parent!==window&&EB.length>0&&new URL(window.location.href).searchParams.get(EP)==='1';" +
+  "if(EMB){document.documentElement.setAttribute(EA,'');}" +
+  // say something to the page this one is a column of:
+  // addressed to each allowed embedder by its exact origin,
+  // so no other page can hear it
+  "function tell(m){for(var i=0;i<EB.length;i++){window.parent.postMessage(m,EB[i]);}}" +
   // escape one field so a route or a quoted passage can
   // carry the separators themselves
   "function esc(v){return v.split(E).join(E+'t')" +
@@ -157,7 +183,23 @@ export const navigationInitScript: SoftStr =
   // element out of it. Scripts parsed by DOMParser never
   // execute, so a placed column can never re-run this
   // runtime.
+  // a partner's page as a column: this site's own column
+  // shape around a frame. The frame may run its page's
+  // scripts in its own origin and nothing more — it cannot
+  // move this page, open windows or submit forms out.
+  "function frameCol(u){var all=cols(),base=all[all.length-1];var x=new URL(u);" +
+  "var col=document.createElement('div');col.className=base.className;col.setAttribute(C,x.origin+x.pathname);" +
+  "var hd=base.querySelector(':scope>header');var h=document.createElement('header');h.className=hd?hd.className:'';" +
+  "var t0=hd?hd.firstElementChild:null;var sp=document.createElement('span');sp.className=t0?t0.className:'';" +
+  "sp.textContent=x.host+x.pathname;h.appendChild(sp);col.appendChild(h);" +
+  "var f=document.createElement('iframe');f.className=FR;" +
+  "f.setAttribute('sandbox','allow-scripts allow-same-origin');" +
+  "f.setAttribute('referrerpolicy','strict-origin-when-cross-origin');" +
+  "f.title=sp.textContent;var src=new URL(x.origin+x.pathname);src.searchParams.set(EP,'1');f.src=src.href;" +
+  "col.appendChild(f);return col;}" +
   "function fetchCol(route,span){" +
+  "if(abs(route)){return partner(route)&&strip()&&cols().length" +
+  "?Promise.resolve(frameCol(route)):Promise.reject(new Error('nav'));}" +
   "return fetch(colUrl(route,span),{credentials:'same-origin',mode:'same-origin'})" +
   ".then(function(r){if(!r.ok){throw new Error('nav');}return r.text();})" +
   ".then(function(t){" +
@@ -186,7 +228,7 @@ export const navigationInitScript: SoftStr =
   "if(rep){col.setAttribute(RP,'');}" +
   "truncate(at,rep);place(col,at);" +
   "window.history.pushState(null,'',url);return true;}).catch(function(){" +
-  "window.location.assign(url);return false;});}" +
+  "window.location.assign(abs(route)?route:url);return false;});}" +
   // the strip's rightmost column — where an open with no
   // originating column lands
   "function last(){return cols().length-1;}" +
@@ -205,18 +247,22 @@ export const navigationInitScript: SoftStr =
   // tab, an external link still leaves, a download still
   // downloads, and a same-page fragment still jumps inside
   // its own column.
-  "function claims(ev,a){return !ev.defaultPrevented&&ev.button===0" +
+  "function plain(ev,a){return !ev.defaultPrevented&&ev.button===0" +
   "&&!ev.metaKey&&!ev.ctrlKey&&!ev.shiftKey&&!ev.altKey" +
   "&&!!a&&!a.hasAttribute('download')" +
-  "&&(a.target===''||a.target==='_self')" +
+  "&&(a.target===''||a.target==='_self');}" +
+  // a link to a partner's page: opened beside, in a frame
+  "function claimsOut(ev,a){return plain(ev,a)&&partner(a.href);}" +
+  "function claims(ev,a){return plain(ev,a)" +
   "&&a.origin===window.location.origin" +
   "&&!(a.pathname===window.location.pathname&&a.hash!=='');}" +
   // WHAT IS ON SCREEN, in the same alphabet the URL uses —
   // route and passage both, because a column at the right
   // route showing the wrong passage is a different column.
+  "function full(a){return abs(a)?a:B+a;}" +
   "function current(){var c=cols();var out=[];" +
   "for(var i=0;i<c.length;i++){out.push(entryOf(" +
-  "B+c[i].getAttribute(C),c[i].getAttribute(P)||''));}return out;}" +
+  "full(c[i].getAttribute(C)||''),c[i].getAttribute(P)||''));}return out;}" +
   // WHAT THE URL SAYS: the head (this page) then the rest.
   "function target(){var s=ps().get(Q);" +
   "return [entryOf(window.location.pathname,s||'')].concat(entries());}" +
@@ -284,10 +330,11 @@ export const navigationInitScript: SoftStr =
   // link in it loses it. Read off the strip itself, so it
   // is right after a click, a Back and a pasted address.
   "for(var o=0;o<c.length;o++){" +
-  "var nx=c[o+1];var want=nx?bare(B+(nx.getAttribute(C)||'')):null;" +
+  "var nx=c[o+1];var na=nx?nx.getAttribute(C)||'':'';var out=abs(na);" +
+  "var want=nx?(out?bare(na):bare(B+na)):null;" +
   "var as=c[o].querySelectorAll('a[href]');" +
   "for(var u=0;u<as.length;u++){var k=as[u];" +
-  "if(want!==null&&k.origin===window.location.origin&&bare(k.pathname)===want){k.setAttribute(OP,'');}" +
+  "if(want!==null&&(out?bare(k.origin+k.pathname)===want:k.origin===window.location.origin&&bare(k.pathname)===want)){k.setAttribute(OP,'');}" +
   "else if(k.hasAttribute(OP)){k.removeAttribute(OP);}}}" +
   "var r=bare(c.length?B+(c[c.length-1].getAttribute(C)||''):location.pathname);" +
   "var ls=document.querySelectorAll('a[href]');" +
@@ -298,6 +345,27 @@ export const navigationInitScript: SoftStr =
   "if(l.getAttribute('data-home')===null){l.setAttribute('data-home',l.getAttribute('aria-current')==='page'?'1':'0');}" +
   "if(c.length?bare(l.pathname)===r:l.getAttribute('data-home')==='1'){l.setAttribute('aria-current','page');}" +
   "else if(l.getAttribute('aria-current')==='page'){l.removeAttribute('aria-current');}}}" +
+  // WHAT A FRAME MAY SAY, and who is believed. A message
+  // counts only when its origin is a partner, its sender is
+  // the window of a frame this page opened, and that frame
+  // was opened for that same partner. It may name its page,
+  // which is set as text, or ask for a link to be opened
+  // beside it, which is opened only when it leads to this
+  // site or to a partner. Anything else is dropped.
+  "window.addEventListener('message',function(ev){" +
+  "if(PT.indexOf(ev.origin)<0||!ev.data||typeof ev.data!=='object'){return;}" +
+  "var c=cols(),at=-1;for(var i=0;i<c.length;i++){" +
+  "var f=c[i].querySelector(':scope>iframe.'+FR);if(f&&f.contentWindow===ev.source){at=i;}}" +
+  "if(at<0){return;}" +
+  "try{if(new URL(c[at].getAttribute(C)||'').origin!==ev.origin){return;}}catch(e){return;}" +
+  "var d=ev.data;" +
+  "if(d.type==='pm:title'&&typeof d.title==='string'){" +
+  "var sp=c[at].querySelector(':scope>header>span');if(sp){sp.textContent=d.title.slice(0,120);}sync();return;}" +
+  "if(d.type==='pm:open'&&typeof d.href==='string'){var u;try{u=new URL(d.href);}catch(e){return;}" +
+  "if(u.protocol!=='https:'&&u.protocol!=='http:'){return;}" +
+  "if(u.origin===window.location.origin){openFrom(at,u.pathname);}" +
+  "else if(PT.indexOf(u.origin)>=0){openFrom(at,u.origin+u.pathname);}}});" +
+  "if(EMB){tell({type:'pm:title',title:document.title});}" +
   "window.addEventListener('popstate',function(){reconcile();});" +
   // on a hard load of a composition URL, the marks are
   // already in the markup: put each column on its own.
@@ -308,12 +376,22 @@ export const navigationInitScript: SoftStr =
   "document.addEventListener('click',function(ev){" +
   // the chrome this runtime adds answers through the one
   // delegated listener, never an inline handler
+  // shown as a column of another site: a link that could
+  // be a column there is handed to that site to open
+  // beside this one; this page itself stays put
+  "if(EMB){var a0=anchorOf(ev.target);" +
+  "if(a0&&plain(ev,a0)&&(a0.origin===window.location.origin||partner(a0.href))" +
+  "&&!(a0.pathname===window.location.pathname&&a0.hash!=='')){" +
+  "ev.preventDefault();tell({type:'pm:open',href:a0.origin+a0.pathname});}return;}" +
   "var t=ev.target;var fb=t&&t.closest?t.closest('.'+FC):null;" +
   "if(fb){ev.preventDefault();fold(columnOf(fb));return;}" +
   "var tb=t&&t.closest?t.closest('.'+TC+' [data-col]'):null;" +
   "if(tb){var cc=cols()[Number(tb.getAttribute('data-col'))];" +
   "if(cc){cc.scrollIntoView({inline:'nearest',block:'nearest'});}return;}" +
-  "var a=anchorOf(ev.target);if(!claims(ev,a)){return;}" +
+  "var a=anchorOf(ev.target);" +
+  "if(claimsOut(ev,a)){var from=columnOf(a);if(from<0){return;}" +
+  "ev.preventDefault();openFrom(from,a.origin+a.pathname);return;}" +
+  "if(!claims(ev,a)){return;}" +
   "var at=columnOf(a);if(at<0){return;}" +
   "ev.preventDefault();openFrom(at,a.pathname);});" +
   `window[${q(

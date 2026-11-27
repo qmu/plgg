@@ -86,3 +86,31 @@ export const documentColumn = <Msg>(
     parts,
     children,
   );
+
+/**
+ * COLUMNS ACROSS SITES. A page names, in its head, the
+ * other sites whose pages it will open as columns
+ * (partners) and the sites it lets open its own pages as
+ * columns (embedders) — each an exact origin, separated
+ * by spaces. A column from another site is that site's
+ * page in a frame of its own: the browser keeps it out
+ * of this page, and nothing of it is ever placed in this
+ * document.
+ */
+export const partnersMeta: SoftStr = `${cssPrefix}-partners`;
+export const embeddersMeta: SoftStr = `${cssPrefix}-embedders`;
+/** The parameter a page is asked for as a column by. */
+export const embedParam: SoftStr = `${cssPrefix}-embed`;
+/** Set on the root of a page shown as another site's
+ * column: its own chrome stands down. */
+export const embeddedAttr: SoftStr = `data-${cssPrefix}-embedded`;
+/** The frame a column from another site is shown in. */
+export const frameClass: SoftStr = `${cssPrefix}-frame`;
+
+/** The structure of a column from another site, and of
+ * a page while it is shown as one. */
+export const frameCss = (p: SoftStr): SoftStr => `
+.${p}-frame{flex:1 1 auto;min-height:0;width:100%;border-style:none}
+[data-${p}-embedded] :is(.${p}-shell-bar,.${p}-shell-side,.${p}-shell-backdrop,.${p}-shell-head,.${p}-trail){display:none}
+[data-${p}-embedded] .${p}-shell-page{flex:1 1 auto;width:100%;max-width:none}
+`;

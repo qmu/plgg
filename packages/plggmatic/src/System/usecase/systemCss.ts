@@ -12,6 +12,7 @@ import {
 } from "plggmatic/Style/usecase/shareCss";
 
 import { partsSystemCss } from "plggmatic/Component/usecase/partsCss";
+import { frameCss } from "plggmatic/Navigate/model/marker";
 /**
  * THE UI SYSTEM as a stylesheet: structure and behaviour,
  * and not one decision about how anything looks.
@@ -167,6 +168,7 @@ ${car}{position:absolute;top:50%;z-index:${zValue("chrome")};display:flex;align-
 .${p}-toast-close{flex:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 ` +
     partsSystemCss(p, String(zValue("overlay"))) +
+    frameCss(p) +
     shareCss(theme)(shareOptions)
   );
 };

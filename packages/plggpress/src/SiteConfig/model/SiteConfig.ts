@@ -152,6 +152,16 @@ export type SiteConfig = Readonly<{
   // co-located data file at an extensionless path). `None`
   // ⇒ nothing ignored.
   linkIgnore: Option<ReadonlyArray<SoftStr>>;
+  // COLUMNS ACROSS SITES. `partners` are the other sites
+  // whose pages this site opens as columns; `embedders`
+  // are the sites allowed to open this site's pages as
+  // columns. Each is an exact origin (`https://host`).
+  // A partner's page is shown in a frame of its own, and
+  // the build writes a `_headers` file that lets only the
+  // embedders frame this site. `None` ⇒ no site is
+  // joined, and every link out leaves as before.
+  partners?: Option<ReadonlyArray<SoftStr>>;
+  embedders?: Option<ReadonlyArray<SoftStr>>;
   // The resolved theme (palette + geometry) the doc site
   // renders through — a validated override layered onto
   // plggmatic's monochrome default. `None` ⇒ the B&W qmu
@@ -254,6 +264,41 @@ export const asSluggerKind = (
         }),
       );
 
+/** The origin a word names, when it parses as an address. */
+const originOf = (value: string): string =>
+  URL.canParse(value)
+    ? new URL(value).origin
+    : "";
+/** Whether an address is this machine's own, where a
+ * site under development is served without TLS. */
+const local = (value: string): boolean =>
+  ["localhost", "127.0.0.1"].includes(
+    new URL(value).hostname,
+  );
+/**
+ * Boundary caster for a site joined by columns: EXACTLY
+ * an origin — scheme and host, no path, no wildcard — and
+ * over TLS, except on this machine. What is written here
+ * decides whose pages are framed and who may frame this
+ * site, so nothing looser is read.
+ */
+export const asOrigin = (
+  value: unknown,
+): Result<SoftStr, InvalidError> =>
+  typeof value === "string" &&
+  originOf(value) === value &&
+  !value.includes("*") &&
+  (value.startsWith("https://") ||
+    (value.startsWith("http://") && local(value)))
+    ? ok(value)
+    : err(
+        invalidError({
+          message: `a joined site must be an exact origin such as 'https://docs.example.com' (https, no path), got ${JSON.stringify(
+            value,
+          )}`,
+        }),
+      );
+
 /**
  * Boundary caster for a {@link DevConfig}.
  */
@@ -335,6 +380,8 @@ export type SiteConfigInput = Readonly<{
   slugger?: SluggerKind;
   srcExclude?: ReadonlyArray<string>;
   linkIgnore?: ReadonlyArray<string>;
+  partners?: ReadonlyArray<string>;
+  embedders?: ReadonlyArray<string>;
   // Optional palette override — absent ⇒ the B&W qmu
   // default. Validated into a `Theme` at load.
   theme?: PaletteInput;
@@ -468,6 +515,14 @@ export const asSiteConfig = (
     : cast(
         read.content,
         forOptionProp("appearance", asAppearance),
+        forOptionProp(
+          "partners",
+          asReadonlyArray(asOrigin),
+        ),
+        forOptionProp(
+          "embedders",
+          asReadonlyArray(asOrigin),
+        ),
       );
 };
 

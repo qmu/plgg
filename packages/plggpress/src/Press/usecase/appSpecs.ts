@@ -104,6 +104,22 @@ export const buildSpecOf = (
     string,
     Uint8Array
   >();
+  // Who may frame this site is the browser's to enforce,
+  // told by a response header: only the configured
+  // embedders, and the site itself.
+  const embedders =
+    config.embedders?.__tag === "Some"
+      ? config.embedders.content
+      : [];
+  if (embedders.length)
+    generatedAssets.set(
+      "_headers",
+      new TextEncoder().encode(
+        "/*\n  Content-Security-Policy: frame-ancestors 'self' " +
+          embedders.join(" ") +
+          "\n",
+      ),
+    );
   const urls = new Map<Part, string>();
   const url = (part: Part) => {
     const found = urls.get(part);

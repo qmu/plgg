@@ -7,12 +7,13 @@ import {
   shouldBeErr,
   errThen,
 } from "plgg-test";
-import { isSome } from "plgg";
+import { isSome, isOk } from "plgg";
 import {
   type SiteConfig,
   type SiteConfigInput,
   asSiteConfig,
   asSluggerKind,
+  asOrigin,
   defineSite,
 } from "plggpress/SiteConfig/model/SiteConfig";
 import {
@@ -317,3 +318,22 @@ test("defineSite accepts a minimal typed input", () => {
     ),
   );
 });
+
+test("a joined site is read only as an exact https origin", () =>
+  check(
+    [
+      "https://plggmatic.qmu.co.jp",
+      "https://plggmatic.qmu.co.jp/",
+      "https://plggmatic.qmu.co.jp/docs",
+      "https://*.qmu.co.jp",
+      "http://plggmatic.qmu.co.jp",
+      "http://localhost:51830",
+      "javascript:alert(1)",
+      "plggmatic.qmu.co.jp",
+    ]
+      .map((word) => isOk(asOrigin(word)))
+      .join(),
+    toBe(
+      "true,false,false,false,false,true,false,false",
+    ),
+  ));

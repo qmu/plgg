@@ -33,6 +33,11 @@ export {
   columnAttr,
   spanAttr,
   navHookName,
+  partnersMeta,
+  embeddersMeta,
+  embedParam,
+  embeddedAttr,
+  frameClass,
   strip,
   documentColumn,
 } from "plggmatic/Navigate/model/marker";

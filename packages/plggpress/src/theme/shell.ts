@@ -27,6 +27,8 @@ import {
   type Appearance,
   kitCss,
   monochrome,
+  partnersMeta,
+  embeddersMeta,
 } from "plggmatic";
 import {
   type Theme,
@@ -114,6 +116,42 @@ const titleOf = (
  * {@link collectCss} emits the `.cHASH{prop:value}` atomic
  * subset), surviving escaping byte-for-byte.
  */
+/**
+ * The sites this page is joined to by columns, named in
+ * the head for the navigation runtime to read: nothing
+ * when none is configured.
+ */
+const joined = (
+  name: SoftStr,
+  origins: SiteConfig["partners"],
+): ReadonlyArray<Html<never, "meta">> =>
+  origins === undefined
+    ? []
+    : pipe(
+        origins,
+        matchOption<
+          ReadonlyArray<SoftStr>,
+          ReadonlyArray<Html<never, "meta">>
+        >(
+          () => [],
+          (list: ReadonlyArray<SoftStr>) =>
+            list.length === 0
+              ? []
+              : [
+                  meta(
+                    [
+                      attr("name", name),
+                      attr(
+                        "content",
+                        list.join(" "),
+                      ),
+                    ],
+                    [],
+                  ),
+                ],
+        ),
+      );
+
 const documentHead = (
   config: SiteConfig,
   doc: MarkdownDoc,
@@ -136,6 +174,8 @@ const documentHead = (
         [],
       ),
       title([], [text(titleOf(config, doc))]),
+      ...joined(partnersMeta, config.partners),
+      ...joined(embeddersMeta, config.embedders),
       link(
         [
           attr("rel", "canonical"),
