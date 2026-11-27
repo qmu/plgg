@@ -267,6 +267,16 @@
         "types": "./dist/sankey.d.ts",
         "default": "./dist/sankey.cjs.js"
       }
+    },
+    "./area": {
+      "import": {
+        "types": "./dist/area.d.ts",
+        "default": "./dist/area.es.js"
+      },
+      "require": {
+        "types": "./dist/area.d.ts",
+        "default": "./dist/area.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

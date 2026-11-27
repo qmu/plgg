@@ -32,6 +32,15 @@ import {
   type Bars,
 } from "plgg-flow/bars";
 import {
+  asArea,
+  areaDeep,
+  areaExtent,
+  areaGraph,
+  areaLines,
+  areaScenery,
+  type Area,
+} from "plgg-flow/area";
+import {
   asSankey,
   sankeyDeep,
   sankeyExtent,
@@ -70,6 +79,8 @@ import {
  * - a {@link Sequence} places messages by their turn;
  * - a {@link Timeline} places nodes by their time;
  * - {@link Bars} raise nodes as tall as their value;
+ * - an {@link Area} follows a value along an order, a
+ *   series behind a series;
  * - a {@link Sankey} draws connections as wide as what
  *   they carry.
  */
@@ -78,6 +89,7 @@ export type Chart =
   | Box<"Sequence", Sequence>
   | Box<"Timeline", Timeline>
   | Box<"Bars", Bars>
+  | Box<"Area", Area>
   | Box<"Sankey", Sankey>;
 
 const plot$ = () => pattern("Plot")();
@@ -85,6 +97,7 @@ const sequence$ = () => pattern("Sequence")();
 const timeline$ = () => pattern("Timeline")();
 const bars$ = () => pattern("Bars")();
 const sankey$ = () => pattern("Sankey")();
+const area$ = () => pattern("Area")();
 
 /** The names `layout` knows a chart by. */
 const kinds: readonly string[] = [
@@ -93,6 +106,7 @@ const kinds: readonly string[] = [
   "timeline",
   "bars",
   "sankey",
+  "area",
 ];
 export const isChartKind = (
   word: string,
@@ -145,17 +159,27 @@ export const asChart = (
                 ),
               ),
             )
-          : kind === "sankey"
+          : kind === "area"
             ? some(
                 pipe(
-                  asSankey(axes, graph),
+                  asArea(axes, graph.nodes),
                   mapResult(
-                    (s: Sankey): Chart =>
-                      box("Sankey")(s),
+                    (a: Area): Chart =>
+                      box("Area")(a),
                   ),
                 ),
               )
-            : none();
+            : kind === "sankey"
+              ? some(
+                  pipe(
+                    asSankey(axes, graph),
+                    mapResult(
+                      (s: Sankey): Chart =>
+                        box("Sankey")(s),
+                    ),
+                  ),
+                )
+              : none();
 
 /** The graph laid out as the chart says. */
 export const chartGraph = (
@@ -187,6 +211,11 @@ export const chartGraph = (
       sankey$(),
       ({ content }): Graph =>
         sankeyGraph(content, graph),
+    ],
+    [
+      area$(),
+      ({ content }): Graph =>
+        areaGraph(content, graph),
     ],
   );
 
@@ -225,6 +254,11 @@ export const chartScenery = (
       ({ content }): readonly Scenery[] =>
         sankeyScenery(content, graph),
     ],
+    [
+      area$(),
+      ({ content }): readonly Scenery[] =>
+        areaScenery(content, graph.nodes),
+    ],
   );
 
 /** Points that bound the chart beyond its nodes, so that
@@ -261,6 +295,11 @@ export const chartExtent = (
       sankey$(),
       (): readonly Point3[] =>
         sankeyExtent(graph),
+    ],
+    [
+      area$(),
+      ({ content }): readonly Point3[] =>
+        areaExtent(content),
     ],
   );
 
@@ -303,6 +342,13 @@ export const chartLines = (
         content,
       }): readonly (readonly string[])[] =>
         sankeyLines(content),
+    ],
+    [
+      area$(),
+      ({
+        content,
+      }): readonly (readonly string[])[] =>
+        areaLines(content),
     ],
   );
 
@@ -374,6 +420,18 @@ export const chartCamera = (
           ? { yaw: -0.4, pitch: -0.3 }
           : { yaw: 0, pitch: 0 },
     ],
+    [
+      area$(),
+      ({
+        content,
+      }): Readonly<{
+        yaw: number;
+        pitch: number;
+      }> =>
+        areaDeep(content)
+          ? { yaw: -0.5, pitch: -0.36 }
+          : { yaw: 0, pitch: 0 },
+    ],
   );
 
 /** Whether the chart gives nodes their width. */
@@ -386,4 +444,5 @@ export const chartSizes = (
     [timeline$(), (): boolean => true],
     [bars$(), (): boolean => true],
     [sankey$(), (): boolean => true],
+    [area$(), (): boolean => true],
   );

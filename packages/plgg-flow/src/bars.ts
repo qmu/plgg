@@ -85,7 +85,7 @@ const wordOn =
       ),
       mapOption((v: JsonValue) => String(v)),
     );
-const bars = (
+export const bars = (
   nodes: readonly FlowNode[],
 ): readonly FlowNode[] =>
   nodes.filter((n) => !n.group);
@@ -116,7 +116,7 @@ const filled = (
       };
 /** The place of a node's word among the kinds of an
  * axis. */
-const indexOn =
+export const indexOn =
   (axis: Axis) =>
   (node: FlowNode): Option<number> =>
     pipe(
@@ -180,7 +180,7 @@ const crowded = (
     mapOption(
       (n: FlowNode) =>
         n.id +
-        " と同じ場所に別の棒があります（3 つ目の軸で奥行きに分けられます）",
+        " と同じ場所に別の値があります（3 つ目の軸で奥行きに分けられます）",
     ),
   );
 const sound = (
@@ -214,51 +214,65 @@ const sound = (
 const grounded = (m: Measure): Measure =>
   m.written ? m : { ...m, lo: Math.min(0, m.lo) };
 
-/** The bars a set of axis lines describes over a set of
- * nodes; a refusal says which line or node is wrong. */
-export const asBars = (
-  axes: readonly Axis[],
-  nodes: readonly FlowNode[],
-): Result<Bars, string> =>
-  axes.length > 3
-    ? err(
-        "layout bars の軸は 3 つまでです（量、横に並べる種類、奥行きに分ける種類）",
-      )
-    : pipe(
-        fromNullable(axes[0]),
-        chainOption((quantity: Axis) =>
-          pipe(
-            fromNullable(axes[1]),
-            mapOption((across: Axis) =>
-              pipe(
-                measureOf(nodes)(quantity),
-                mapResult(
-                  (told: Told): Bars => ({
-                    measure: grounded(
-                      told.measure,
-                    ),
-                    across: filled(across, nodes),
-                    deep: pipe(
-                      fromNullable(axes[2]),
-                      mapOption((d: Axis) =>
-                        filled(d, nodes),
+/** A quantity over one or two kinds, as a set of axis
+ * lines describes it over a set of nodes — what bars
+ * and an area both read; a refusal says which line or
+ * node is wrong. */
+export const fieldOf =
+  (kind: string) =>
+  (
+    axes: readonly Axis[],
+    nodes: readonly FlowNode[],
+  ): Result<Bars, string> =>
+    axes.length > 3
+      ? err(
+          "layout " +
+            kind +
+            " の軸は 3 つまでです（量、横に並べる種類、奥行きに分ける種類）",
+        )
+      : pipe(
+          fromNullable(axes[0]),
+          chainOption((quantity: Axis) =>
+            pipe(
+              fromNullable(axes[1]),
+              mapOption((across: Axis) =>
+                pipe(
+                  measureOf(nodes)(quantity),
+                  mapResult(
+                    (told: Told): Bars => ({
+                      measure: grounded(
+                        told.measure,
                       ),
-                    ),
-                  }),
-                ),
-                chainResult((b: Bars) =>
-                  sound(b, nodes),
+                      across: filled(
+                        across,
+                        nodes,
+                      ),
+                      deep: pipe(
+                        fromNullable(axes[2]),
+                        mapOption((d: Axis) =>
+                          filled(d, nodes),
+                        ),
+                      ),
+                    }),
+                  ),
+                  chainResult((b: Bars) =>
+                    sound(b, nodes),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        getOr<Result<Bars, string>>(
-          err(
-            "layout bars には量の軸と、横に並べる種類の軸が必要です",
+          getOr<Result<Bars, string>>(
+            err(
+              "layout " +
+                kind +
+                " には量の軸と、横に並べる種類の軸が必要です",
+            ),
           ),
-        ),
-      );
+        );
+/** The bars a set of axis lines describes over a set of
+ * nodes; a refusal says which line or node is wrong. */
+export const asBars = fieldOf("bars");
 
 /** The place of `i` among `count` things `width` apart,
  * centred on zero. */
@@ -269,7 +283,7 @@ const centred = (
 ): number => (i - (count - 1) / 2) * width;
 const kinds = (b: Bars): number =>
   Math.max(1, b.across.values.length);
-const rows = (b: Bars): number =>
+export const rows = (b: Bars): number =>
   pipe(
     b.deep,
     matchOption(
@@ -278,13 +292,13 @@ const rows = (b: Bars): number =>
     ),
   );
 /** Half the floor, across and in depth. */
-const halfAcross = (b: Bars): number =>
+export const halfAcross = (b: Bars): number =>
   (kinds(b) * pitch) / 2;
-const halfDeep = (b: Bars): number =>
+export const halfDeep = (b: Bars): number =>
   isSome(b.deep) ? (rows(b) * apart) / 2 : 0;
 /** The floor the bars stand on (the screen's y runs
  * down). */
-const floor = tall / 2;
+export const floor = tall / 2;
 const rise = (b: Bars, v: number): number =>
   Math.max(
     2,
@@ -294,9 +308,14 @@ const rise = (b: Bars, v: number): number =>
         Math.max(0, along(b.measure, v)),
       ),
   );
-const acrossAt = (b: Bars, i: number): number =>
-  centred(i, kinds(b), pitch);
-const deepAt = (b: Bars, j: number): number =>
+export const acrossAt = (
+  b: Bars,
+  i: number,
+): number => centred(i, kinds(b), pitch);
+export const deepAt = (
+  b: Bars,
+  j: number,
+): number =>
   isSome(b.deep) ? centred(j, rows(b), apart) : 0;
 
 const raised =
@@ -347,11 +366,15 @@ export const barsGraph = (
 /** The wall the scale is read against: behind the bars
  * of a field (the larger z is nearer the eye, so the
  * far side is the smaller), the sheet itself otherwise. */
-const wall = (b: Bars): number => -halfDeep(b);
-const front = (b: Bars): number => halfDeep(b);
-const level = (t: number): number =>
+export const wall = (b: Bars): number =>
+  -halfDeep(b);
+export const front = (b: Bars): number =>
+  halfDeep(b);
+export const level = (t: number): number =>
   floor - tall * t;
-const ground = (b: Bars): readonly Segment[] =>
+export const ground = (
+  b: Bars,
+): readonly Segment[] =>
   isSome(b.deep)
     ? [
         [
@@ -431,7 +454,9 @@ const ground = (b: Bars): readonly Segment[] =>
       ];
 /** The ruling: a line across the wall at each division
  * of the quantity. */
-const ruling = (b: Bars): readonly Segment[] =>
+export const ruling = (
+  b: Bars,
+): readonly Segment[] =>
   divisions.slice(1).map(
     (t): Segment => [
       {
@@ -446,7 +471,9 @@ const ruling = (b: Bars): readonly Segment[] =>
       },
     ],
   );
-const scale = (b: Bars): readonly Scenery[] => [
+export const scale = (
+  b: Bars,
+): readonly Scenery[] => [
   ...divisions.map((t) =>
     lettering(
       {
@@ -472,7 +499,7 @@ const scale = (b: Bars): readonly Scenery[] => [
     ink,
   ),
 ];
-const acrossNames = (
+export const acrossNames = (
   b: Bars,
 ): readonly Scenery[] => [
   ...b.across.values.map((name, i) =>
@@ -496,7 +523,9 @@ const acrossNames = (
     ink,
   ),
 ];
-const deepNames = (b: Bars): readonly Scenery[] =>
+export const deepNames = (
+  b: Bars,
+): readonly Scenery[] =>
   pipe(
     b.deep,
     matchOption(
@@ -576,7 +605,7 @@ const best = (
       ),
     ),
   );
-const crown = (
+export const crown = (
   b: Bars,
   nodes: readonly FlowNode[],
 ): readonly Scenery[] =>
@@ -638,30 +667,31 @@ export const barsExtent = (
   ]);
 
 /** The lines of the DSL that say the bars. */
-export const barsLines = (
-  b: Bars,
-): readonly (readonly string[])[] => [
-  ["layout", "bars"],
-  [
-    "axis",
-    b.measure.attribute,
-    ...measureWords(b.measure),
-  ],
-  [
-    "axis",
-    b.across.attribute,
-    ...b.across.values,
-  ],
-  ...pipe(
-    b.deep,
-    matchOption(
-      (): readonly (readonly string[])[] => [],
-      (d: Axis) => [
-        ["axis", d.attribute, ...d.values],
-      ],
+export const fieldLines =
+  (kind: string) =>
+  (b: Bars): readonly (readonly string[])[] => [
+    ["layout", kind],
+    [
+      "axis",
+      b.measure.attribute,
+      ...measureWords(b.measure),
+    ],
+    [
+      "axis",
+      b.across.attribute,
+      ...b.across.values,
+    ],
+    ...pipe(
+      b.deep,
+      matchOption(
+        (): readonly (readonly string[])[] => [],
+        (d: Axis) => [
+          ["axis", d.attribute, ...d.values],
+        ],
+      ),
     ),
-  ),
-];
+  ];
+export const barsLines = fieldLines("bars");
 /** Whether the bars stand in a field, not a row. */
 export const barsDeep = (b: Bars): boolean =>
   isSome(b.deep);

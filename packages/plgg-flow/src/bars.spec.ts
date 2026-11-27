@@ -99,7 +99,7 @@ test("two bars in one place are refused by name", () => {
   return check(
     isErr(spec) ? spec.content : "",
     toBe(
-      "西Q1 と同じ場所に別の棒があります（3 つ目の軸で奥行きに分けられます）",
+      "西Q1 と同じ場所に別の値があります（3 つ目の軸で奥行きに分けられます）",
     ),
   );
 });

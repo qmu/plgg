@@ -70,6 +70,9 @@ export type FlowNode = Readonly<{
   /** The box is exactly as sized, however long the
    * label: a mark or a bar, named beside it. */
   bare?: boolean;
+  /** The node is drawn without its name: one of many
+   * marks that a chart names together. */
+  unnamed?: boolean;
   /** How far each face stands off the centre plane,
    * when the height is not to decide it. */
   depth?: number;
@@ -144,6 +147,10 @@ export type Scenery = {
       casts?: boolean;
       patches?: readonly (readonly Point3[])[];
       fill: string;
+      /** A colour the plane keeps in the dark too,
+       * where a plain fill gives way to the sheet's
+       * own. */
+      tint?: string;
       opacity: number;
     }
   | {

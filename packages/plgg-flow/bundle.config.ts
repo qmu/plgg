@@ -29,6 +29,7 @@ export default {
     "timeline",
     "bars",
     "sankey",
+    "area",
     "chart",
     "dsl",
     "wiring",

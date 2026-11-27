@@ -83,6 +83,11 @@ export default {
           items: [],
         },
         {
+          text: "推移を奥へ並べる",
+          link: "/plots/area",
+          items: [],
+        },
+        {
           text: "量がどこへ流れるか",
           link: "/plots/sankey",
           items: [],

@@ -493,6 +493,7 @@ export const engineView = (
           (Math.sign(eye.y) * size.height) / 2;
       }
     }
+    if (n.unnamed) continue;
     labels.push({
       id,
       style: tag ? "tag" : "caption",
@@ -573,7 +574,7 @@ export const engineView = (
     } else {
       styles.set(
         style,
-        `--surface:${s.fill};--opacity:${s.opacity};--stroke:${s.tone}`,
+        `--surface:${s.fill};--opacity:${s.opacity};--stroke:${s.tone}${s.tint ? ";--tint:" + s.tint : ""}`,
       );
       for (const points of [
         s.points,

@@ -1,13 +1,13 @@
 export const boardCss = (root: string) => `
 @scope (${root}) {
   .engine-drawing .up {
-    fill: light-dark(var(--surface, var(--paper)), var(--wash));
+    fill: var(--tint, light-dark(var(--surface, var(--paper)), var(--wash)));
   }
   .engine-drawing .lit {
-    fill: light-dark(var(--surface, var(--wash)), #1f1f1f);
+    fill: var(--tint, light-dark(var(--surface, var(--wash)), #1f1f1f));
   }
   .engine-drawing .shade {
-    fill: light-dark(var(--surface, var(--shade)), #0a0a0a);
+    fill: var(--tint, light-dark(var(--surface, var(--shade)), #0a0a0a));
   }
   .engine-drawing :is(.up, .lit, .shade) {
     fill-opacity: var(--opacity, 1);
