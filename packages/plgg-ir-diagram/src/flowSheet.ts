@@ -794,6 +794,18 @@ export const sheetDsl = <Action>(
       attr("aria-label", "DSL"),
     ],
     [
+      // the edge between the board and the panel: dragged,
+      // it widens or narrows the panel
+      el(
+        "div",
+        [
+          attr("class", "dsl-size dsl-size-x"),
+          attr("role", "separator"),
+          attr("aria-orientation", "vertical"),
+          attr("aria-label", "DSL の幅を変える"),
+        ],
+        [],
+      ),
       el(
         "div",
         [attr("class", "dsl-head")],
@@ -921,6 +933,21 @@ export const sheetDsl = <Action>(
           onInput(retype),
         ],
         [text(source)],
+      ),
+      // the bar between the text and the properties:
+      // dragged, it gives one what it takes from the other
+      el(
+        "div",
+        [
+          attr("class", "dsl-size dsl-size-y"),
+          attr("role", "separator"),
+          attr("aria-orientation", "horizontal"),
+          attr(
+            "aria-label",
+            "DSL とプロパティの境を動かす",
+          ),
+        ],
+        [],
       ),
       sheetProperties(
         flow,
@@ -1255,7 +1282,6 @@ export const sheetToolbar = <Action>(
           "data-icon",
           new Map(
             Object.entries({
-              リセット: "⟲",
               見方: "◎",
               正面: "▣",
               上: "◩",
@@ -1288,143 +1314,201 @@ export const sheetToolbar = <Action>(
         roomMotion: undefined,
       });
     };
-  return el(
-    "div",
-    [attr("class", "toolbar")],
-    [
-      button("リセット", change(resetSheet)),
-      el(
-        "span",
-        [
-          attr("class", "sheet-history"),
-          attr("role", "group"),
-          attr("aria-label", "履歴"),
-        ],
-        (
+  const stroke = (d: string) =>
+    el<Action>(
+      "path",
+      [
+        attr("d", d),
+        attr("fill", "none"),
+        attr("stroke", "currentColor"),
+        attr("stroke-width", "1.5"),
+      ],
+      [],
+    );
+  // a target: the picture is brought back to the centre
+  // of the sheet, laid out and fitted afresh
+  const recentre = (action: Action) =>
+    el(
+      "button",
+      [
+        attr("type", "button"),
+        attr("title", "中央に戻す"),
+        attr("aria-label", "中央に戻す"),
+        onClick(action),
+      ],
+      [
+        el(
+          "svg",
           [
-            ["first", "最初に", true, true],
-            ["back", "戻る", true, false],
-            ["next", "次に", false, false],
-            ["last", "最後に", false, true],
-          ] satisfies [
-            Travel,
-            string,
-            boolean,
-            boolean,
-          ][]
-        ).map(([way, label, left, bar]) => {
-          const enabled = left ? back : forward;
-          return el(
-            "button",
-            [
-              attr("type", "button"),
-              attr("title", label),
-              attr("aria-label", label),
-              ...(enabled
-                ? [onClick(navigate(way))]
-                : [attr("disabled", "")]),
-            ],
-            [
-              el(
-                "svg",
-                [
-                  attr("width", "16"),
-                  attr("height", "16"),
-                  attr("viewBox", "0 0 16 16"),
-                  attr("aria-hidden", "true"),
-                ],
-                [
-                  el(
+            attr("width", "16"),
+            attr("height", "16"),
+            attr("viewBox", "0 0 16 16"),
+            attr("aria-hidden", "true"),
+          ],
+          [
+            stroke(
+              "M8 3.5A4.5 4.5 0 1 0 8 12.5A4.5 4.5 0 1 0 8 3.5Z",
+            ),
+            stroke(
+              "M8 1V5M8 11V15M1 8H5M11 8H15",
+            ),
+          ],
+        ),
+      ],
+    );
+  const history = (
+    [
+      ["first", "最初に", true, true],
+      ["back", "戻る", true, false],
+      ["next", "次に", false, false],
+      ["last", "最後に", false, true],
+    ] satisfies [
+      Travel,
+      string,
+      boolean,
+      boolean,
+    ][]
+  ).map(([way, label, left, bar]) => {
+    const enabled = left ? back : forward;
+    return el(
+      "button",
+      [
+        attr("type", "button"),
+        attr("title", label),
+        attr("aria-label", label),
+        ...(enabled
+          ? [onClick(navigate(way))]
+          : [attr("disabled", "")]),
+      ],
+      [
+        el(
+          "svg",
+          [
+            attr("width", "16"),
+            attr("height", "16"),
+            attr("viewBox", "0 0 16 16"),
+            attr("aria-hidden", "true"),
+          ],
+          [
+            el(
+              "path",
+              [
+                attr(
+                  "d",
+                  left
+                    ? "M12 3L5 8L12 13Z"
+                    : "M4 3L11 8L4 13Z",
+                ),
+                attr("fill", "currentColor"),
+              ],
+              [],
+            ),
+            ...(bar
+              ? [
+                  el<Action>(
                     "path",
                     [
                       attr(
                         "d",
                         left
-                          ? "M12 3L5 8L12 13Z"
-                          : "M4 3L11 8L4 13Z",
+                          ? "M3 3V13"
+                          : "M13 3V13",
                       ),
                       attr(
-                        "fill",
+                        "stroke",
                         "currentColor",
                       ),
+                      attr("stroke-width", "1.5"),
                     ],
                     [],
                   ),
-                  ...(bar
-                    ? [
-                        el<Action>(
-                          "path",
-                          [
-                            attr(
-                              "d",
-                              left
-                                ? "M3 3V13"
-                                : "M13 3V13",
-                            ),
-                            attr(
-                              "stroke",
-                              "currentColor",
-                            ),
-                            attr(
-                              "stroke-width",
-                              "1.5",
-                            ),
-                          ],
-                          [],
-                        ),
-                      ]
-                    : []),
-                ],
-              ),
-            ],
-          );
-        }),
-      ),
-
-      ...(views
-        ? [
-            button("見方", change(nextSheetView)),
-            ...(views === "layer"
-              ? layerViews
-              : roomViews
-            ).map(([label, yaw, pitch]) =>
-              button(
-                label,
-                change((f) => {
-                  const scene =
-                    label === "立体"
-                      ? { ...f, focus: undefined }
-                      : f;
-                  const to = fitDemo(
-                    viewAt(yaw, pitch)(scene),
-                  );
-                  return views === "layer"
-                    ? to
-                    : turnRooms(f, to, 300);
+                ]
+              : []),
+          ],
+        ),
+      ],
+    );
+  });
+  // what this sheet alone has: its views, its blocks, its
+  // own tools — set apart from the controls every sheet has
+  const own: readonly Html<Action>[] = [
+    ...(views
+      ? [
+          button("見方", change(nextSheetView)),
+          ...(views === "layer"
+            ? layerViews
+            : roomViews
+          ).map(([label, yaw, pitch]) =>
+            button(
+              label,
+              change((f) => {
+                const scene =
+                  label === "立体"
+                    ? { ...f, focus: undefined }
+                    : f;
+                const to = fitDemo(
+                  viewAt(yaw, pitch)(scene),
+                );
+                return views === "layer"
+                  ? to
+                  : turnRooms(f, to, 300);
+              }),
+            ),
+          ),
+        ]
+      : []),
+    ...(blocks.length > 1
+      ? [
+          button("◀", change(step(-1))),
+          ...blocks.map((b) =>
+            button(
+              b.name,
+              change((f) =>
+                fitDemo({
+                  ...f,
+                  focus: b.ids,
+                  roomMotion: undefined,
                 }),
               ),
             ),
-          ]
-        : []),
-      ...(blocks.length > 1
+          ),
+          button("▶", change(step(1))),
+        ]
+      : []),
+    ...tools,
+  ];
+  return el(
+    "div",
+    [attr("class", "toolbar")],
+    [
+      // the controls every sheet has, joined as one: bring
+      // the picture back to the centre, then walk its history
+      el(
+        "span",
+        [
+          attr("class", "sheet-history"),
+          attr("role", "group"),
+          attr("aria-label", "表示と履歴"),
+        ],
+        [
+          recentre(change(resetSheet)),
+          ...history,
+        ],
+      ),
+
+      ...(own.length > 0
         ? [
-            button("◀", change(step(-1))),
-            ...blocks.map((b) =>
-              button(
-                b.name,
-                change((f) =>
-                  fitDemo({
-                    ...f,
-                    focus: b.ids,
-                    roomMotion: undefined,
-                  }),
-                ),
-              ),
+            el<Action>(
+              "span",
+              [
+                attr("class", "toolbar-gap"),
+                attr("aria-hidden", "true"),
+              ],
+              [],
             ),
-            button("▶", change(step(1))),
           ]
         : []),
-      ...tools,
+      ...own,
     ].map((item) =>
       el(
         "span",

@@ -202,7 +202,13 @@ test("monochrome is one ink, square and inverted; soft answers every one of thos
       mono
         .split("border-radius:")
         .slice(1)
-        .every((rest) => rest.startsWith("0")),
+        // square everywhere but the one thing that
+        // floats over the columns: the strip's buttons
+        .every(
+          (rest) =>
+            rest.startsWith("0") ||
+            rest.startsWith("50%"),
+        ),
       toBe(true),
     ),
     check(

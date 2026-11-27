@@ -385,6 +385,106 @@ export const mountSheet = (
       const sheet = root.querySelector(
         ".flow-sheet",
       );
+      // The panel's two bars. A drag is a run of pointer
+      // moves between a down and an up — an imperative
+      // seam; what it writes is two lengths on the sheet,
+      // which the stylesheet reads.
+      const sizing = (
+        bar: Element,
+        apply: (e: PointerEvent) => void,
+      ) => {
+        if (!(bar instanceof HTMLElement)) return;
+        bar.addEventListener(
+          "pointerdown",
+          (e) => {
+            bar.setPointerCapture(e.pointerId);
+            bar.setAttribute("data-dragging", "");
+            e.preventDefault();
+          },
+          options,
+        );
+        bar.addEventListener(
+          "pointermove",
+          (e) => {
+            if (
+              bar.hasPointerCapture(e.pointerId)
+            )
+              apply(e);
+          },
+          options,
+        );
+        for (const end of [
+          "pointerup",
+          "pointercancel",
+        ])
+          bar.addEventListener(
+            end,
+            () =>
+              bar.removeAttribute(
+                "data-dragging",
+              ),
+            options,
+          );
+      };
+      const within = (
+        least: number,
+        value: number,
+        most: number,
+      ) => Math.max(least, Math.min(most, value));
+      root.addEventListener(
+        "pointerover",
+        (e) => {
+          // the bars are redrawn with the panel; each is
+          // wired once, when first pointed at
+          const bar =
+            e.target instanceof Element
+              ? e.target.closest(".dsl-size")
+              : null;
+          if (
+            !(bar instanceof HTMLElement) ||
+            !(sheet instanceof HTMLElement) ||
+            bar.hasAttribute("data-wired")
+          )
+            return;
+          bar.setAttribute("data-wired", "");
+          const dsl = bar.closest(".dsl");
+          const stage = bar.closest(".stage");
+          if (!dsl || !stage) return;
+          sizing(
+            bar,
+            bar.classList.contains("dsl-size-x")
+              ? (move) => {
+                  const box =
+                    stage.getBoundingClientRect();
+                  sheet.style.setProperty(
+                    "--dsl-wide",
+                    within(
+                      200,
+                      box.right - move.clientX,
+                      box.width * 0.7,
+                    ) + "px",
+                  );
+                }
+              : (move) => {
+                  const box =
+                    dsl.getBoundingClientRect();
+                  sheet.style.setProperty(
+                    "--dsl-props",
+                    within(
+                      48,
+                      box.bottom - move.clientY,
+                      box.height - 120,
+                    ) + "px",
+                  );
+                  sheet.style.setProperty(
+                    "--dsl-props-most",
+                    "none",
+                  );
+                },
+          );
+        },
+        options,
+      );
       const maximise = (on: boolean) => {
         sheet?.setAttribute(
           "data-max",

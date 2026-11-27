@@ -311,6 +311,14 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
   }
   .toolbar-item {display:inline-flex;flex:none;width:max-content}
   .sheet-history { display: inline-flex; }
+  .toolbar-gap { display: inline-block; width: 12px; }
+  /* the bars the panel is sized by: thin, found by the
+     cursor, drawn only while pointed at or dragged */
+  .dsl-size { flex: none; z-index: 5; touch-action: none; background: transparent; }
+  .dsl-size-x { position: absolute; inset: 0 auto 0 0; width: 6px; cursor: col-resize; }
+  .dsl-size-y { position: relative; height: 8px; margin: -4px 0; cursor: row-resize; }
+  .dsl-size:hover, .dsl-size[data-dragging] { background: color-mix(in srgb, var(--ink) 35%, transparent); }
+  .toolbar .sheet-history + * , .toolbar-item:has(.toolbar-gap) + .toolbar-item button { margin-left: 0; }
   .toolbar .sheet-history button { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; color: var(--ink); }
   .toolbar .sheet-history button + button { margin-left: -1px; }
   .toolbar .sheet-history button:disabled { color: var(--pencil); }
@@ -376,7 +384,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     background: var(--ink);
     color: var(--paper);
   }
-  .stage {--panel:320px;position:relative;display:block;flex:1;min-height:0; margin:0}
+  .stage {--panel:var(--dsl-wide,320px);position:relative;display:block;flex:1;min-height:0; margin:0}
   .stage .canvas-wrap {height:100%;aspect-ratio:auto}
   .stage .dsl {position:absolute;inset:0 0 0 auto;width:var(--panel);background:color-mix(in srgb,var(--paper) 82%,transparent);border-left:1px solid var(--rule, var(--ink));contain:none}
   .stage .dsl textarea{background:transparent}
@@ -569,16 +577,19 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
     width: max-content;
     min-width: 100%;
   }
-  .dsl-row[aria-selected='true'],
   .dsl-row:hover {
     background: var(--wash);
   }
-  .dsl-row[aria-selected='true']::before {
-    content: '';
-    position: absolute;
-    inset: 0 100% 0 auto;
-    width: 2px;
-    background: var(--ink);
+  /* a selected row is told from a hovered one by its
+     ground, stronger than the wash and kept under the
+     pointer too; no bar at its side */
+  .dsl-row[aria-selected='true'],
+  .dsl-row[aria-selected='true']:hover {
+    background: color-mix(
+      in srgb,
+      var(--ink) 18%,
+      var(--paper)
+    );
   }
   .dsl-row[aria-invalid='true'] {
     text-decoration: underline wavy var(--ink);
@@ -601,8 +612,8 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
      rules, the appearance's look). What stays here is
      where the list sits in this panel. */
   .dsl-properties {
-    flex: 0 1 auto;
-    max-height: 45%;
+    flex: 0 1 var(--dsl-props, auto);
+    max-height: var(--dsl-props-most, 45%);
     overflow: auto;
     border-top: 1px solid var(--rule, var(--ink));
     color: var(--ink);
@@ -629,6 +640,7 @@ ${boardCss('.flow-sheet, [data-island="plgg-flow"] figure')}
 
   @media(min-width:760px) and (max-width:1099px){
     :scope>small{max-width:calc(100% - 280px - 70px)}
+    .dsl-size{display:none}
     .stage{--panel:280px}
     .stage .dsl{padding-left:28px}
     .dsl-handle{display:block;position:absolute;inset:0 auto 0 0;width:28px;font-size:0;background:var(--paper);border:0;border-right:1px solid var(--trace);touch-action:none}

@@ -200,8 +200,8 @@ test("the toolbar exposes disabled history endpoints and four drawn navigation c
           !disabled(initial, label) &&
           disabled(latest, label),
       ) &&
-      initial.match(/<svg/g)?.length === 4 &&
-      initial.indexOf("リセット") <
+      initial.match(/<svg/g)?.length === 5 &&
+      initial.indexOf("中央に戻す") <
         initial.indexOf("最初に"),
     toBe(true),
   );

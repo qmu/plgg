@@ -163,7 +163,7 @@ ${group}[open] summary{padding-bottom:.45rem}
 ${group}[open]::details-content{padding-bottom:.5rem}
 ${group} ${link}:hover{padding-left:calc(${a.gutter} + 1.15rem)}
 ${group} ${link}[aria-current]:hover{padding-left:calc(${a.gutter} + .9rem)}
-${car}{width:2.25rem;height:2.25rem;margin-top:-1.125rem;padding:0;border:${rule};border-radius:${a.radius};background:${surface};color:${text};box-shadow:${a.elevation};${quick("background-color", "color")}}
+${car}{width:2.25rem;height:2.25rem;margin-top:-1.125rem;padding:0;border:${rule};border-radius:50%;background:${surface};color:${text};box-shadow:${a.elevation};${quick("background-color", "color")}}
 ${carEach("::before")}{content:"";width:.5rem;height:.5rem;border-top:1.5px solid currentColor;border-right:1.5px solid currentColor}
 .${p}-carousel-prev::before{transform:translateX(.12rem) rotate(-135deg)}
 .${p}-carousel-next::before{transform:translateX(-.12rem) rotate(45deg)}

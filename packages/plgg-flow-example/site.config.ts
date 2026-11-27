@@ -30,7 +30,7 @@ export default {
       ],
     },
     {
-      text: "基礎機能",
+      text: "基礎",
       items: [
         {
           text: "立体交差",
@@ -55,6 +55,121 @@ export default {
         {
           text: "次元を足す",
           link: "/samples/dimensions",
+          items: [],
+        },
+        {
+          text: "エッジに挿入",
+          link: "/samples/split",
+          items: [],
+        },
+        {
+          text: "接続先の変更",
+          link: "/samples/reconnect",
+          items: [],
+        },
+        {
+          text: "循環の防止",
+          link: "/samples/cycles",
+          items: [],
+        },
+        {
+          text: "出力数の制限",
+          link: "/samples/limit",
+          items: [],
+        },
+        {
+          text: "中間ノードの削除",
+          link: "/samples/bypass",
+          items: [],
+        },
+        {
+          text: "エッジの経路",
+          link: "/samples/routes",
+          items: [],
+        },
+        {
+          text: "エッジのラベル",
+          link: "/samples/labels",
+          items: [],
+        },
+        {
+          text: "配線をたどる",
+          link: "/samples/trace",
+          items: [],
+        },
+        {
+          text: "グリッド吸着",
+          link: "/samples/snap",
+          items: [],
+        },
+        {
+          text: "ノードのリサイズ",
+          link: "/samples/resize",
+          items: [],
+        },
+        {
+          text: "ノード内容の編集",
+          link: "/samples/rename",
+          items: [],
+        },
+        {
+          text: "コピーと貼り付け",
+          link: "/samples/copy",
+          items: [],
+        },
+        {
+          text: "計算ノード",
+          link: "/samples/compute",
+          items: [],
+        },
+        {
+          text: "分岐の折りたたみ",
+          link: "/samples/collapse",
+          items: [],
+        },
+        {
+          text: "グループとネスト",
+          link: "/samples/group",
+          items: [],
+        },
+        {
+          text: "階層レイアウト",
+          link: "/samples/layout",
+          items: [],
+        },
+        {
+          text: "グループ一覧",
+          link: "/samples/outline",
+          items: [],
+        },
+        {
+          text: "ミニマップ",
+          link: "/samples/overview",
+          items: [],
+        },
+        {
+          text: "フローのアニメーション",
+          link: "/samples/motion",
+          items: [],
+        },
+        {
+          text: "元に戻す・やり直す",
+          link: "/samples/history",
+          items: [],
+        },
+        {
+          text: "スナップショット",
+          link: "/samples/checkpoint",
+          items: [],
+        },
+        {
+          text: "編集履歴",
+          link: "/samples/revisions",
+          items: [],
+        },
+        {
+          text: "保存と読み込み",
+          link: "/samples/files",
           items: [],
         },
       ],
@@ -100,141 +215,6 @@ export default {
         {
           text: "いつ何が走るか",
           link: "/plots/timeline",
-          items: [],
-        },
-      ],
-    },
-    {
-      text: "配線",
-      items: [
-        {
-          text: "エッジに挿入",
-          link: "/samples/split",
-          items: [],
-        },
-        {
-          text: "接続先の変更",
-          link: "/samples/reconnect",
-          items: [],
-        },
-        {
-          text: "循環の防止",
-          link: "/samples/cycles",
-          items: [],
-        },
-        {
-          text: "出力数の制限",
-          link: "/samples/limit",
-          items: [],
-        },
-        {
-          text: "中間ノードの削除",
-          link: "/samples/bypass",
-          items: [],
-        },
-        {
-          text: "エッジの経路",
-          link: "/samples/routes",
-          items: [],
-        },
-        {
-          text: "エッジのラベル",
-          link: "/samples/labels",
-          items: [],
-        },
-        {
-          text: "配線をたどる",
-          link: "/samples/trace",
-          items: [],
-        },
-      ],
-    },
-    {
-      text: "ノード",
-      items: [
-        {
-          text: "グリッド吸着",
-          link: "/samples/snap",
-          items: [],
-        },
-        {
-          text: "ノードのリサイズ",
-          link: "/samples/resize",
-          items: [],
-        },
-        {
-          text: "ノード内容の編集",
-          link: "/samples/rename",
-          items: [],
-        },
-        {
-          text: "コピーと貼り付け",
-          link: "/samples/copy",
-          items: [],
-        },
-        {
-          text: "計算ノード",
-          link: "/samples/compute",
-          items: [],
-        },
-      ],
-    },
-    {
-      text: "構造と表示",
-      items: [
-        {
-          text: "分岐の折りたたみ",
-          link: "/samples/collapse",
-          items: [],
-        },
-        {
-          text: "グループとネスト",
-          link: "/samples/group",
-          items: [],
-        },
-        {
-          text: "階層レイアウト",
-          link: "/samples/layout",
-          items: [],
-        },
-        {
-          text: "グループ一覧",
-          link: "/samples/outline",
-          items: [],
-        },
-        {
-          text: "ミニマップ",
-          link: "/samples/overview",
-          items: [],
-        },
-        {
-          text: "フローのアニメーション",
-          link: "/samples/motion",
-          items: [],
-        },
-      ],
-    },
-    {
-      text: "履歴と保存",
-      items: [
-        {
-          text: "元に戻す・やり直す",
-          link: "/samples/history",
-          items: [],
-        },
-        {
-          text: "スナップショット",
-          link: "/samples/checkpoint",
-          items: [],
-        },
-        {
-          text: "編集履歴",
-          link: "/samples/revisions",
-          items: [],
-        },
-        {
-          text: "保存と読み込み",
-          link: "/samples/files",
           items: [],
         },
       ],

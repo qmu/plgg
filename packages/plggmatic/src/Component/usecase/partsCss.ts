@@ -118,7 +118,7 @@ ${toned("badge")}
 .${p}-tag{gap:.25rem;padding:.1rem .5rem;border:${l.hair};border-radius:${l.radius};background:${l.wash};font-size:.8125rem;line-height:1.5;color:${l.text}}
 .${p}-tag-remove{width:1.1rem;height:1.1rem;margin-right:-.2rem;padding:0;border:0;border-radius:${l.radius};background:none;color:inherit;font-size:.9rem;line-height:1}
 .${p}-tag-remove:hover,.${p}-tag-remove:focus-visible{${l.press};outline:0}
-.${p}-card{border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};box-shadow:${l.elevation}}
+.${p}-card{border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text}}
 .${p}-card-head{padding:.7rem 1rem;border-bottom:${l.rule};font-size:.9375rem;font-weight:600}
 .${p}-card-body{padding:1rem;font-size:.875rem}
 .${p}-card-body :is(p,ul,ol):first-child{margin-top:0}

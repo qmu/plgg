@@ -100,7 +100,7 @@ export const monochrome: Appearance = {
   head: "3rem",
   gutter: "1.25rem",
   page: "2rem 2.5rem 3rem",
-  elevation: "none",
+  elevation: "0 2px 10px rgba(0,0,0,.22)",
   quick: ".15s",
   arrive: ".34s",
   leave: ".26s",
