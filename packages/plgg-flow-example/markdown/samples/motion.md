@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 再生と停止で、接続に沿った流れの向きを確認できます。
+description: 再生して Source から Result へ流れる向きを確認し、停止して同じ経路を見比べてください。
 ---
 
 # フローのアニメーション

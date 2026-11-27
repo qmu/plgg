@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: Web も名前解決も、最後は同じ IP を通って、別々の回線に出ていく。
+description: Web と名前解決の経路を上からたどると、どちらも IP に合流し、リンク層で別の回線に分かれます。
 ---
 
 # TCP/IP の4層

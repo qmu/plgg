@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: Route の下流を折りたたみ、展開すると編集した位置が戻ります。
+description: Route の下流を畳むと Live と Backup が隠れます。もう一度展開すると、先ほどの配置で作業を続けられます。
 ---
 
 # 分岐の折りたたみ

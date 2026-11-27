@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 検証には、本番にある Billing と Ledger がない。
+description: 本番と検証で同じサービスの位置を見比べてください。Billing と Ledger は本番にだけあります。
 ---
 
 # 同じサービスを環境ごとに

@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 挿入ボタンで先頭の接続を分割し、中間ノードを追加します。
+description: 挿入ボタンを押すと、Source から Process への線が 2 本に分かれ、新しいノードを経由します。
 ---
 
 # エッジに挿入

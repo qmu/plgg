@@ -1,181 +1,202 @@
-// The guide's single information-architecture
-// instance: pure data validated through plggpress's
-// `defineSite` boundary caster. This replaces the old
-// VitePress `defineConfig` — there is deliberately no
-// dependency on the `vitepress` package here. plggpress
-// owns the
-// `SiteConfig` TYPE and the `defineSite` validator; this
-// file supplies only the guide's values (ported verbatim
-// from the former `.vitepress/config.ts` and `index.md`).
 import { joinedTo } from "../../sites.ts";
 import {
   defineSite,
-  type SidebarItemInput,
+  type SiteConfigInput,
 } from "plggpress";
 
-// The site serves at the domain ROOT — the Cloudflare
-// Worker (wrangler.jsonc) serves `dist/` at `/`, as do
-// local dev and preview — so the default is what every
-// surface actually uses and nothing sets DOCS_BASE. The
-// override survives for a hypothetical sub-path host;
-// plggpress's href helper is the single rewrite site
-// downstream. (Until 2026-08-18 this read as a GitHub
-// Pages project-site base, which no surface ever set.)
-const base = process.env.DOCS_BASE ?? "/";
-
-// A sidebar node as authored here: every node carries an
-// explicit `items` array (the leaf case is `[]`) so it
-// validates against plggpress's `SidebarItemInput`, whose
-// `items` is required and whose `link` is optional.
-const leaf = (
-  text: string,
+const english = process.env.SITE_LOCALE === "en";
+const label = (ja: string, en: string) =>
+  english ? en : ja;
+const item = (
   link: string,
-): SidebarItemInput => ({
-  text,
-  link,
-  items: [],
-});
+  ja: string,
+  en: string,
+) => ({ link, text: label(ja, en), items: [] });
+const library = (name: string) =>
+  item("/packages/" + name + "/", name, name);
 
-// The four sidebar sections: Guide (prose), Core (plgg +
-// its deep-dive pages), Vocabulary (every mid/toolchain
-// package, one leaf each, in dependency-ish order,
-// closing with the example tutorial), then the site tool
-// (plggpress). The former design-system docs now live
-// outside this monorepo, not in this guide sidebar.
-const LIBRARY_PACKAGES: ReadonlyArray<
-  readonly [string, string]
-> = [
-  ["plgg-http", "/packages/plgg-http"],
-  ["plgg-router", "/packages/plgg-router"],
-  ["plgg-server", "/packages/plgg-server"],
-  ["plgg-fetch", "/packages/plgg-fetch"],
-  ["plgg-view", "/packages/plgg-view"],
-  ["plgg-sql", "/packages/plgg-sql"],
-  [
-    "plgg-db-migration",
-    "/packages/plgg-db-migration",
-  ],
-  ["plgg-auth", "/packages/plgg-auth"],
-  ["plgg-cms", "/packages/plgg-cms"],
-  ["plgg-kit", "/packages/plgg-kit"],
-  ["plgg-foundry", "/packages/plgg-foundry"],
-  ["plgg-cli", "/packages/plgg-cli"],
-  ["plgg-parser", "/packages/plgg-parser"],
-  ["plgg-md", "/packages/plgg-md"],
-  ["plgg-highlight", "/packages/plgg-highlight"],
-  ["plgg-bundle", "/packages/plgg-bundle"],
-  ["plgg-test", "/packages/plgg-test"],
-  ["example (tutorial)", "/packages/example"],
-];
-
-// Information architecture for the plgg family guide: the
-// nav and sidebar tree below name every page, ported
-// verbatim from the former `.vitepress/config.ts`.
 const config = {
-  base,
-  title: "plgg",
-  description:
-    "The official guide for plgg and the " +
-    "plgg family — a TypeScript toolkit where " +
-    "web development is one typed pipeline: " +
-    "Option/Result, errors as data, " +
-    "runtime-neutral, built from scratch.",
-  nav: [
-    leaf("Guide", "/getting-started"),
-    leaf("Packages", "/packages/plgg/"),
-    leaf("GitHub", "https://github.com/qmu/plgg"),
-  ],
+  title: label("plgg ガイド", "The plgg guide"),
+  description: label(
+    "TypeScript の入力を検証し、plgg のライブラリを組み合わせてアプリケーションを作ります。",
+    "Validate input and compose TypeScript applications with the plgg libraries.",
+  ),
+  base: english ? "/en/" : "/",
+  nav: [],
+  sidebarStyle: "tree",
+  sidebarGroups: "toggle",
+  controls: "sidebar",
   sidebar: [
     {
-      text: "Guide",
+      text: label("はじめに", "Getting started"),
       items: [
-        leaf(
-          "Getting started",
-          "/getting-started",
+        item(
+          "/",
+          "このガイドについて",
+          "About this guide",
         ),
-        {
-          text: "Core concepts",
-          link: "/concepts/",
-          items: [
-            leaf(
-              "Tagged data (Box)",
-              "/concepts/tagged-data",
-            ),
-            leaf(
-              "Option, not null",
-              "/concepts/option",
-            ),
-            leaf(
-              "Result, not throw",
-              "/concepts/result",
-            ),
-            leaf(
-              "Validation with cast",
-              "/concepts/validation",
-            ),
-            leaf(
-              "Async with proc",
-              "/concepts/async",
-            ),
-            leaf(
-              "Exhaustive match",
-              "/concepts/match",
-            ),
-            leaf(
-              "Data-last composition",
-              "/concepts/composition",
-            ),
-          ],
-        },
-        leaf(
-          "Doc conventions",
-          "/contributing/conventions",
+        item(
+          "/getting-started/",
+          "最初のプログラム",
+          "Your first program",
+        ),
+        item(
+          "/packages/",
+          "用途から選ぶ",
+          "Find a package",
+        ),
+        item(
+          "/contributing/conventions/",
+          "例を確かめる",
+          "Check an example",
         ),
       ],
     },
     {
-      text: "Core",
-      items: [
-        leaf("plgg", "/packages/plgg/"),
-        leaf(
-          "Values & effects",
-          "/packages/plgg/values-effects",
-        ),
-        leaf(
-          "Structures & errors",
-          "/packages/plgg/structures-errors",
-        ),
-      ],
-    },
-    {
-      text: "Vocabulary",
-      items: LIBRARY_PACKAGES.map(([t, l]) =>
-        leaf(t, l),
+      text: label(
+        "基本の考え方",
+        "Core concepts",
       ),
+      items: [
+        item(
+          "/concepts/",
+          "処理の流れ",
+          "From input to output",
+        ),
+        item(
+          "/concepts/tagged-data/",
+          "タグ付きの値",
+          "Tagged values",
+        ),
+        item(
+          "/concepts/option/",
+          "省略できる値",
+          "Optional values",
+        ),
+        item(
+          "/concepts/result/",
+          "成功と失敗",
+          "Success and failure",
+        ),
+        item(
+          "/concepts/validation/",
+          "入力の検証",
+          "Validating input",
+        ),
+        item(
+          "/concepts/composition/",
+          "関数の合成",
+          "Composing functions",
+        ),
+        item(
+          "/concepts/async/",
+          "非同期処理",
+          "Asynchronous steps",
+        ),
+        item(
+          "/concepts/match/",
+          "場合分け",
+          "Pattern matching",
+        ),
+      ],
     },
     {
-      text: "plggpress",
+      text: label("plgg 本体", "Core library"),
       items: [
-        leaf("Overview", "/packages/plggpress"),
-        leaf(
-          "Authoring (columns & voice)",
-          "/packages/plggpress/authoring",
+        item(
+          "/packages/plgg/",
+          "関数を選ぶ",
+          "Choose a function",
         ),
-        leaf(
-          "Content & delivery",
-          "/packages/plggpress/content-delivery",
+        item(
+          "/packages/plgg/values-effects/",
+          "値と変換",
+          "Values and transformations",
         ),
-        leaf(
-          "Auth & admin",
-          "/packages/plggpress/auth-admin",
+        item(
+          "/packages/plgg/structures-errors/",
+          "構造とエラー",
+          "Structures and errors",
         ),
-        leaf(
-          "Agent surfaces",
-          "/packages/plggpress/agent-surfaces",
-        ),
-        leaf(
-          "Operations",
-          "/packages/plggpress/operations",
+      ],
+    },
+    {
+      text: label(
+        "画面と HTTP",
+        "Views and HTTP",
+      ),
+      items: [
+        "plgg-http",
+        "plgg-server",
+        "plgg-fetch",
+        "plgg-router",
+        "plgg-view",
+        "example",
+      ].map(library),
+    },
+    {
+      text: label(
+        "データと認証",
+        "Storage and authentication",
+      ),
+      items: [
+        "plgg-sql",
+        "plgg-db-migration",
+        "plgg-auth",
+        "plgg-cms",
+      ].map(library),
+    },
+    {
+      text: label(
+        "言語と文書",
+        "Languages and documents",
+      ),
+      items: [
+        "plgg-parser",
+        "plgg-md",
+        "plgg-highlight",
+        "plgg-ir-syntax",
+        "plgg-ir-language",
+        "plgg-ir-manifest",
+        "plgg-ir-thesis",
+        "plgg-ir-thesis-proof",
+        "plgg-ir-diagram",
+      ].map(library),
+    },
+    {
+      text: label(
+        "モデルとツール",
+        "Models and tools",
+      ),
+      items: [
+        "plgg-kit",
+        "plgg-token-metering",
+        "plgg-foundry",
+        "plgg-mcp",
+        "plgg-cli",
+        "plgg-bundle",
+        "plgg-test",
+      ].map(library),
+    },
+    {
+      text: label(
+        "描画と関連サイト",
+        "Graphics and related sites",
+      ),
+      items: [
+        "plgg-board",
+        "plgg-flow",
+        "plggmatic",
+        "plggpress",
+      ].map(library),
+    },
+    {
+      text: label("言語", "Language"),
+      items: [
+        item(
+          english ? "/../" : "/en/",
+          "English",
+          "日本語",
         ),
       ],
     },
@@ -186,27 +207,14 @@ const config = {
       link: "https://github.com/qmu/plgg",
     },
   ],
-  // dev.allowedHosts (spike item 7): the extra Host headers
-  // plggpress's node:http dev server accepts. localhost for
-  // local work; plgg-guide.qmu.dev for the port-5181
-  // Cloudflare tunnel.
   dev: {
     allowedHosts: [
       "localhost",
       "plgg-guide.qmu.dev",
     ],
   },
-  // joined to the other qmu sites by columns
   ...joinedTo("https://plgg.qmu.co.jp"),
-};
+} satisfies SiteConfigInput;
 
-// Author-time validation through the boundary caster: an Ok
-// is the typed `SiteConfig`, an Err names the offending
-// field. Exported so a check / plggpress can assert it.
 export const site = defineSite(config);
-
-// The raw config DATA is the default export plggpress's
-// `loadConfig` reads and validates through `defineSite` at
-// build/dev time (the one place untrusted config crosses
-// into the typed core).
 export default config;

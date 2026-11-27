@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 画面は ViewModel だけを見て、通信と保存はリポジトリの下に隠れている。
+description: 画面から ViewModel を経由して、通信や保存を担う部品まで依存をたどれます。
 ---
 
 # モバイルアプリ（MVVM）

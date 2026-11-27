@@ -17,19 +17,29 @@ const audits = [
     : [];
 });
 try {
-  execFileSync(
-    "plggpress",
-    [
-      "build",
-      "--config",
-      "site.config.ts",
-      "--contentDir",
-      "markdown",
-      "--outDir",
-      "dist",
-    ],
-    { stdio: "inherit" },
-  );
+  for (const locale of ["ja", "en"]) {
+    execFileSync(
+      "plggpress",
+      [
+        "build",
+        "--config",
+        "site.config.ts",
+        "--contentDir",
+        locale === "en"
+          ? "markdown-en"
+          : "markdown",
+        "--outDir",
+        locale === "en" ? "dist/en" : "dist",
+      ],
+      {
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          SITE_LOCALE: locale,
+        },
+      },
+    );
+  }
 } finally {
   mkdirSync("dist", { recursive: true });
   for (const { path, bytes } of audits)

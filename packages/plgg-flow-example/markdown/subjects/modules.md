@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 下の層の store が、上の層の view を参照している（逆向きの依存）。
+description: store から view に向かう線に注目してください。層を上向きにまたぐ依存を見つけられます。
 ---
 
 # モジュールの依存

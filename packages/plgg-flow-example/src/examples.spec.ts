@@ -10,7 +10,12 @@ import {
   nodeSize,
   viewAt,
 } from "plgg-flow";
-import { test, check, toBe } from "plgg-test";
+import {
+  test,
+  check,
+  toBe,
+  toEqual,
+} from "plgg-test";
 import {
   parseSpec,
   printSpec,
@@ -597,5 +602,48 @@ test("each subject file has its own sheet and sidebar entry", () => {
       },
     ),
     toBe(true),
+  );
+});
+
+test("both editions have the same pages and parseable diagram examples", () => {
+  const pages = (dir: string) =>
+    readdirSync(dir, {
+      recursive: true,
+      encoding: "utf8",
+    })
+      .filter((name) => name.endsWith(".md"))
+      .sort();
+  const diagrams = (file: string) =>
+    Array.from(
+      readFileSync(file, "utf8").matchAll(
+        /^```(plgg-flow[^\n]*)\n([\s\S]*?)\n```/gm,
+      ),
+      ([, fence, source]) => {
+        const parsed = parseSpec(source!);
+        if (parsed.__tag === "Err")
+          throw Error(
+            file + ": " + parsed.content,
+          );
+        const { nodes, edges } =
+          parsed.content.graph;
+        const ids = nodes.map((n) => n.id);
+        return {
+          fence,
+          nodes: ids.length,
+          edges: edges.map((e) => [
+            ids.indexOf(e.source),
+            ids.indexOf(e.target),
+          ]),
+        };
+      },
+    );
+  const edition = (dir: string) =>
+    pages(dir).map((page) => ({
+      page,
+      diagrams: diagrams(dir + "/" + page),
+    }));
+  return check(
+    edition("markdown-en"),
+    toEqual(edition("markdown")),
   );
 });

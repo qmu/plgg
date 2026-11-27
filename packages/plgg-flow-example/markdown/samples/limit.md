@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: Input から Backup へ接続してみてください。既存の出力をダブルクリックで消すと、新しい出力を作れます。
+description: Input の出力はすでに 1 本あります。既存の線をダブルクリックして消してから、Input と Backup をつないでください。
 ---
 
 # 出力数の制限

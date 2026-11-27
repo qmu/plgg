@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: 切替ボタンで Route から伸びる接続を Live と Backup の間で付け替えます。
+description: 切替ボタンを押し、Route の出力先が Live と Backup の間で変わる様子を見てください。
 ---
 
 # 接続先の変更

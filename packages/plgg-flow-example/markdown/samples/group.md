@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: Team を動かすと孫まで一緒に移動します。Shift＋クリックで複数選択し、グループ化・収納・親の変更を試せます。
+description: Team を動かすと Design の中にある Review も移動します。グループの外にある External と比べてください。
 ---
 
 # グループとネスト

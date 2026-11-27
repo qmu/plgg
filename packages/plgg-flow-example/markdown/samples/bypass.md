@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: Process を取り除くと、その入出力を直接つなぎ直します。
+description: Process を取り除く操作を試してください。前後の線がつなぎ直され、Source から Result に直接届きます。
 ---
 
 # 中間ノードの削除

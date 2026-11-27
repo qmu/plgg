@@ -1,5 +1,5 @@
 # モバイルアプリ（MVVM）
-# 見えるはずのこと: 画面は ViewModel だけを見て、通信と保存はリポジトリの下に隠れている。
+# 見えるはずのこと: 画面から ViewModel を経由して、通信や保存を担う部品まで依存をたどれます。
 layout layered down
 axis 層 View ViewModel リポジトリ データ源
 node 一覧画面 層=View

@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: ノードをドラッグすると、格子ひとつ分ずつ吸着しながら動きます。snap 8 で半分の間隔に切り替え、snap off で自由に動かせます。
+description: ノードを動かしてから、DSL の snap を 8 に変えてください。snap off にすると格子の間にも置けます。
 ---
 
 # グリッド吸着

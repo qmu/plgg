@@ -1,9 +1,23 @@
 import { joinedTo } from "../../sites.ts";
+
+const english = process.env.SITE_LOCALE === "en";
+const label = (ja: string, en: string) =>
+  english ? en : ja;
+const item = (
+  link: string,
+  ja: string,
+  en: string,
+) => ({ text: label(ja, en), link, items: [] });
 export default {
-  title: "plgg-flow",
-  description:
-    "文章で書いて、つかんで動かせる図。",
-  base: "/",
+  title: label(
+    "plgg-flow ガイド",
+    "plgg-flow guide",
+  ),
+  description: label(
+    "ノードと接続を文章で書き、図を動かして確かめます。",
+    "Write diagrams in text and explore their connections and data.",
+  ),
+  base: english ? "/en/" : "/",
   nav: [],
   sidebarStyle: "tree",
   sidebarGroups: "toggle",
@@ -11,352 +25,400 @@ export default {
   contentWidth: "fill",
   sidebar: [
     {
-      text: "ガイド",
+      text: label("はじめに", "Getting started"),
       items: [
-        {
-          text: "DSL の構文",
-          link: "/guide/dsl",
-          items: [],
-        },
-        {
-          text: "図の実例",
-          link: "/guide/gallery",
-          items: [],
-        },
-        {
-          text: "配置と視点",
-          link: "/guide/camera",
-          items: [],
-        },
+        item(
+          "/",
+          "このガイドについて",
+          "About this guide",
+        ),
+        item(
+          "/guide/gallery",
+          "図の実例",
+          "Read three diagrams",
+        ),
+        item(
+          "/guide/camera",
+          "配置と視点",
+          "Position and camera",
+        ),
+        item(
+          "/guide/dsl",
+          "DSL の構文",
+          "DSL syntax",
+        ),
       ],
     },
     {
-      text: "基礎",
+      text: label(
+        "グラフを描く",
+        "Chart layouts",
+      ),
       items: [
-        {
-          text: "立体交差",
-          link: "/samples/space",
-          items: [],
-        },
-        {
-          text: "自動配置",
-          link: "/samples/layered",
-          items: [],
-        },
-        {
-          text: "レイヤーに分ける",
-          link: "/samples/layers",
-          items: [],
-        },
-        {
-          text: "部屋に分ける",
-          link: "/samples/rooms",
-          items: [],
-        },
-        {
-          text: "次元を足す",
-          link: "/samples/dimensions",
-          items: [],
-        },
-        {
-          text: "エッジに挿入",
-          link: "/samples/split",
-          items: [],
-        },
-        {
-          text: "接続先の変更",
-          link: "/samples/reconnect",
-          items: [],
-        },
-        {
-          text: "循環の防止",
-          link: "/samples/cycles",
-          items: [],
-        },
-        {
-          text: "出力数の制限",
-          link: "/samples/limit",
-          items: [],
-        },
-        {
-          text: "中間ノードの削除",
-          link: "/samples/bypass",
-          items: [],
-        },
-        {
-          text: "エッジの経路",
-          link: "/samples/routes",
-          items: [],
-        },
-        {
-          text: "エッジのラベル",
-          link: "/samples/labels",
-          items: [],
-        },
-        {
-          text: "配線をたどる",
-          link: "/samples/trace",
-          items: [],
-        },
-        {
-          text: "グリッド吸着",
-          link: "/samples/snap",
-          items: [],
-        },
-        {
-          text: "ノードのリサイズ",
-          link: "/samples/resize",
-          items: [],
-        },
-        {
-          text: "ノード内容の編集",
-          link: "/samples/rename",
-          items: [],
-        },
-        {
-          text: "コピーと貼り付け",
-          link: "/samples/copy",
-          items: [],
-        },
-        {
-          text: "計算ノード",
-          link: "/samples/compute",
-          items: [],
-        },
-        {
-          text: "分岐の折りたたみ",
-          link: "/samples/collapse",
-          items: [],
-        },
-        {
-          text: "グループとネスト",
-          link: "/samples/group",
-          items: [],
-        },
-        {
-          text: "階層レイアウト",
-          link: "/samples/layout",
-          items: [],
-        },
-        {
-          text: "グループ一覧",
-          link: "/samples/outline",
-          items: [],
-        },
-        {
-          text: "ミニマップ",
-          link: "/samples/overview",
-          items: [],
-        },
-        {
-          text: "フローのアニメーション",
-          link: "/samples/motion",
-          items: [],
-        },
-        {
-          text: "元に戻す・やり直す",
-          link: "/samples/history",
-          items: [],
-        },
-        {
-          text: "スナップショット",
-          link: "/samples/checkpoint",
-          items: [],
-        },
-        {
-          text: "編集履歴",
-          link: "/samples/revisions",
-          items: [],
-        },
-        {
-          text: "保存と読み込み",
-          link: "/samples/files",
-          items: [],
-        },
+        item(
+          "/guide/charts",
+          "グラフの選び方と構文",
+          "Chart layouts",
+        ),
+        item(
+          "/plots/options",
+          "案を比べる",
+          "Compare alternatives",
+        ),
+        item(
+          "/plots/conditions",
+          "条件の中で選ぶ",
+          "Set limits and size markers",
+        ),
+        item(
+          "/plots/quadrant",
+          "効果と手間で分ける",
+          "Compare impact and effort",
+        ),
+        item(
+          "/plots/bars",
+          "量を 2 つの種類で比べる",
+          "Compare quantities with bars",
+        ),
+        item(
+          "/plots/area",
+          "推移を系列ごとに奥へ並べる",
+          "Follow a series in depth",
+        ),
+        item(
+          "/plots/line",
+          "推移を線で読み比べる",
+          "Compare trends with lines",
+        ),
+        item(
+          "/plots/stack",
+          "合計と内訳を積んで見る",
+          "Read totals and contributions",
+        ),
+        item(
+          "/plots/radar",
+          "いくつもの条件で形を比べる",
+          "Compare profiles on a radar chart",
+        ),
+        item(
+          "/plots/pie",
+          "全体の中の割合を見る",
+          "Compare shares of a whole",
+        ),
+        item(
+          "/plots/tree",
+          "全体が何でできているか",
+          "Break a whole into parts",
+        ),
+        item(
+          "/plots/sankey",
+          "量がどこへ流れるか",
+          "Follow a quantity through a network",
+        ),
+        item(
+          "/plots/sequence",
+          "やりとりの順",
+          "Read a message sequence",
+        ),
+        item(
+          "/plots/timeline",
+          "いつ何が走るか",
+          "Place tasks on a timeline",
+        ),
       ],
     },
     {
-      text: "条件の空間",
+      text: label(
+        "ノードを配置する",
+        "Arrange nodes",
+      ),
       items: [
-        {
-          text: "案を比べる",
-          link: "/plots/options",
-          items: [],
-        },
-        {
-          text: "条件の中で選ぶ",
-          link: "/plots/conditions",
-          items: [],
-        },
-        {
-          text: "効果と手間で分ける",
-          link: "/plots/quadrant",
-          items: [],
-        },
-        {
-          text: "量を種類で比べる",
-          link: "/plots/bars",
-          items: [],
-        },
-        {
-          text: "推移を奥へ並べる",
-          link: "/plots/area",
-          items: [],
-        },
-        {
-          text: "推移を線で読み比べる",
-          link: "/plots/line",
-          items: [],
-        },
-        {
-          text: "合計と内訳を積む",
-          link: "/plots/stack",
-          items: [],
-        },
-        {
-          text: "いくつもの条件で形を比べる",
-          link: "/plots/radar",
-          items: [],
-        },
-        {
-          text: "全体の中の割合を見る",
-          link: "/plots/pie",
-          items: [],
-        },
-        {
-          text: "全体が何でできているか",
-          link: "/plots/tree",
-          items: [],
-        },
-        {
-          text: "量がどこへ流れるか",
-          link: "/plots/sankey",
-          items: [],
-        },
-        {
-          text: "やりとりの順",
-          link: "/plots/sequence",
-          items: [],
-        },
-        {
-          text: "いつ何が走るか",
-          link: "/plots/timeline",
-          items: [],
-        },
+        item(
+          "/samples/space",
+          "立体交差",
+          "Depth at a crossing",
+        ),
+        item(
+          "/samples/layered",
+          "自動配置",
+          "Automatic layout",
+        ),
+        item(
+          "/samples/layers",
+          "レイヤーに分ける",
+          "One board per layer",
+        ),
+        item(
+          "/samples/rooms",
+          "部屋に分ける",
+          "Rooms by category",
+        ),
+        item(
+          "/samples/dimensions",
+          "次元を足す",
+          "Compare regions",
+        ),
       ],
     },
     {
-      text: "多層アーキテクチャ",
+      text: label(
+        "接続と編集",
+        "Connect and edit",
+      ),
       items: [
-        {
-          text: "クリーンアーキテクチャ",
-          link: "/architectures/clean",
-          items: [],
-        },
-        {
-          text: "データ基盤",
-          link: "/architectures/data-platform",
-          items: [],
-        },
-        {
-          text: "通販サイトの3層",
-          link: "/architectures/ec-3tier",
-          items: [],
-        },
-        {
-          text: "機械学習システム",
-          link: "/architectures/ml-system",
-          items: [],
-        },
-        {
-          text: "モバイルアプリ（MVVM）",
-          link: "/architectures/mobile-mvvm",
-          items: [],
-        },
-        {
-          text: "ネットワークのゾーン",
-          link: "/architectures/network-zones",
-          items: [],
-        },
-        {
-          text: "サービス × 層 × 環境",
-          link: "/architectures/services-3axis",
-          items: [],
-        },
-        {
-          text: "サービス × 層 × 環境 × 地域",
-          link: "/architectures/services-4axis",
-          items: [],
-        },
-        {
-          text: "TCP/IP の4層",
-          link: "/architectures/tcpip",
-          items: [],
-        },
-        {
-          text: "Web システムの構成",
-          link: "/architectures/web-infra",
-          items: [],
-        },
+        item(
+          "/samples/split",
+          "エッジに挿入",
+          "Insert a node on an edge",
+        ),
+        item(
+          "/samples/reconnect",
+          "接続先の変更",
+          "Change a destination",
+        ),
+        item(
+          "/samples/cycles",
+          "循環の防止",
+          "Prevent cycles",
+        ),
+        item(
+          "/samples/limit",
+          "出力数の制限",
+          "Limit outgoing edges",
+        ),
+        item(
+          "/samples/bypass",
+          "中間ノードの削除",
+          "Bypass a node",
+        ),
+        item(
+          "/samples/routes",
+          "エッジの経路",
+          "Choose an edge route",
+        ),
+        item(
+          "/samples/labels",
+          "エッジのラベル",
+          "Label an edge",
+        ),
+        item(
+          "/samples/trace",
+          "配線をたどる",
+          "Follow connections",
+        ),
+        item(
+          "/samples/snap",
+          "グリッド吸着",
+          "Snap to a grid",
+        ),
+        item(
+          "/samples/resize",
+          "ノードのリサイズ",
+          "Resize a card",
+        ),
+        item(
+          "/samples/rename",
+          "ノード内容の編集",
+          "Edit a label",
+        ),
+        item(
+          "/samples/copy",
+          "コピーと貼り付け",
+          "Copy a node",
+        ),
+        item(
+          "/samples/compute",
+          "計算ノード",
+          "Sum two inputs",
+        ),
+        item(
+          "/samples/collapse",
+          "分岐の折りたたみ",
+          "Fold a branch",
+        ),
+        item(
+          "/samples/group",
+          "グループとネスト",
+          "Nest groups",
+        ),
+        item(
+          "/samples/layout",
+          "階層レイアウト",
+          "Rearrange a graph",
+        ),
+        item(
+          "/samples/outline",
+          "グループ一覧",
+          "Browse a group outline",
+        ),
+        item(
+          "/samples/overview",
+          "ミニマップ",
+          "Navigate with the minimap",
+        ),
+        item(
+          "/samples/motion",
+          "フローのアニメーション",
+          "Animate the flow",
+        ),
       ],
     },
     {
-      text: "題材",
+      text: label(
+        "履歴と保存",
+        "History and storage",
+      ),
       items: [
-        {
-          text: "学ぶ順番",
-          link: "/subjects/curriculum",
-          items: [],
-        },
-        {
-          text: "同じサービスを環境ごとに",
-          link: "/subjects/environments",
-          items: [],
-        },
-        {
-          text: "障害対応",
-          link: "/subjects/incident",
-          items: [],
-        },
-        {
-          text: "データの流れ",
-          link: "/subjects/lineage",
-          items: [],
-        },
-        {
-          text: "モジュールの依存",
-          link: "/subjects/modules",
-          items: [],
-        },
-        {
-          text: "ネットワーク",
-          link: "/subjects/network",
-          items: [],
-        },
-        {
-          text: "組織と案件",
-          link: "/subjects/org",
-          items: [],
-        },
-        {
-          text: "チームと、リリースの工程",
-          link: "/subjects/release",
-          items: [],
-        },
-        {
-          text: "供給網",
-          link: "/subjects/supply",
-          items: [],
-        },
-        {
-          text: "Webサービスの層",
-          link: "/subjects/tiers",
-          items: [],
-        },
+        item(
+          "/samples/history",
+          "元に戻す・やり直す",
+          "Undo and redo",
+        ),
+        item(
+          "/samples/checkpoint",
+          "スナップショット",
+          "Restore a snapshot",
+        ),
+        item(
+          "/samples/revisions",
+          "編集履歴",
+          "Inspect a node’s history",
+        ),
+        item(
+          "/samples/files",
+          "保存と読み込み",
+          "Save and load",
+        ),
+      ],
+    },
+    {
+      text: label(
+        "システム構成の図",
+        "Architecture diagrams",
+      ),
+      items: [
+        item(
+          "/architectures/clean",
+          "クリーンアーキテクチャ",
+          "Clean architecture",
+        ),
+        item(
+          "/architectures/data-platform",
+          "データ基盤",
+          "A data platform",
+        ),
+        item(
+          "/architectures/ec-3tier",
+          "通販サイトの3層",
+          "Three tiers of a storefront",
+        ),
+        item(
+          "/architectures/ml-system",
+          "機械学習システム",
+          "A machine learning system",
+        ),
+        item(
+          "/architectures/mobile-mvvm",
+          "モバイルアプリ（MVVM）",
+          "A mobile app using MVVM",
+        ),
+        item(
+          "/architectures/network-zones",
+          "ネットワークのゾーン",
+          "Network zones",
+        ),
+        item(
+          "/architectures/services-3axis",
+          "サービス × 層 × 環境",
+          "Services by layer and environment",
+        ),
+        item(
+          "/architectures/services-4axis",
+          "サービス × 層 × 環境 × 地域",
+          "Compare deployments across regions",
+        ),
+        item(
+          "/architectures/tcpip",
+          "TCP/IP の4層",
+          "The four TCP/IP layers",
+        ),
+        item(
+          "/architectures/web-infra",
+          "Web システムの構成",
+          "Web infrastructure",
+        ),
+      ],
+    },
+    {
+      text: label(
+        "題材別の図",
+        "Worked examples",
+      ),
+      items: [
+        item(
+          "/subjects/curriculum",
+          "学ぶ順番",
+          "Course prerequisites",
+        ),
+        item(
+          "/subjects/environments",
+          "同じサービスを環境ごとに",
+          "Compare service environments",
+        ),
+        item(
+          "/subjects/incident",
+          "障害対応",
+          "Incident response",
+        ),
+        item(
+          "/subjects/lineage",
+          "データの流れ",
+          "Trace data lineage",
+        ),
+        item(
+          "/subjects/modules",
+          "モジュールの依存",
+          "Module dependencies",
+        ),
+        item(
+          "/subjects/network",
+          "ネットワーク",
+          "Network paths",
+        ),
+        item(
+          "/subjects/org",
+          "組織と案件",
+          "People and projects",
+        ),
+        item(
+          "/subjects/release",
+          "チームと、リリースの工程",
+          "Teams and release stages",
+        ),
+        item(
+          "/subjects/supply",
+          "供給網",
+          "A supply network",
+        ),
+        item(
+          "/subjects/tiers",
+          "Webサービスの層",
+          "Layers of a web service",
+        ),
+      ],
+    },
+    {
+      text: label("言語", "Language"),
+      items: [
+        item(
+          english ? "/../" : "/en/",
+          "English",
+          "日本語",
+        ),
       ],
     },
   ],
   social: [],
-  dev: { allowedHosts: [] }, // joined to the other qmu sites by columns
+  dev: { allowedHosts: [] },
   ...joinedTo("https://plgg-flow.qmu.co.jp"),
 };

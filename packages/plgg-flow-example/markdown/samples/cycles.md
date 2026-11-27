@@ -1,6 +1,6 @@
 ---
 layout: sheet
-description: Result → Source を接続してみてください。循環する接続を拒否し、Source → Result は許可します。
+description: Result から Source に戻る線を引いてみてください。rule acyclic が、新しく輪を作る接続を拒みます。
 ---
 
 # 循環の防止
