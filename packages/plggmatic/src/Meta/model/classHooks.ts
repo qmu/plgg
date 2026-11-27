@@ -518,3 +518,144 @@ export const cssVarRef = (
 export const selector = (
   hookClass: SoftStr,
 ): SoftStr => `.${hookClass}`;
+
+// --- Basic parts (Component/usecase/{display,feedback,navigation,choices}) ---
+
+/** A small mark of state or count. */
+export const badgeClass: SoftStr = hook("badge");
+/** A badge in a semantic tone. */
+export const badgeToneClass = (
+  tone: SoftStr,
+): SoftStr => hook(`badge-${tone}`);
+/** A label of classification, removable or not. */
+export const tagClass: SoftStr = hook("tag");
+/** The control that removes a tag. */
+export const tagRemoveClass: SoftStr =
+  hook("tag-remove");
+/** One bounded group of content. */
+export const cardClass: SoftStr = hook("card");
+export const cardHeadClass: SoftStr =
+  hook("card-head");
+export const cardBodyClass: SoftStr =
+  hook("card-body");
+export const cardFootClass: SoftStr =
+  hook("card-foot");
+/** The scrolling frame of a data table. */
+export const tableWrapClass: SoftStr =
+  hook("table-wrap");
+/** A table of rows and columns. */
+export const tableClass: SoftStr = hook("table");
+/** A cell holding a number, set to the right. */
+export const numericClass: SoftStr = hook("num");
+/** Pairs of a term and its value. */
+export const descClass: SoftStr = hook("desc");
+/** A line between two groups. */
+export const dividerClass: SoftStr =
+  hook("divider");
+/** The round mark of a person or a thing. */
+export const avatarClass: SoftStr =
+  hook("avatar");
+/** Source shown as written. */
+export const codeBlockClass: SoftStr =
+  hook("code");
+/** What stands where there is nothing yet. */
+export const emptyClass: SoftStr = hook("empty");
+export const emptyTitleClass: SoftStr = hook(
+  "empty-title",
+);
+/** A list of rows of one shape. */
+export const itemsClass: SoftStr = hook("items");
+export const itemsRowClass: SoftStr =
+  hook("items-row");
+export const itemsTitleClass: SoftStr = hook(
+  "items-title",
+);
+export const itemsNoteClass: SoftStr =
+  hook("items-note");
+export const itemsTrailClass: SoftStr = hook(
+  "items-trail",
+);
+
+/** A notice set in the page. */
+export const alertClass: SoftStr = hook("alert");
+export const alertToneClass = (
+  tone: SoftStr,
+): SoftStr => hook(`alert-${tone}`);
+export const alertTitleClass: SoftStr = hook(
+  "alert-title",
+);
+/** How far a task has come. */
+export const progressClass: SoftStr =
+  hook("progress");
+export const progressTrackClass: SoftStr = hook(
+  "progress-track",
+);
+export const progressBarClass: SoftStr = hook(
+  "progress-bar",
+);
+/** Set on a progress whose end is not known. */
+export const busyAttr: SoftStr = `data-${cssPrefix}-busy`;
+/** The turning mark of waiting. */
+export const spinnerClass: SoftStr =
+  hook("spinner");
+export const spinnerMarkClass: SoftStr = hook(
+  "spinner-mark",
+);
+/** The shape of content that has not come yet. */
+export const skeletonClass: SoftStr =
+  hook("skeleton");
+export const skeletonLineClass: SoftStr = hook(
+  "skeleton-line",
+);
+/** Carries the short text shown on hover or focus. */
+export const tipAttr: SoftStr = `data-${cssPrefix}-tip`;
+export const tipClass: SoftStr = hook("tip");
+
+/** A row of tabs. */
+export const tabsClass: SoftStr = hook("tabs");
+export const tabClass: SoftStr = hook("tab");
+/** The row of page numbers. */
+export const pagerClass: SoftStr = hook("pager");
+export const pagerItemClass: SoftStr =
+  hook("pager-item");
+/** The steps of a procedure. */
+export const stepsClass: SoftStr = hook("steps");
+export const stepClass: SoftStr = hook("step");
+/** Sections that open and close under their headings. */
+export const accordionClass: SoftStr =
+  hook("accordion");
+export const accordionItemClass: SoftStr = hook(
+  "accordion-item",
+);
+export const accordionBodyClass: SoftStr = hook(
+  "accordion-body",
+);
+/** A button that lets a list of choices down. */
+export const menuButtonClass: SoftStr = hook(
+  "menu-button",
+);
+export const menuListClass: SoftStr =
+  hook("menu-list");
+export const menuItemClass: SoftStr =
+  hook("menu-item");
+/** A button of a glyph alone. */
+export const iconButtonClass: SoftStr =
+  hook("icon-btn");
+
+/** A group of radio buttons. */
+export const radiosClass: SoftStr =
+  hook("radios");
+export const radioClass: SoftStr = hook("radio");
+/** Two to four choices side by side, one pressed. */
+export const segmentedClass: SoftStr =
+  hook("segmented");
+export const segmentClass: SoftStr =
+  hook("segment");
+/** A value within a range. */
+export const rangeClass: SoftStr = hook("range");
+export const rangeValueClass: SoftStr = hook(
+  "range-value",
+);
+/** A field with a mark before its input. */
+export const searchClass: SoftStr =
+  hook("search");

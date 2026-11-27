@@ -1,4 +1,8 @@
-import { type SoftStr } from "plgg";
+import {
+  type SoftStr,
+  fromNullable,
+  matchOption,
+} from "plgg";
 import { type Url } from "plgg-view/client";
 import { type Scheme } from "plggmatic/style";
 
@@ -38,7 +42,22 @@ export type Model = Readonly<{
   maxOut: SoftStr;
   /** Which appearance the catalog is wearing. */
   look: Look;
+  /** What the component samples hold, by sample name,
+   * so each can be operated. */
+  samples: ReadonlyMap<SoftStr, SoftStr>;
 }>;
+
+/** What a sample holds: its value, or the one it starts
+ * with. */
+export const sampleOf = (
+  model: Model,
+  key: SoftStr,
+  initial: SoftStr,
+): SoftStr =>
+  matchOption<SoftStr, SoftStr>(
+    () => initial,
+    (value: SoftStr) => value,
+  )(fromNullable(model.samples.get(key)));
 
 /** The appearances the catalog can be seen in. */
 export type Look = "monochrome" | "soft";
@@ -73,7 +92,12 @@ export type Msg =
       kind: "SetMaxOut";
       value: SoftStr;
     }>
-  | Readonly<{ kind: "SetLook"; look: Look }>;
+  | Readonly<{ kind: "SetLook"; look: Look }>
+  | Readonly<{
+      kind: "SetSample";
+      key: SoftStr;
+      value: SoftStr;
+    }>;
 
 /** Typed constructors, so a handler never widens a literal. */
 export const msg = {
@@ -136,4 +160,11 @@ export const msg = {
     kind: "SetLook",
     look,
   }),
+  setSample:
+    (key: SoftStr) =>
+    (value: SoftStr): Msg => ({
+      kind: "SetSample",
+      key,
+      value,
+    }),
 };

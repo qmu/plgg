@@ -25,7 +25,10 @@ import {
  * variants (`--pm-<tone>-*`).
  */
 export type Tone =
-  "success" | "danger" | "warning" | "info";
+  | "success"
+  | "danger"
+  | "warning"
+  | "info";
 
 export const tones: ReadonlyArray<Tone> = [
   "success",

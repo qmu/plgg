@@ -133,6 +133,7 @@ export const init = (
     acyclic: true,
     maxOut: "",
     look: "monochrome",
+    samples: new Map(),
   },
   cmdNone(),
 ];
@@ -304,6 +305,17 @@ export const update = (
         {
           ...model,
           maxOut: m.value.replace(/[^0-9]/g, ""),
+        },
+        cmdNone(),
+      ];
+    case "SetSample":
+      return [
+        {
+          ...model,
+          samples: new Map([
+            ...model.samples,
+            [m.key, m.value],
+          ]),
         },
         cmdNone(),
       ];

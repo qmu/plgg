@@ -35,6 +35,7 @@ body{margin:0;background:${cssVarRef("surface")};}
 .cat-example{margin:1rem 0;padding:1.25rem 1.4rem;border:1px solid ${cssVarRef("text")};}
 .cat-example :is(h1,h2,h3):first-child{margin-top:0;}
 .cat-example p:last-child{margin-bottom:0;}
+.cat-example > * + *{margin-top:.9rem;}
 .cat-row{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;}
 .cat-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:.6rem;margin:.75rem 0;}
 .cat-swatch{display:grid;grid-template-columns:2.25rem 1fr;grid-template-rows:auto auto;column-gap:.7rem;align-items:center;padding:.5rem;border:1px solid ${cssVarRef("border")};}

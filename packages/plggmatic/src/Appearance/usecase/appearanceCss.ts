@@ -2,6 +2,7 @@ import { type SoftStr } from "plgg";
 import { type Theme } from "plggmatic/Style/model/theme";
 import { colorVar } from "plggmatic/Style/model/token";
 import { themeToggleClass } from "plggmatic/Component/usecase/themeToggle";
+import { partsAppearanceCss } from "plggmatic/Component/usecase/partsCss";
 import {
   type Appearance,
   type Mark,
@@ -220,6 +221,27 @@ ${tones
   .join("\n")}
 .${p}-toast-close{width:1.6rem;height:1.6rem;padding:0;border:0;border-radius:${a.radius};background:none;color:inherit;font-size:1.05rem;line-height:1}
 .${p}-toast-close:hover,.${p}-toast-close:focus-visible{background:currentColor;outline:0}
+${partsAppearanceCss({
+  p,
+  text,
+  surface,
+  muted,
+  wash: cvar("surface-2"),
+  rule,
+  hair,
+  radius: a.radius,
+  round: a.radius === "0" ? "0" : "999px",
+  mono: a.mono,
+  elevation: a.elevation,
+  quick: a.quick,
+  current: mark(a.current),
+  press: mark(a.press),
+  hover: mark(a.hover),
+  danger,
+  tone: (name: SoftStr, part: SoftStr) =>
+    `var(--${p}-${name}-${part})`,
+  tones,
+})}
 @media (max-width:959px){${page} .${p}-shell-body{padding:1.25rem 1.25rem 3rem}}
 @media (prefers-reduced-motion:reduce){${side},.${p}-shell-brand,.${p}-shell-fold,${doc} a,${group} summary,${group} summary::after,${group}::details-content,${group} ${link},${car},.${p}-chrome-link,.${p}-btn,.${p}-input,.${p}-switch-track,.${p}-switch-thumb{transition:none}${page} ~ ${page},.${p}-shell ${page}${page}[data-${p}-replacing],.${p}-shell ${page}${page}[data-${p}-leaving]{animation:none}}
 `;

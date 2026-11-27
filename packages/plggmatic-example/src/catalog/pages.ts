@@ -58,6 +58,7 @@ import {
   motionPage,
 } from "./layoutChapter.ts";
 import { componentIndex } from "./componentIndex.ts";
+import { componentPages } from "./componentPages.ts";
 
 export type { Page } from "./page.ts";
 
@@ -1119,6 +1120,25 @@ const tplForms: Page = {
   ],
 };
 
+/** The component sheets, family by family. */
+const byFamily: ReadonlyArray<Page> = [
+  "コンポーネント：操作",
+  "コンポーネント：入力",
+  "コンポーネント：見せる",
+  "コンポーネント：知らせる",
+].flatMap((family: SoftStr) =>
+  [
+    buttons,
+    links,
+    theme,
+    fields,
+    properties,
+    dialog,
+    toasts,
+    ...componentPages,
+  ].filter((page: Page) => page.group === family),
+);
+
 /** Every page, in the order the sidebar lists them. */
 export const pages: ReadonlyArray<Page> = [
   overview,
@@ -1136,13 +1156,7 @@ export const pages: ReadonlyArray<Page> = [
   colors,
   type,
   componentIndex,
-  buttons,
-  links,
-  theme,
-  fields,
-  properties,
-  dialog,
-  toasts,
+  ...byFamily,
   tplBusiness,
   tplWorkspace,
   tplForms,
