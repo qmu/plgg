@@ -95,7 +95,7 @@ const sheet = (s: Sheet): Page => ({
     ...(s.notes.length === 0
       ? []
       : [
-          h2("決まり"),
+          h2("使用上の注意"),
           el(
             "ul",
             [],
@@ -109,8 +109,8 @@ const sheet = (s: Sheet): Page => ({
 
 const act = "コンポーネント：操作";
 const input = "コンポーネント：入力";
-const show = "コンポーネント：見せる";
-const tell = "コンポーネント：知らせる";
+const show = "コンポーネント：表示";
+const tell = "コンポーネント：通知";
 
 const t = (s: SoftStr): Node => text(s);
 const plainButton = (
@@ -152,13 +152,13 @@ const units = [
 const states = [
   { id: "open", label: "営業中" },
   { id: "ready", label: "準備中" },
-  { id: "closed", label: "休み" },
+  { id: "closed", label: "休業" },
 ];
 const perms = [
-  { id: "read", label: "読む" },
-  { id: "write", label: "書く" },
-  { id: "invite", label: "人を招く" },
-  { id: "remove", label: "消す" },
+  { id: "read", label: "閲覧" },
+  { id: "write", label: "編集" },
+  { id: "invite", label: "メンバーを招待" },
+  { id: "remove", label: "削除" },
 ];
 /** A sample's list, kept as words between commas. */
 const listOf = (
@@ -258,11 +258,11 @@ export const componentPages: ReadonlyArray<Page> =
       id: "icon-button",
       title: "アイコンボタン",
       group: act,
-      lead: "絵だけのボタンです。場所が狭いところ、同じ操作が何度も並ぶところで使います。",
+      lead: "アイコンだけを表示するボタンです。表示領域が狭い場合や、一覧の各行に同じ操作を配置する場合に使います。",
       live: () => [
         row(
           iconButton<Msg>({
-            label: "足す",
+            label: "追加",
             glyph: "+",
             onPress: msg.press(),
             disabled: false,
@@ -274,7 +274,7 @@ export const componentPages: ReadonlyArray<Page> =
             disabled: false,
           }),
           iconButton<Msg>({
-            label: "押せない",
+            label: "無効",
             glyph: "↻",
             onPress: msg.press(),
             disabled: true,
@@ -283,37 +283,37 @@ export const componentPages: ReadonlyArray<Page> =
       ],
       code: [
         "iconButton({",
-        '  label: "足す",   // 読み上げられる名前。省けません',
+        '  label: "追加",   // 読み上げ用のラベル（必須）',
         '  glyph: "+",',
         "  onPress: add,",
         "  disabled: false,",
         "})",
       ],
       notes: [
-        "絵は読み上げられません。名前（label）が、そのボタンのすべてです。",
+        "スクリーンリーダーはアイコンを読み上げません。label にはボタンの操作内容を指定してください。",
       ],
     }),
     sheet({
       id: "menu",
       title: "メニュー",
       group: act,
-      lead: "押すと選択肢が下に出るボタンです。たまにしか使わない操作をまとめます。",
+      lead: "ボタンを押すと、その下に操作の一覧が開きます。使用頻度の低い操作をまとめるときに使います。",
       live: () => [
         menuButton<Msg>({
           label: "操作",
           items: [
             {
-              label: "写しを作る",
+              label: "複製",
               onPress: msg.toast("success"),
               danger: false,
             },
             {
-              label: "名前を変える",
+              label: "名前を変更",
               onPress: msg.toast("info"),
               danger: false,
             },
             {
-              label: "消す",
+              label: "削除",
               onPress: msg.openDialog(),
               danger: true,
             },
@@ -324,21 +324,21 @@ export const componentPages: ReadonlyArray<Page> =
         "menuButton({",
         '  label: "操作",',
         "  items: [",
-        '    { label: "写しを作る", onPress: copy, danger: false },',
-        '    { label: "消す", onPress: remove, danger: true },',
+        '    { label: "複製", onPress: copy, danger: false },',
+        '    { label: "削除", onPress: remove, danger: true },',
         "  ],",
         "})",
       ],
       notes: [
-        "ブラウザの開閉の仕組みでできています。スクリプトなしで開きます。",
-        "取り消せない操作には danger を付けます。",
+        "ブラウザ標準の機能で開閉するため、スクリプトは不要です。",
+        "取り消せない操作には danger を指定します。",
       ],
     }),
     sheet({
       id: "tabs",
       title: "タブ",
       group: act,
-      lead: "同じ場所の中身を切り替えます。別のページへ進むものではありません（それはリンクで、右に開きます）。",
+      lead: "同じページ内で表示内容を切り替えます。別のページを右の列に開く場合はリンクを使います。",
       live: (model) => [
         tabs<Msg>({
           label: "表示",
@@ -351,7 +351,7 @@ export const componentPages: ReadonlyArray<Page> =
           onSelect: msg.setSample("tab"),
         }),
         para(
-          "いま：",
+          "選択中：",
           views
             .filter(
               (v) =>
@@ -374,14 +374,14 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "タブが描くのは見出しの列だけです。下の中身は、同じ current で呼ぶ側が選びます。",
+        "タブが表示するのは見出しだけです。アプリ側で同じ current の値を使って、見出しの下に表示する内容を切り替えます。",
       ],
     }),
     sheet({
       id: "pagination",
       title: "ページ送り",
       group: act,
-      lead: "長い一覧を分けて進みます。最初と最後、いまの前後だけを見せます。",
+      lead: "一覧を複数のページに分けます。最初と最後のページ番号に加え、現在のページ番号とその前後を表示します。",
       live: (model) => [
         pagination<Msg>({
           label: "ページ",
@@ -400,14 +400,14 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "端では、戻る・進むのボタンが本当に押せなくなります。",
+        "最初のページでは「前のページ」が、最後のページでは「次のページ」が無効になります。",
       ],
     }),
     sheet({
       id: "steps",
       title: "ステップ",
       group: act,
-      lead: "手順のどこに居るかを示します。済んだもの、いまのもの、これからのものが分かれて見えます。",
+      lead: "一連の手順のうち、現在どの段階にいるかを示します。完了した手順、現在の手順、これからの手順を区別できます。",
       live: (model) => [
         steps<Msg>({
           label: "申し込みの手順",
@@ -457,29 +457,29 @@ export const componentPages: ReadonlyArray<Page> =
       id: "accordion",
       title: "アコーディオン",
       group: act,
-      lead: "見出しごとに開閉します。全部を一度に読ませたくない、長い説明に使います。",
+      lead: "見出しを選ぶと、その項目の内容を開閉できます。長い説明を項目ごとに読めるようにするときに使います。",
       live: () => [
         accordion<Msg>([
           {
             title: "送料はいくらですか",
             open: true,
-            body: [t("全国一律 500 円です。")],
+            body: [t("全国一律500円です。")],
           },
           {
             title: "返品できますか",
             open: false,
             body: [
               t(
-                "届いてから 14 日以内なら返品できます。",
+                "商品到着後14日以内であれば返品できます。",
               ),
             ],
           },
           {
-            title: "領収書は出ますか",
+            title: "領収書は発行できますか",
             open: false,
             body: [
               t(
-                "注文の履歴から、いつでも出せます。",
+                "注文履歴からいつでも発行できます。",
               ),
             ],
           },
@@ -492,7 +492,7 @@ export const componentPages: ReadonlyArray<Page> =
         "])",
       ],
       notes: [
-        "ブラウザの開閉の仕組みでできています。閉じた中身も、ページ内検索で見つかります。",
+        "ブラウザ標準の機能で開閉します。折りたたんだ内容もページ内検索の対象です。",
       ],
     }),
 
@@ -500,18 +500,18 @@ export const componentPages: ReadonlyArray<Page> =
       id: "popover",
       title: "ポップオーバー",
       group: act,
-      lead: "押すと小さな箱が下に出ます。そばにあるものの説明や、ちょっとした設定を入れます。",
+      lead: "ボタンの下に小さなパネルを開きます。その場で確認したい補足説明や、簡単な設定項目を表示するときに使います。",
       live: () => [
         popover<Msg>({
           label: "料金の内訳",
           body: [
             descList<Msg>([
               {
-                term: "基本",
+                term: "基本料金",
                 value: [t("980 円")],
               },
               {
-                term: "追加の席",
+                term: "追加席",
                 value: [t("300 円 × 2")],
               },
               {
@@ -529,15 +529,15 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "メニューと同じく、ブラウザの開閉の仕組みでできています。スクリプトなしで開きます。",
-        "選択肢を並べるならメニュー、説明や小さな入力を入れるならポップオーバーです。",
+        "メニューと同様に、ブラウザ標準の機能で開閉するため、スクリプトは不要です。",
+        "操作の選択肢にはメニューを、説明や簡単な入力欄にはポップオーバーを使います。",
       ],
     }),
     sheet({
       id: "drawer",
       title: "ドロワー",
       group: act,
-      lead: "画面の端から出てくる面です。いまのページを残したまま、絞り込みや補助の作業をします。",
+      lead: "画面の端から開くパネルです。ページを開いたまま、絞り込みなどの補助的な操作ができます。",
       live: (model) => [
         plainButton(
           "絞り込みを開く",
@@ -595,9 +595,9 @@ export const componentPages: ReadonlyArray<Page> =
         "  : []",
       ],
       notes: [
-        "開いているかどうかは呼ぶ側が持ちます。開いている間だけ描きます。",
-        "うしろの暗い所を押しても、× を押しても閉じます。",
-        "ページを置き換える作業には使いません。それは右に列を開きます。",
+        "開閉状態はアプリ側で管理し、開いている間だけドロワーを描画します。",
+        "背景の暗い部分か閉じるボタン（×）を押すと閉じます。",
+        "別のページに移動する操作には、右の列にページを開くリンクを使います。",
       ],
     }),
 
@@ -606,7 +606,7 @@ export const componentPages: ReadonlyArray<Page> =
       id: "radio",
       title: "ラジオボタン",
       group: input,
-      lead: "並べた中から1つを選びます。選択肢が少なく、全部を見せておきたいときに使います。",
+      lead: "複数の選択肢から1つを選びます。選択肢が少なく、すべてを一覧できるようにしたい場合に使います。",
       live: (model) => [
         radioGroup<Msg>({
           name: "sample-plan",
@@ -614,7 +614,7 @@ export const componentPages: ReadonlyArray<Page> =
           options: [
             { id: "free", label: "無料" },
             { id: "team", label: "チーム" },
-            { id: "company", label: "会社" },
+            { id: "company", label: "法人" },
           ],
           value: sampleOf(model, "plan", "team"),
           onChange: msg.setSample("plan"),
@@ -633,14 +633,14 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "5つを超えるなら、選択（セレクト）にします。",
+        "選択肢が6個以上ある場合は、セレクトボックスを使います。",
       ],
     }),
     sheet({
       id: "segmented",
       title: "切り替えボタン",
       group: input,
-      lead: "2〜4個から1つを、横に並べて選びます。押した瞬間に効く切り替え（表示の単位など）に使います。",
+      lead: "横に並んだ2〜4個の選択肢から1つを選びます。表示単位など、選択をすぐに反映する設定に使います。",
       live: (model) => [
         segmented<Msg>({
           label: "単位",
@@ -666,7 +666,7 @@ export const componentPages: ReadonlyArray<Page> =
       id: "number-input",
       title: "数値の入力欄",
       group: input,
-      lead: "数を入れます。スマホでは数字のキーボードが出ます。",
+      lead: "数値を入力する欄です。スマートフォンでは数字用のキーボードが表示されます。",
       live: (model) => [
         numberInput<Msg>({
           name: "sample-count",
@@ -676,7 +676,7 @@ export const componentPages: ReadonlyArray<Page> =
             Number(
               sampleOf(model, "count", "3"),
             ) > 10
-              ? some("10 個までです")
+              ? some("10個以内で入力してください")
               : none(),
           disabled: false,
           min: some(0),
@@ -689,7 +689,7 @@ export const componentPages: ReadonlyArray<Page> =
         "numberInput({",
         '  name: "count",',
         '  label: "個数",',
-        "  value: model.count, // 文字のまま持つ",
+        "  value: model.count, // 入力値は文字列として保持",
         "  error: none(),",
         "  disabled: false,",
         "  min: some(0), max: some(10), step: some(1),",
@@ -697,20 +697,20 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "値は打ったままの文字で受け取ります。数にするのは呼ぶ側です。",
+        "入力値は文字列として取得できます。数値への変換はアプリ側で行います。",
       ],
     }),
     sheet({
       id: "search-field",
       title: "検索欄",
       group: input,
-      lead: "一覧を絞り込む文字を入れます。一覧のすぐ上に置きます。",
+      lead: "一覧のすぐ上に配置し、検索語を入力して項目を絞り込みます。",
       live: (model) => [
         searchField<Msg>({
           name: "sample-q",
-          label: "店を絞り込む",
+          label: "店舗を絞り込む",
           value: sampleOf(model, "q", ""),
-          placeholder: "店の名前",
+          placeholder: "店舗名",
           onInput: msg.setSample("q"),
         }),
         itemList<Msg>(
@@ -730,9 +730,9 @@ export const componentPages: ReadonlyArray<Page> =
       code: [
         "searchField({",
         '  name: "q",',
-        '  label: "店を絞り込む", // 読み上げ用。画面には出ません',
+        '  label: "店舗を絞り込む", // 読み上げ用。画面には出ません',
         "  value: model.q,",
-        '  placeholder: "店の名前",',
+        '  placeholder: "店舗名",',
         "  onInput: setQuery,",
         "})",
       ],
@@ -742,7 +742,7 @@ export const componentPages: ReadonlyArray<Page> =
       id: "date-input",
       title: "日付の入力欄",
       group: input,
-      lead: "日付を選びます。カレンダーはブラウザのものを使います。",
+      lead: "ブラウザ標準のカレンダーから日付を選びます。",
       live: (model) => [
         dateInput<Msg>({
           name: "sample-day",
@@ -773,7 +773,7 @@ export const componentPages: ReadonlyArray<Page> =
       id: "slider",
       title: "スライダー",
       group: input,
-      lead: "範囲の中の値を選びます。正確な数より、多い・少ないの加減が大事なときに使います。",
+      lead: "指定した範囲内で値を調整します。濃さなど、厳密な数値を入力する必要がない場合に適しています。",
       live: (model) => [
         slider<Msg>({
           name: "sample-level",
@@ -794,13 +794,15 @@ export const componentPages: ReadonlyArray<Page> =
         "  onInput: setLevel,",
         "})",
       ],
-      notes: ["いまの値は、必ず横に数で出ます。"],
+      notes: [
+        "スライダーの横には常に現在の値が数値で表示されます。",
+      ],
     }),
     sheet({
       id: "file-input",
       title: "ファイルの選択",
       group: input,
-      lead: "ファイルを渡します。選ぶ画面はブラウザのものを使います。",
+      lead: "ブラウザ標準のファイル選択画面でファイルを選びます。",
       live: (model) => [
         fileInput<Msg>({
           name: "sample-file",
@@ -809,8 +811,8 @@ export const componentPages: ReadonlyArray<Page> =
           onChange: msg.setSample("file"),
         }),
         para(
-          "選んだもの：",
-          sampleOf(model, "file", "（まだ）"),
+          "選択したファイル：",
+          sampleOf(model, "file", "未選択"),
         ),
       ],
       code: [
@@ -826,9 +828,9 @@ export const componentPages: ReadonlyArray<Page> =
 
     sheet({
       id: "suggest-input",
-      title: "候補つきの入力欄",
+      title: "入力候補付きの入力欄",
       group: input,
-      lead: "自由に打てて、打つと知っている答えが候補に出ます。候補にないものも入れられます。",
+      lead: "文字を入力すると候補が表示されます。候補にない値も入力できます。",
       live: (model) => [
         suggestInput<Msg>({
           name: "sample-city",
@@ -859,19 +861,19 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "候補はブラウザが出します。見た目はブラウザごとに違います。",
-        "候補の中からしか選ばせないなら、選択欄かラジオを使います。",
+        "候補の表示にはブラウザ標準の機能を使うため、外観はブラウザによって異なります。",
+        "入力値を候補の中から選ぶ場合は、セレクトボックスかラジオボタンを使います。",
       ],
     }),
     sheet({
       id: "check-group",
-      title: "複数の選択",
+      title: "複数選択",
       group: input,
-      lead: "いくつかの中から、いくつでも選びます。選択肢はすべて見えています。",
+      lead: "すべての選択肢を一覧表示し、該当する項目をいくつでも選べるようにします。",
       live: (model) => [
         checkGroup<Msg>({
           name: "sample-perms",
-          label: "できること",
+          label: "権限",
           options: perms,
           chosen: listOf(model, "perms", "read"),
           onToggle: (id: SoftStr): Msg =>
@@ -883,24 +885,24 @@ export const componentPages: ReadonlyArray<Page> =
             ),
         }),
         para(
-          `選んだもの：${listOf(model, "perms", "read").length} 個`,
+          `選択した項目数：${listOf(model, "perms", "read").length}個`,
         ),
       ],
       code: [
         "checkGroup({",
         '  name: "perms",',
-        '  label: "できること",',
+        '  label: "権限",',
         "  options: [",
-        '    { id: "read", label: "読む" },',
-        '    { id: "write", label: "書く" },',
+        '    { id: "read", label: "閲覧" },',
+        '    { id: "write", label: "編集" },',
         "  ],",
         "  chosen: model.perms,",
         "  onToggle: (id) => setPerms(toggled(model.perms, id)),",
         "})",
       ],
       notes: [
-        "選んだものは呼ぶ側が一覧で持ちます。toggled が、押された 1 つを足すか外すかします。",
-        "1 つだけ選ぶならラジオです。",
+        "選択済みの項目はアプリ側でリストとして管理します。toggled を使うと、操作した項目をリストに追加したり、リストから外したりできます。",
+        "選択できる項目が1つだけの場合は、ラジオボタンを使います。",
       ],
     }),
 
@@ -909,12 +911,12 @@ export const componentPages: ReadonlyArray<Page> =
       id: "data-table",
       title: "表",
       group: show,
-      lead: "行と列のデータを見せます。数の列は右にそろえます。",
+      lead: "データを行と列で表示します。数値は右揃えにします。",
       live: () => [
         dataTable<Msg>({
-          caption: "店ごとの売上",
+          caption: "店舗別の売上",
           columns: [
-            { label: "店", numeric: false },
+            { label: "店舗", numeric: false },
             { label: "状態", numeric: false },
             { label: "売上", numeric: true },
             { label: "前月比", numeric: true },
@@ -941,7 +943,7 @@ export const componentPages: ReadonlyArray<Page> =
             [
               t("南店"),
               badge({
-                label: "休み",
+                label: "休業",
                 tone: none(),
               }),
               t("0"),
@@ -952,23 +954,23 @@ export const componentPages: ReadonlyArray<Page> =
       ],
       code: [
         "dataTable({",
-        '  caption: "店ごとの売上",',
+        '  caption: "店舗別の売上",',
         "  columns: [",
-        '    { label: "店", numeric: false },',
+        '    { label: "店舗", numeric: false },',
         '    { label: "売上", numeric: true },',
         "  ],",
         '  rows: [[text("東店"), text("1,240,000")]],',
         "})",
       ],
       notes: [
-        "幅が足りないときは、表の枠の中だけが横にスクロールします。列は広がりません。",
+        "表が収まらない場合は、ページの列幅を保ったまま、表の中だけを横にスクロールできます。",
       ],
     }),
     sheet({
       id: "item-list",
       title: "一覧",
       group: show,
-      lead: "同じ形の行を並べます。名前、その下の一言、右端に付けるもの、の3つでできています。",
+      lead: "各項目を同じ形式の行で表示します。行には名前とその下の補足説明を表示し、右端にはバッジなどを配置できます。",
       live: () => [
         itemList<Msg>([
           {
@@ -1008,9 +1010,9 @@ export const componentPages: ReadonlyArray<Page> =
     }),
     sheet({
       id: "desc-list",
-      title: "説明の並び",
+      title: "説明リスト",
       group: show,
-      lead: "項目名と値の対を、縦に並べます。1つのものの詳細を見せるときに使います。",
+      lead: "項目名と値を組にして縦に並べます。店舗の所在地や営業状況など、1つの対象の詳細を表示するときに使います。",
       live: () => [
         descList<Msg>([
           { term: "名前", value: [t("東店")] },
@@ -1041,7 +1043,7 @@ export const componentPages: ReadonlyArray<Page> =
       id: "card",
       title: "カード",
       group: show,
-      lead: "ひとまとまりの箱です。名前、中身、下に操作、の3段です。",
+      lead: "関連する情報をまとめて表示します。上から順にタイトル、本文、操作欄を配置します。",
       live: () => [
         card<Msg>({
           title: some("東店"),
@@ -1051,7 +1053,10 @@ export const componentPages: ReadonlyArray<Page> =
             ),
           ],
           foot: [
-            plainButton("くわしく", msg.press()),
+            plainButton(
+              "詳細を見る",
+              msg.press(),
+            ),
           ],
         }),
       ],
@@ -1059,18 +1064,18 @@ export const componentPages: ReadonlyArray<Page> =
         "card({",
         '  title: some("東店"),',
         "  body: [...],",
-        "  foot: [...], // 空なら下の段は出ません",
+        "  foot: [...], // 空の場合は操作欄を表示しません",
         "})",
       ],
       notes: [
-        "列そのものが箱です。カードは、列の中でさらにまとまりを分けたいときだけ使います。",
+        "列自体が情報のまとまりを表します。同じ列の中でさらに内容を区切る必要がある場合に、カードを使います。",
       ],
     }),
     sheet({
       id: "badge",
       title: "バッジとタグ",
       group: show,
-      lead: "バッジは状態や数の小さな印、タグは分類の札です。",
+      lead: "バッジは状態や件数を示します。タグは項目の分類を示します。",
       live: (model) => [
         row(
           badge({ label: "12", tone: none() }),
@@ -1122,14 +1127,14 @@ export const componentPages: ReadonlyArray<Page> =
         'tag({ label: "急ぎ", onRemove: some(remove) })',
       ],
       notes: [
-        "色だけで意味を伝えません。バッジには必ず言葉か数が入ります。",
+        "バッジの意味が色だけに依存しないよう、必ず文字か数値を表示します。",
       ],
     }),
     sheet({
       id: "avatar",
       title: "アバター",
       group: show,
-      lead: "人や物の印です。名前の最初の1文字を出します。",
+      lead: "人や店舗などを表すアイコンです。名前の先頭の1文字を表示します。",
       live: () => [
         row(
           avatar("田村"),
@@ -1139,14 +1144,14 @@ export const componentPages: ReadonlyArray<Page> =
       ],
       code: ['avatar("田村")'],
       notes: [
-        "読み上げられるのは、1文字ではなく名前の全体です。",
+        "スクリーンリーダーは名前全体を読み上げます。",
       ],
     }),
     sheet({
       id: "divider",
       title: "区切り線",
       group: show,
-      lead: "まとまりの境目に引く線です。",
+      lead: "内容の区切りを示すに引く線です。",
       live: () => [
         para("上のまとまり"),
         divider(),
@@ -1154,14 +1159,14 @@ export const componentPages: ReadonlyArray<Page> =
       ],
       code: ["divider()"],
       notes: [
-        "見出しで分けられるなら、見出しを使います。線は最後の手段です。",
+        "内容を見出しで区切れる場合は見出しを使い、それが難しい場合に区切り線を使います。",
       ],
     }),
     sheet({
       id: "code-block",
       title: "コード",
       group: show,
-      lead: "書いたとおりに、等幅で見せます。長い行は枠の中で横にスクロールします。",
+      lead: "コードの書式を保ち、等幅フォントで表示します。長い行は枠内で横にスクロールできます。",
       live: () => [
         codeBlock(
           [
@@ -1176,22 +1181,25 @@ export const componentPages: ReadonlyArray<Page> =
     }),
     sheet({
       id: "empty-state",
-      title: "空の状態",
+      title: "データがない場合",
       group: show,
-      lead: "まだ何もないときに、その場所に置きます。何がないのか、次に何をすればいいのかを言います。",
+      lead: "表示するデータがない場合に使います。何が未登録なのかと、次にできる操作を案内します。",
       live: () => [
         emptyState<Msg>({
-          title: "店がまだありません",
-          hint: "最初の店を足すと、ここに並びます。",
+          title: "店舗はまだ登録されていません",
+          hint: "店舗を登録すると、ここに表示されます。",
           action: [
-            plainButton("店を足す", msg.press()),
+            plainButton(
+              "店舗を登録",
+              msg.press(),
+            ),
           ],
         }),
       ],
       code: [
         "emptyState({",
-        '  title: "店がまだありません",',
-        '  hint: "最初の店を足すと、ここに並びます。",',
+        '  title: "店舗はまだ登録されていません",',
+        '  hint: "店舗を登録すると、ここに表示されます。",',
         "  action: [...],",
         "})",
       ],
@@ -1200,16 +1208,16 @@ export const componentPages: ReadonlyArray<Page> =
 
     sheet({
       id: "sort-table",
-      title: "並べ替えできる表",
+      title: "並べ替え可能な表",
       group: show,
-      lead: "見出しを押すと、その列で並べ替わります。もう一度押すと逆順になります。",
+      lead: "列見出しを押すと、その列の値を基準に行を並べ替えます。もう一度押すと順序が逆になります。",
       live: (model) => [
         sortTable<Msg>({
-          caption: "店ごとの売上",
+          caption: "店舗別の売上",
           columns: [
             {
               id: "name",
-              label: "店",
+              label: "店舗",
               numeric: false,
               sortable: true,
             },
@@ -1258,9 +1266,9 @@ export const componentPages: ReadonlyArray<Page> =
       ],
       code: [
         "sortTable({",
-        '  caption: "店ごとの売上",',
+        '  caption: "店舗別の売上",',
         "  columns: [",
-        '    { id: "name", label: "店", numeric: false, sortable: true },',
+        '    { id: "name", label: "店舗", numeric: false, sortable: true },',
         '    { id: "sales", label: "売上", numeric: true, sortable: true },',
         "  ],",
         "  rows: sortedBy(",
@@ -1273,16 +1281,16 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "どの列でどちら向きに並んでいるかは呼ぶ側が持ちます。行を並べるのも呼ぶ側で、sortedBy がそれをします。",
-        "数の列は数の大きさで、文字の列は文字の順で並びます。",
-        "並べ替えられる見出しは本物のボタンです。いまの並びは読み上げにも伝わります。",
+        "並べ替えの基準となる列と順序はアプリ側で管理します。行を並べ替えるには sortedBy を使います。",
+        "数値の列は数値順、文字列の列は文字列順に並べ替えます。",
+        "並べ替えに対応した列見出しにはボタンを使います。現在の並べ替え順はスクリーンリーダーでも確認できます。",
       ],
     }),
     sheet({
       id: "calendar",
       title: "カレンダー",
       group: show,
-      lead: "ひと月を、1 日 1 マスで見せます。日を押して選びます。",
+      lead: "1か月分の日付を1日1マスで表示します。日付を押すと選択できます。",
       live: (model) => [
         calendar<Msg>({
           title: `${monthOf(model).year}年${monthOf(model).month}月`,
@@ -1327,25 +1335,25 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "どの月を見せるか、どの日を選んでいるかは呼ぶ側が持ちます。",
-        "月の名前は呼ぶ側の言葉です。ページの言語のまま出せます。",
-        "日付を 1 つ入れるだけなら、日付の入力欄のほうが軽く済みます。",
+        "表示する月と選択中の日付はアプリ側で管理します。",
+        "月の表示名はアプリ側で指定できるので、ページの言語に合わせて表記できます。",
+        "日付を1つ入力するだけなら、日付の入力欄が適しています。",
       ],
     }),
 
     // --- 知らせる ---
     sheet({
       id: "alert",
-      title: "注意書き",
+      title: "アラート",
       group: tell,
-      lead: "ページの中に置く知らせです。トーストと違って、消えずにそこに居続けます。",
+      lead: "お知らせをページ内に表示します。トーストと異なり、自動では消えません。",
       live: () => [
         alert<Msg>({
           tone: "info",
           title: some("メンテナンスのお知らせ"),
           body: [
             t(
-              "12月1日の深夜、30分ほど止まります。",
+              "12月1日の深夜に、サービスを約30分間停止します。",
             ),
           ],
         }),
@@ -1364,25 +1372,29 @@ export const componentPages: ReadonlyArray<Page> =
         alert<Msg>({
           tone: "danger",
           title: some("取り込めませんでした"),
-          body: [t("3 行目の日付が読めません。")],
+          body: [
+            t(
+              "3行目の日付を読み取れませんでした。",
+            ),
+          ],
         }),
       ],
       code: [
         "alert({",
         '  tone: "danger", // success / warning / info',
         '  title: some("取り込めませんでした"),',
-        '  body: [text("3 行目の日付が読めません。")],',
+        '  body: [text("3行目の日付を読み取れませんでした。")],',
         "})",
       ],
       notes: [
-        "danger はすぐに読み上げられます。ほかは、読み上げの切れ目で伝わります。",
+        "danger の通知はスクリーンリーダーがすぐに読み上げます。その他の通知は、現在の読み上げが途切れたときに読み上げます。",
       ],
     }),
     sheet({
       id: "progress",
-      title: "進み具合",
+      title: "進捗表示",
       group: tell,
-      lead: "どこまで終わったかを見せます。終わりが分からないときは、動いていることだけを見せます。",
+      lead: "処理の進捗を表示します。完了までの割合が分からない場合は、処理中であることを示します。",
       live: (model) => [
         progress<Msg>({
           label: "取り込み",
@@ -1402,7 +1414,7 @@ export const componentPages: ReadonlyArray<Page> =
             ),
           ),
         ),
-        para("終わりが分からないとき："),
+        para("進捗の割合が分からない場合"),
         progress<Msg>({
           label: "確認中",
           share: none(),
@@ -1418,7 +1430,7 @@ export const componentPages: ReadonlyArray<Page> =
       id: "loading",
       title: "読み込み中とスケルトン",
       group: tell,
-      lead: "待っていることを示します。短い待ちには回る印、ページの中身を待つときは中身の形を先に見せます。",
+      lead: "短い待ち時間にはスピナーを表示します。ページの読み込みを待つ間は、スケルトンで内容のおおまかな配置を示します。",
       live: () => [
         spinner<Msg>("読み込んでいます"),
         divider(),
@@ -1430,15 +1442,15 @@ export const componentPages: ReadonlyArray<Page> =
         "skeleton(3) // 行の数",
       ],
       notes: [
-        "スケルトンは読み上げられません。待っていることは、回る印の言葉で伝えます。",
-        "OS で動きを減らす設定の人には、動かしません。",
+        "スクリーンリーダーはスケルトンを読み上げません。読み込み中であることは、スピナーのラベルで伝えます。",
+        "OS で動きを減らす設定が有効な場合、アニメーションは再生されません。",
       ],
     }),
     sheet({
       id: "tooltip",
       title: "ツールチップ",
       group: tell,
-      lead: "マウスを乗せるか、キーボードで合わせると出る短い説明です。",
+      lead: "ポインターを合わせるか、キーボードでフォーカスを移すと、短い補足説明が表示されます。",
       live: () => [
         para(
           "合計は ",
@@ -1456,7 +1468,7 @@ export const componentPages: ReadonlyArray<Page> =
         "})",
       ],
       notes: [
-        "スマホでは乗せられません。知らないと困ることは、ツールチップではなく本文に書きます。",
+        "スマートフォンではポインターを合わせる操作ができないため、操作に必要な情報は本文に記載します。",
       ],
     }),
   ];

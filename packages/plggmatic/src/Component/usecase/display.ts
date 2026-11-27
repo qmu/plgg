@@ -92,7 +92,7 @@ export const tag = <Msg>(
               attr("class", tagRemoveClass),
               attr(
                 "aria-label",
-                `${props.label} を外す`,
+                `${props.label}のタグを外す`,
               ),
               onClick(remove),
             ],

@@ -140,8 +140,8 @@ export const init = (
 
 const MESSAGE: Record<Shown["tone"], SoftStr> = {
   success: "保存しました",
-  info: "新しい版があります",
-  warning: "まだ保存していない変更があります",
+  info: "新しいバージョンがあります",
+  warning: "未保存の変更があります",
   danger: "保存できませんでした",
 };
 
@@ -239,7 +239,7 @@ export const update = (
             withToast(
               model,
               "danger",
-              "名前を 1〜24文字で入れてください",
+              "名前は1〜24文字で入力してください",
             ),
             cmdNone(),
           ]
@@ -269,7 +269,7 @@ export const update = (
         withToast(
           { ...model, dialog: false },
           "info",
-          "記録を消しました（見本なので何も消えていません）",
+          "削除操作を完了しました。この例では実際の記録は削除されません。",
         ),
         cmdNone(),
       ];

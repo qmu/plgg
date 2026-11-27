@@ -139,7 +139,7 @@ export const screen = (
               attr("target", "_blank"),
               attr("rel", "noopener"),
             ],
-            [t("別のタブで開く")],
+            [t("新しいタブで開く")],
           ),
         ],
       ),

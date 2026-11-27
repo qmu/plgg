@@ -211,7 +211,10 @@ const narrowChrome = <Msg>(
               attr("for", shellMenuId),
               class_(shellMenuButtonClass),
               attr("role", "button"),
-              attr("aria-label", "メニュー"),
+              attr(
+                "aria-label",
+                "メニューを開閉",
+              ),
             ],
             [],
           ),
@@ -240,7 +243,10 @@ const narrowChrome = <Msg>(
             [
               attr("type", "button"),
               class_(shellMenuButtonClass),
-              attr("aria-label", "メニュー"),
+              attr(
+                "aria-label",
+                "メニューを開閉",
+              ),
               attr(
                 "aria-expanded",
                 d.open ? "true" : "false",
@@ -338,7 +344,7 @@ export const shell = <Msg>(
                     class_(shellFoldClass),
                     attr(
                       "aria-label",
-                      "サイドバーをたたむ",
+                      "サイドバーを折りたたむ",
                     ),
                     attr(
                       "aria-expanded",

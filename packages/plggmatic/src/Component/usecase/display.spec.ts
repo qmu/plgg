@@ -36,7 +36,7 @@ test("a tag that can be taken off carries a named button", () =>
       tag({ label: "急ぎ", onRemove: some("x") }),
     ),
     toBe(
-      '<span class="pm-tag">急ぎ<button type="button" class="pm-tag-remove" aria-label="急ぎ を外す">×</button></span>',
+      '<span class="pm-tag">急ぎ<button type="button" class="pm-tag-remove" aria-label="急ぎのタグを外す">×</button></span>',
     ),
   ));
 
