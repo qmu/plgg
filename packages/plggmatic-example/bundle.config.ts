@@ -34,6 +34,12 @@ export default {
     { name: "demo3", input: "demo3-main.ts" },
     // demo 4 — the workspace: pinned panel, rail, trail strip
     { name: "demo4", input: "demo4-main.ts" },
+    // one guide page on the plggpress site: the island a
+    // page's examples are operated through
+    {
+      name: "site-island",
+      input: "site-island.ts",
+    },
   ],
   formats: ["es"],
   fileNamePattern: "[name].js",

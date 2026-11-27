@@ -6,6 +6,7 @@
   "description": "The reference plggmatic app — the whole program is a plggmatic DECLARATION (Resources, Menu, list/detail views, Query, create/delete Actions) scheduled into a plgg-view program and drawn by the multi-column renderer. The 691-line hand-written Model/Msg/update/URL-codec/column-stack is gone; the app author writes only the declaration, app identity, and the mount.",
   "scripts": {
     "build": "plgg-bundle && node src/stamp.ts",
+    "build:site": "node build-site.ts",
     "dev": "plgg-bundle dev bundle.config.ts",
     "test": "plgg-test src",
     "tsc": "tsc --noEmit",
@@ -33,6 +34,7 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "plgg-bundle": "file:../plgg-bundle",
+    "plggpress": "file:../plggpress",
     "plgg-test": "file:../plgg-test",
     "typescript": "^7.0.2"
   }
