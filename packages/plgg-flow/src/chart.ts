@@ -61,6 +61,15 @@ import {
   type Pie,
 } from "plgg-flow/pie";
 import {
+  asTree,
+  treeDeep,
+  treeExtent,
+  treeGraph,
+  treeLines,
+  treeScenery,
+  type Tree,
+} from "plgg-flow/tree";
+import {
   asSankey,
   sankeyDeep,
   sankeyExtent,
@@ -102,6 +111,7 @@ import {
  * - an {@link Area} follows a value along an order, a
  *   series behind a series;
  * - a {@link Pie} cuts a whole into its shares;
+ * - a {@link Tree} sets a whole over what it is made of;
  * - a {@link Sankey} draws connections as wide as what
  *   they carry.
  */
@@ -113,6 +123,7 @@ export type Chart =
   | Box<"Area", Area>
   | Box<"Radar", Radar>
   | Box<"Pie", Pie>
+  | Box<"Tree", Tree>
   | Box<"Sankey", Sankey>;
 
 const plot$ = () => pattern("Plot")();
@@ -123,6 +134,7 @@ const sankey$ = () => pattern("Sankey")();
 const area$ = () => pattern("Area")();
 const radar$ = () => pattern("Radar")();
 const pie$ = () => pattern("Pie")();
+const tree$ = () => pattern("Tree")();
 
 /** The names `layout` knows a chart by. */
 const kinds: readonly string[] = [
@@ -136,6 +148,7 @@ const kinds: readonly string[] = [
   "stack",
   "radar",
   "pie",
+  "tree",
 ];
 export const isChartKind = (
   word: string,
@@ -217,27 +230,37 @@ export const asChart = (
                     ),
                   ),
                 )
-              : kind === "pie"
+              : kind === "tree"
                 ? some(
                     pipe(
-                      asPie(axes, graph.nodes),
+                      asTree(axes, graph),
                       mapResult(
-                        (p: Pie): Chart =>
-                          box("Pie")(p),
+                        (t: Tree): Chart =>
+                          box("Tree")(t),
                       ),
                     ),
                   )
-                : kind === "sankey"
+                : kind === "pie"
                   ? some(
                       pipe(
-                        asSankey(axes, graph),
+                        asPie(axes, graph.nodes),
                         mapResult(
-                          (s: Sankey): Chart =>
-                            box("Sankey")(s),
+                          (p: Pie): Chart =>
+                            box("Pie")(p),
                         ),
                       ),
                     )
-                  : none();
+                  : kind === "sankey"
+                    ? some(
+                        pipe(
+                          asSankey(axes, graph),
+                          mapResult(
+                            (s: Sankey): Chart =>
+                              box("Sankey")(s),
+                          ),
+                        ),
+                      )
+                    : none();
 
 /** The graph laid out as the chart says. */
 export const chartGraph = (
@@ -284,6 +307,11 @@ export const chartGraph = (
       pie$(),
       ({ content }): Graph =>
         pieGraph(content, graph),
+    ],
+    [
+      tree$(),
+      ({ content }): Graph =>
+        treeGraph(content, graph),
     ],
   );
 
@@ -337,6 +365,11 @@ export const chartScenery = (
       ({ content }): readonly Scenery[] =>
         pieScenery(content, graph.nodes),
     ],
+    [
+      tree$(),
+      ({ content }): readonly Scenery[] =>
+        treeScenery(content, graph),
+    ],
   );
 
 /** Points that bound the chart beyond its nodes, so that
@@ -388,6 +421,11 @@ export const chartExtent = (
       pie$(),
       ({ content }): readonly Point3[] =>
         pieExtent(content),
+    ],
+    [
+      tree$(),
+      ({ content }): readonly Point3[] =>
+        treeExtent(content, graph),
     ],
   );
 
@@ -451,6 +489,13 @@ export const chartLines = (
         content,
       }): readonly (readonly string[])[] =>
         pieLines(content),
+    ],
+    [
+      tree$(),
+      ({
+        content,
+      }): readonly (readonly string[])[] =>
+        treeLines(content),
     ],
   );
 
@@ -558,6 +603,18 @@ export const chartCamera = (
           ? { yaw: -0.4, pitch: -0.3 }
           : { yaw: 0, pitch: 0 },
     ],
+    [
+      tree$(),
+      ({
+        content,
+      }): Readonly<{
+        yaw: number;
+        pitch: number;
+      }> =>
+        treeDeep(content)
+          ? { yaw: -0.3, pitch: -0.24 }
+          : { yaw: 0, pitch: 0 },
+    ],
   );
 
 /** Whether the chart gives nodes their width. */
@@ -573,4 +630,5 @@ export const chartSizes = (
     [area$(), (): boolean => true],
     [radar$(), (): boolean => true],
     [pie$(), (): boolean => true],
+    [tree$(), (): boolean => true],
   );

@@ -223,6 +223,11 @@ export default {
           items: [],
         },
         {
+          text: "全体が何でできているか",
+          link: "/plots/tree",
+          items: [],
+        },
+        {
           text: "量がどこへ流れるか",
           link: "/plots/sankey",
           items: [],

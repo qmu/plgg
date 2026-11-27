@@ -32,6 +32,7 @@ export default {
     "area",
     "radar",
     "pie",
+    "tree",
     "chart",
     "dsl",
     "wiring",

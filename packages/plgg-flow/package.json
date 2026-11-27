@@ -297,6 +297,16 @@
         "types": "./dist/pie.d.ts",
         "default": "./dist/pie.cjs.js"
       }
+    },
+    "./tree": {
+      "import": {
+        "types": "./dist/tree.d.ts",
+        "default": "./dist/tree.es.js"
+      },
+      "require": {
+        "types": "./dist/tree.d.ts",
+        "default": "./dist/tree.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

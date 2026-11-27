@@ -69,6 +69,7 @@ Result から Source へ線を引こうとしても、循環になるので拒�
 | `layout stack` | 合計と内訳を積む | `layout area` と同じ読み方。系列を書いた順に下から積む。量の範囲を書かなければ合計の最大まで |
 | `layout radar` | いくつもの条件で形を比べる | 軸 1 本が中心から伸びる 1 本（3 本以上）。node 1 つが 1 つの形。どの軸も外側が良い側で、`lower` の軸は向きを裏返す |
 | `layout pie` | 全体の中の割合を見る | 軸は量の 1 つ。node 1 つが 1 切れ。量をコンマで並べると円が並び、2 つ目の軸が円の名前になる。円の面積が合計の大きさ |
+| `layout tree` | 全体が何でできているか | `A -> B` が親と子。親は子を合わせた幅で子の上に立つ。軸（任意・1 つ）は葉の幅にする量で、親は下の合計になる |
 | `layout sankey` | 量がどこへ流れるか | 1 本目が接続に書く量の属性（`A -> B 量=60`）、2 本目はノードを奥行きに分ける属性 |
 | `layout sequence` | やりとりの順 | 0〜1 本。参加者を奥行きで分ける属性 |
 | `layout timeline` | いつ何が走るか | 1 本目が時間（`axis 週 0..12`）、2 本目は面を分ける属性 |
@@ -86,7 +87,7 @@ node 案C 費用=150 性能=60
 
 `axis 費用 0..200 lower <=150` のように条件を書くと、条件を満たす範囲が点線で囲まれ、外れた案は薄くなります。外れた案は、他の案を負かす側にも数えません。ノードを `->` でつなげば折れ線になります。
 
-実例：[案を比べる](../plots/options.md)、[条件の中で選ぶ](../plots/conditions.md)、[効果と手間で分ける](../plots/quadrant.md)、[量を種類で比べる](../plots/bars.md)、[推移を奥へ並べる](../plots/area.md)、[推移を線で読み比べる](../plots/line.md)、[合計と内訳を積む](../plots/stack.md)、[いくつもの条件で形を比べる](../plots/radar.md)、[全体の中の割合を見る](../plots/pie.md)、[量がどこへ流れるか](../plots/sankey.md)、[やりとりの順](../plots/sequence.md)、[いつ何が走るか](../plots/timeline.md)。
+実例：[案を比べる](../plots/options.md)、[条件の中で選ぶ](../plots/conditions.md)、[効果と手間で分ける](../plots/quadrant.md)、[量を種類で比べる](../plots/bars.md)、[推移を奥へ並べる](../plots/area.md)、[推移を線で読み比べる](../plots/line.md)、[合計と内訳を積む](../plots/stack.md)、[いくつもの条件で形を比べる](../plots/radar.md)、[全体の中の割合を見る](../plots/pie.md)、[全体が何でできているか](../plots/tree.md)、[量がどこへ流れるか](../plots/sankey.md)、[やりとりの順](../plots/sequence.md)、[いつ何が走るか](../plots/timeline.md)。
 
 ## 次に読む
 
