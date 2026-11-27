@@ -78,6 +78,11 @@ export const families: ReadonlyArray<Family> = [
         "accordion",
       ),
       have(
+        "ツールバー",
+        "対象への操作を横一列に並べる",
+        "toolbar",
+      ),
+      have(
         "ポップオーバー",
         "補足説明や設定をその場で開く",
         "popover",

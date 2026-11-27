@@ -15,6 +15,9 @@ import {
   sortedOn,
   suggestInput,
   toggled,
+  toolButton,
+  toolGroup,
+  toolbar,
   accordion,
   alert,
   avatar,
@@ -496,6 +499,85 @@ export const componentPages: ReadonlyArray<Page> =
       ],
     }),
 
+    sheet({
+      id: "toolbar",
+      title: "ツールバー",
+      group: act,
+      lead: "1 つの対象に対する操作を、その上に横一列で並べます。関連する操作はグループにまとめて、つなげて表示します。",
+      live: (model) => [
+        toolbar<Msg>({
+          label: "図の操作",
+          items: [
+            toolGroup<Msg>({
+              label: "履歴",
+              items: [
+                toolButton<Msg>({
+                  label: "元に戻す",
+                  glyph: some("↶"),
+                  pressed: none(),
+                  disabled: false,
+                  onPress: msg.toast("info"),
+                }),
+                toolButton<Msg>({
+                  label: "やり直す",
+                  glyph: some("↷"),
+                  pressed: none(),
+                  disabled: true,
+                  onPress: msg.toast("info"),
+                }),
+              ],
+            }),
+            toolGroup<Msg>({
+              label: "表示",
+              items: views.map((view) =>
+                toolButton<Msg>({
+                  label: view.label,
+                  glyph: none(),
+                  pressed: some(
+                    sampleOf(
+                      model,
+                      "tool-view",
+                      "summary",
+                    ) === view.id,
+                  ),
+                  disabled: false,
+                  onPress: msg.setSample(
+                    "tool-view",
+                  )(view.id),
+                }),
+              ),
+            }),
+            toolButton<Msg>({
+              label: "整列",
+              glyph: none(),
+              pressed: none(),
+              disabled: false,
+              onPress: msg.toast("success"),
+            }),
+          ],
+        }),
+      ],
+      code: [
+        "toolbar({",
+        '  label: "図の操作",',
+        "  items: [",
+        "    toolGroup({",
+        '      label: "履歴",',
+        "      items: [",
+        '        toolButton({ label: "元に戻す", glyph: some("↶"), pressed: none(), disabled: false, onPress: undo }),',
+        '        toolButton({ label: "やり直す", glyph: some("↷"), pressed: none(), disabled: true, onPress: redo }),',
+        "      ],",
+        "    }),",
+        '    toolButton({ label: "整列", glyph: none(), pressed: none(), disabled: false, onPress: arrange }),',
+        "  ],",
+        "})",
+      ],
+      notes: [
+        "アイコンだけのツールには、読み上げ用のラベルが必ず付きます。",
+        "オン・オフの状態を持つツールは pressed で状態を伝えます。実行するだけのツールには付けません。",
+        "グループはつなげて表示し、グループどうしは同じ間隔で離します。位置で意味を持たせません。",
+      ],
+    }),
     sheet({
       id: "popover",
       title: "ポップオーバー",

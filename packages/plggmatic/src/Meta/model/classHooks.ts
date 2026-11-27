@@ -697,3 +697,15 @@ export const calendarGridClass: SoftStr = hook(
 export const calendarDayClass: SoftStr = hook(
   "calendar-day",
 );
+
+/** A row of controls that act on one thing. */
+export const toolbarClass: SoftStr =
+  hook("toolbar");
+/** Controls of a toolbar that belong together, joined. */
+export const toolGroupClass: SoftStr =
+  hook("tool-group");
+/** One control of a toolbar. */
+export const toolClass: SoftStr = hook("tool");
+/** Set on a tool drawn as a glyph alone. */
+export const toolIconClass: SoftStr =
+  hook("tool-icon");

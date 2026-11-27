@@ -1,4 +1,9 @@
-import { type SoftStr } from "plgg";
+import {
+  type SoftStr,
+  type Option,
+  isSome,
+  matchOption,
+} from "plgg";
 import {
   type Html,
   el,
@@ -22,6 +27,10 @@ import {
   stepsClass,
   tabClass,
   tabsClass,
+  toolClass,
+  toolGroupClass,
+  toolIconClass,
+  toolbarClass,
 } from "plggmatic/Meta/model/classHooks";
 
 /** One of a set of things chosen between. */
@@ -360,4 +369,109 @@ export const popover = <Msg>(
         props.body,
       ),
     ],
+  );
+
+/**
+ * A TOOL: one control of a toolbar. Drawn as its label,
+ * or — given a glyph — as the glyph alone, the label
+ * then spoken. A tool that holds a state (a mode that is
+ * on) says so with `pressed`; one that only acts leaves
+ * it out.
+ */
+export type ToolButtonProps<Msg> = Readonly<{
+  label: SoftStr;
+  glyph: Option<SoftStr>;
+  pressed: Option<boolean>;
+  disabled: boolean;
+  onPress: Msg;
+}>;
+export const toolButton = <Msg>(
+  props: ToolButtonProps<Msg>,
+): Html<Msg> =>
+  el(
+    "button",
+    [
+      attr("type", "button"),
+      attr(
+        "class",
+        isSome(props.glyph)
+          ? `${toolClass} ${toolIconClass}`
+          : toolClass,
+      ),
+      ...(isSome(props.glyph)
+        ? [attr("aria-label", props.label)]
+        : []),
+      ...matchOption<
+        boolean,
+        ReadonlyArray<ReturnType<typeof attr>>
+      >(
+        () => [],
+        (on: boolean) => [
+          attr(
+            "aria-pressed",
+            on ? "true" : "false",
+          ),
+        ],
+      )(props.pressed),
+      ...(props.disabled
+        ? [attr("disabled", "")]
+        : [onClick(props.onPress)]),
+    ],
+    [
+      matchOption<SoftStr, Html<Msg>>(
+        () => text(props.label),
+        (glyph: SoftStr) =>
+          el(
+            "span",
+            [attr("aria-hidden", "true")],
+            [text(glyph)],
+          ),
+      )(props.glyph),
+    ],
+  );
+
+/**
+ * A TOOL GROUP: tools that belong together — back and
+ * forward, the views of one thing — joined edge to edge
+ * and named as one.
+ */
+export type ToolGroupProps<Msg> = Readonly<{
+  label: SoftStr;
+  items: ReadonlyArray<Html<Msg>>;
+}>;
+export const toolGroup = <Msg>(
+  props: ToolGroupProps<Msg>,
+): Html<Msg> =>
+  el(
+    "div",
+    [
+      attr("class", toolGroupClass),
+      attr("role", "group"),
+      attr("aria-label", props.label),
+    ],
+    props.items,
+  );
+
+/**
+ * A TOOLBAR: the controls that act on one thing, in a
+ * row over it. What stands in it — tools, groups of
+ * tools, a menu — is set apart by the same gap, so a
+ * group reads as a group because it is joined, not
+ * because of where it sits.
+ */
+export type ToolbarProps<Msg> = Readonly<{
+  label: SoftStr;
+  items: ReadonlyArray<Html<Msg>>;
+}>;
+export const toolbar = <Msg>(
+  props: ToolbarProps<Msg>,
+): Html<Msg> =>
+  el(
+    "div",
+    [
+      attr("class", toolbarClass),
+      attr("role", "toolbar"),
+      attr("aria-label", props.label),
+    ],
+    props.items,
   );

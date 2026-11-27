@@ -5,6 +5,7 @@ import {
   toEqual,
 } from "plgg-test";
 import { renderToString, text } from "plgg-view";
+import { some, none } from "plgg";
 import {
   accordion,
   iconButton,
@@ -14,6 +15,9 @@ import {
   popover,
   steps,
   tabs,
+  toolButton,
+  toolGroup,
+  toolbar,
 } from "plggmatic/Component/usecase/navigation";
 
 test("tabs say which one is selected", () =>
@@ -149,5 +153,55 @@ test("a popover is a native disclosure: its label, then its panel", () =>
     ),
     toBe(
       '<details class="pm-popover"><summary>くわしく</summary><div class="pm-popover-body">中身</div></details>',
+    ),
+  ));
+
+test("a tool with a glyph is the glyph alone, its label spoken; one that holds a state says it", () =>
+  check(
+    renderToString(
+      toolButton({
+        label: "立体",
+        glyph: some("⬡"),
+        pressed: some(true),
+        disabled: false,
+        onPress: "p",
+      }),
+    ),
+    toBe(
+      '<button type="button" class="pm-tool pm-tool-icon" aria-label="立体" aria-pressed="true"><span aria-hidden="true">⬡</span></button>',
+    ),
+  ));
+
+test("a tool that only acts carries no pressed state, and a disabled one is really disabled", () =>
+  check(
+    renderToString(
+      toolButton({
+        label: "最適配置",
+        glyph: none(),
+        pressed: none(),
+        disabled: true,
+        onPress: "p",
+      }),
+    ),
+    toBe(
+      '<button type="button" class="pm-tool" disabled="">最適配置</button>',
+    ),
+  ));
+
+test("a toolbar is a named toolbar of named groups", () =>
+  check(
+    renderToString(
+      toolbar({
+        label: "図の操作",
+        items: [
+          toolGroup({
+            label: "履歴",
+            items: [text("a"), text("b")],
+          }),
+        ],
+      }),
+    ),
+    toBe(
+      '<div class="pm-toolbar" role="toolbar" aria-label="図の操作"><div class="pm-tool-group" role="group" aria-label="履歴">ab</div></div>',
     ),
   ));

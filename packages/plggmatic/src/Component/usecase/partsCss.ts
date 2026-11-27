@@ -75,6 +75,12 @@ export const partsSystemCss = (
 .${p}-range-value{flex:none;min-width:2.5rem;text-align:right;font-variant-numeric:tabular-nums}
 .${p}-search{display:flex}
 .${p}-search .${p}-input{flex:1 1 auto;min-width:0;width:100%}
+.${p}-toolbar{display:flex;align-items:center;flex-wrap:wrap}
+.${p}-tool-group{display:inline-flex;flex:none}
+.${p}-tool{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:2.125rem;height:2.125rem;cursor:pointer;white-space:nowrap}
+.${p}-tool:disabled{cursor:not-allowed}
+.${p}-tool-group .${p}-tool + .${p}-tool{margin-left:-1px}
+.${p}-tool-group .${p}-tool:is(:hover,:focus-visible,[aria-pressed="true"]){position:relative;z-index:1}
 .${p}-popover{position:relative;display:inline-block}
 .${p}-popover summary{display:inline-flex;align-items:center;cursor:pointer;list-style:none}
 .${p}-popover summary::-webkit-details-marker{display:none}
@@ -228,6 +234,14 @@ ${toned("alert")}
 .${p}-range-value{font-size:.8125rem;color:${l.muted}}
 .${p}-input[type="file"]{padding:.3rem}
 .${p}-input[type="file"]::file-selector-button{margin-right:.6rem;padding:.25rem .6rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font:inherit;font-size:.8125rem;cursor:pointer}
+.${p}-toolbar{gap:.75rem}
+.${p}-tool{padding:0 .75rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font:inherit;font-size:.8125rem;line-height:1;transition:background-color ${l.quick} ease,color ${l.quick} ease}
+.${p}-tool-icon{padding:0;font-size:1rem}
+.${p}-tool:hover:not(:disabled),.${p}-tool:focus-visible{${l.press};outline:0}
+.${p}-tool[aria-pressed="true"]{${l.current}}
+.${p}-tool:disabled{opacity:.45}
+.${p}-tool-group .${p}-tool:not(:first-child){border-top-left-radius:0;border-bottom-left-radius:0}
+.${p}-tool-group .${p}-tool:not(:last-child){border-top-right-radius:0;border-bottom-right-radius:0}
 .${p}-popover summary{padding:.45rem .8rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;font-weight:500}
 .${p}-popover summary:hover,.${p}-popover summary:focus-visible,.${p}-popover[open] summary{${l.press};outline:0}
 .${p}-popover-body{padding:.75rem .9rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;line-height:1.6;box-shadow:${l.elevation}}
