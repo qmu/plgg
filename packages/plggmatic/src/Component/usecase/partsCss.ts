@@ -136,7 +136,7 @@ ${toned("badge")}
 .${p}-empty{gap:.5rem;padding:2rem 1rem;border:1px dashed ${l.muted};border-radius:${l.radius};color:${l.muted};font-size:.875rem}
 .${p}-empty-title{font-size:.9375rem;font-weight:600;color:${l.text}}
 .${p}-empty .${p}-btn{margin-top:.5rem}
-.${p}-items{padding:0;border-top:${l.hair};font-size:.875rem}
+.${p}-items,ul.${p}-items{margin:0;padding:0;border-top:${l.hair};font-size:.875rem}
 .${p}-items-row{gap:1rem;padding:.6rem .25rem;border-bottom:${l.hair}}
 .${p}-items-title{font-weight:500;color:${l.text}}
 .${p}-items-note{font-size:.8125rem;color:${l.muted}}
@@ -167,7 +167,7 @@ ${toned("alert")}
 .${p}-pager-item:hover:not(:disabled),.${p}-pager-item:focus-visible{${l.press};outline:0}
 .${p}-pager-item[aria-current]{${l.current};cursor:default}
 .${p}-pager-item:disabled{opacity:.4}
-.${p}-steps{padding:0;gap:.75rem;font-size:.8125rem;color:${l.muted}}
+.${p}-steps,ol.${p}-steps{margin:0;padding:0;gap:.75rem;font-size:.8125rem;color:${l.muted}}
 .${p}-step{gap:.45rem}
 .${p}-step::before{border:${l.rule};border-radius:${l.round};font-size:.75rem;color:${l.text};background:${l.surface}}
 .${p}-step[aria-current]{color:${l.text};font-weight:600}
