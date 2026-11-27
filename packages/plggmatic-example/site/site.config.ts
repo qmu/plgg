@@ -1,77 +1,57 @@
 import { joinedTo } from "../../../sites.ts";
-import { pages } from "../src/catalog/pages.ts";
-import { addressOf } from "../src/site/pagePart.ts";
-import { HOME } from "../src/catalog/address.ts";
+import type { SiteConfigInput } from "plggpress";
+import { pagesFor } from "../src/catalog/pages.ts";
+import {
+  baseOf,
+  labels,
+  localeOf,
+} from "../src/catalog/locale.ts";
+import { routeOf } from "../src/site/pagePart.ts";
 
-// The guide's sidebar is the catalog's own: its groups in
-// the order its pages are written, so the site and the
-// catalog cannot list different things.
-const groups = pages.reduce<
-  ReadonlyArray<
-    Readonly<{
-      text: string;
-      items: ReadonlyArray<
-        Readonly<{
-          text: string;
-          link: string;
-          items: ReadonlyArray<never>;
-        }>
-      >;
-    }>
-  >
->(
-  (all, page) =>
-    all.some((g) => g.text === page.group)
-      ? all.map((g) =>
-          g.text === page.group
-            ? {
-                ...g,
-                items: [
-                  ...g.items,
-                  {
-                    text: page.title,
-                    link:
-                      page.id === HOME
-                        ? "/"
-                        : addressOf(page.id),
-                    items: [],
-                  },
-                ],
-              }
-            : g,
-        )
-      : [
-          ...all,
-          {
-            text: page.group,
-            items: [
-              {
-                text: page.title,
-                link:
-                  page.id === HOME
-                    ? "/"
-                    : addressOf(page.id),
-                items: [],
-              },
-            ],
-          },
-        ],
-  [],
-);
-
+const locale = localeOf(process.env.SITE_LOCALE);
+const label = labels(locale);
+const pages = pagesFor(locale);
+const sections = [
+  ...new Set(pages.map((page) => page.group)),
+];
 export default {
-  title: "plggmatic",
-  description:
-    "横に並ぶ列で画面を組む UI フレームワーク。",
-  base: "/",
+  title: label(
+    "plggmatic ガイド",
+    "The plggmatic guide",
+  ),
+  description: label(
+    "ページを横に並べた画面を組み、列の中で部品を試せます。",
+    "Build a column-based interface and try its components in place.",
+  ),
+  base: baseOf(locale),
   nav: [],
   sidebarStyle: "tree",
   sidebarGroups: "toggle",
   controls: "sidebar",
   contentWidth: "fill",
-  sidebar: groups,
+  sidebar: [
+    ...sections.map((text) => ({
+      text,
+      items: pages
+        .filter((page) => page.group === text)
+        .map((page) => ({
+          text: page.title,
+          link: routeOf(page.id),
+          items: [],
+        })),
+    })),
+    {
+      text: label("言語", "Language"),
+      items: [
+        {
+          text: label("English", "日本語"),
+          link: label("/en/", "/../"),
+          items: [],
+        },
+      ],
+    },
+  ],
   social: [],
   dev: { allowedHosts: [] },
-  // joined to the other qmu sites by columns
   ...joinedTo("https://plggmatic.qmu.co.jp"),
-};
+} satisfies SiteConfigInput;

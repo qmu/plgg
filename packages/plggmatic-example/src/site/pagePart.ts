@@ -1,3 +1,10 @@
+import { feedback } from "../catalog/parts.ts";
+import { HOME } from "../catalog/address.ts";
+import {
+  type Locale,
+  baseOf,
+  localeOf,
+} from "../catalog/locale.ts";
 import {
   type SoftStr,
   type Option,
@@ -15,16 +22,13 @@ import {
   renderToString,
 } from "plgg-view";
 import { makeUrl } from "plgg-view/client";
-import { toast, toasterClass } from "plggmatic";
 import {
   type Model,
   type Msg,
-  type Shown,
-  msg,
 } from "../catalog/model.ts";
 import {
   type Page,
-  pages,
+  pagesFor,
 } from "../catalog/pages.ts";
 import { init } from "../catalog/app.ts";
 
@@ -37,26 +41,36 @@ import { init } from "../catalog/app.ts";
  * another page is an ordinary link, which the site opens
  * beside it.
  */
-export const pageOf = (
+const pageOf = (
   id: SoftStr,
+  locale: Locale,
 ): Option<Page> =>
   fromNullable(
-    pages.find((p: Page) => p.id === id),
+    pagesFor(locale).find(
+      (p: Page) => p.id === id,
+    ),
   );
 
 /** The address of a page of the site. */
-export const addressOf = (id: SoftStr): SoftStr =>
-  `/${id}/`;
-
-const link = (
+export const routeOf = (id: SoftStr) =>
+  id === HOME ? "/" : "/" + id + "/";
+export const addressOf = (
   id: SoftStr,
-  label: SoftStr,
-): Html<Msg> =>
-  a<Msg>([href(addressOf(id))], [text(label)]);
-
-/** What every page starts from. */
-export const firstModel = (): Model =>
-  init(makeUrl("/", ""))[0];
+  locale: Locale,
+) => baseOf(locale) + routeOf(id).slice(1);
+export const pageRef = (code: string) => {
+  const [edition, id] = code.trim().split("/");
+  return {
+    locale: localeOf(edition),
+    id: id ?? HOME,
+  };
+};
+export const firstModel = (
+  locale: Locale,
+): Model => ({
+  ...init(makeUrl("/", ""))[0],
+  locale,
+});
 
 /** A page's body without its own title: the site's
  * column names the page already. */
@@ -80,7 +94,7 @@ export const pageHtml = (
 ): Html<Msg> =>
   el(
     "div",
-    [],
+    [attr("lang", model.locale)],
     [
       ...matchOption<
         Page,
@@ -88,29 +102,40 @@ export const pageHtml = (
       >(
         () => [],
         (page: Page) =>
-          untitled(page.body({ model, link })),
-      )(pageOf(id)),
-      el(
-        "div",
-        [
-          attr("class", toasterClass),
-          attr("aria-live", "polite"),
-        ],
-        model.shown.map((s: Shown) =>
-          toast<Msg>({
-            id: s.id,
-            tone: s.tone,
-            message: s.message,
-            onDismiss: msg.dismiss(s.id),
-          }),
-        ),
-      ),
+          untitled(
+            page.body({
+              model,
+              assetBase: "/",
+              hrefTo: (id) =>
+                addressOf(id, model.locale),
+              link: (target, label) =>
+                a<Msg>(
+                  [
+                    href(
+                      addressOf(
+                        target,
+                        model.locale,
+                      ),
+                    ),
+                  ],
+                  [text(label)],
+                ),
+            }),
+          ),
+      )(pageOf(id, model.locale)),
+      ...feedback(model),
     ],
   );
 
 /** The page as the site builds it: already drawn. Only
  * the escaped plgg-view result enters `raw`. */
 export const pageWidget = (
-  id: SoftStr,
-): Html<never> =>
-  raw(renderToString(pageHtml(firstModel(), id)));
+  code: string,
+): Html<never> => {
+  const { id, locale } = pageRef(code);
+  return raw(
+    renderToString(
+      pageHtml(firstModel(locale), id),
+    ),
+  );
+};

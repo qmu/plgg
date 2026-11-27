@@ -123,6 +123,8 @@ export type PaginationProps<Msg> = Readonly<{
   label: SoftStr;
   page: number;
   pages: number;
+  previousLabel?: SoftStr;
+  nextLabel?: SoftStr;
   onGo: (page: number) => Msg;
 }>;
 const step = <Msg>(
@@ -157,7 +159,7 @@ export const pagination = <Msg>(
         props,
         props.page - 1,
         "‹",
-        "前のページ",
+        props.previousLabel ?? "前のページ",
       ),
       ...pageNumbers(props.page, props.pages).map(
         (n: number) =>
@@ -188,7 +190,7 @@ export const pagination = <Msg>(
         props,
         props.page + 1,
         "›",
-        "次のページ",
+        props.nextLabel ?? "次のページ",
       ),
     ],
   );

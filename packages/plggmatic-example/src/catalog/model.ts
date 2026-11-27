@@ -1,3 +1,4 @@
+import { type Locale } from "./locale.ts";
 import {
   type SoftStr,
   fromNullable,
@@ -20,6 +21,7 @@ export type Shown = Readonly<{
  * examples on the pages hold so they can be operated.
  */
 export type Model = Readonly<{
+  locale: Locale;
   path: SoftStr;
   head: SoftStr;
   rest: ReadonlyArray<SoftStr>;

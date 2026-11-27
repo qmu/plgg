@@ -70,6 +70,7 @@ export const badge = <Msg>(
 export type TagProps<Msg> = Readonly<{
   label: SoftStr;
   onRemove: Option<Msg>;
+  removeLabel?: SoftStr;
 }>;
 export const tag = <Msg>(
   props: TagProps<Msg>,
@@ -92,7 +93,8 @@ export const tag = <Msg>(
               attr("class", tagRemoveClass),
               attr(
                 "aria-label",
-                `${props.label}のタグを外す`,
+                props.removeLabel ??
+                  `${props.label}のタグを外す`,
               ),
               onClick(remove),
             ],

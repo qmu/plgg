@@ -1,10 +1,15 @@
+import { labels } from "./locale.ts";
 import { type SoftStr } from "plgg";
 import {
   type Html,
+  attr,
   el,
   text,
 } from "plgg-view";
 import {
+  confirmDialog,
+  toast,
+  toasterClass,
   cluster,
   cssVar,
   cssVarRef,
@@ -12,7 +17,11 @@ import {
   preview,
   swatches,
 } from "plggmatic";
-import { type Model, type Msg } from "./model.ts";
+import {
+  type Model,
+  type Msg,
+  msg,
+} from "./model.ts";
 
 /**
  * What a page is drawn with: the catalog's state (so its
@@ -21,6 +30,8 @@ import { type Model, type Msg } from "./model.ts";
  */
 export type Ctx = Readonly<{
   model: Model;
+  assetBase: string;
+  hrefTo: (id: SoftStr) => SoftStr;
   link: (
     id: SoftStr,
     label: SoftStr,
@@ -122,11 +133,12 @@ export const table = (
 export const screen = (
   src: SoftStr,
   title: SoftStr,
+  openLabel: SoftStr,
 ): Node =>
   preview<Msg>({
     title,
     src,
-    openLabel: "新しいタブで開く",
+    openLabel,
   });
 
 /** One colour token: its swatch, its name, its property. */
@@ -140,3 +152,48 @@ export const tokenSwatches = (
       color: cssVarRef(name),
     })),
   );
+
+export const feedback = (
+  model: Model,
+): ReadonlyArray<Node> => {
+  const label = labels(model.locale);
+  return [
+    ...(model.dialog
+      ? [
+          confirmDialog<Msg>({
+            title: label(
+              "この記録を削除しますか？",
+              "Delete this record?",
+            ),
+            body: label(
+              "削除すると元に戻せません。",
+              "You cannot undo this action.",
+            ),
+            confirmLabel: label("削除", "Delete"),
+            cancelLabel: label(
+              "キャンセル",
+              "Cancel",
+            ),
+            destructive: true,
+            onConfirm: msg.confirmDialog(),
+            onCancel: msg.closeDialog(),
+          }),
+        ]
+      : []),
+    el(
+      "div",
+      [
+        attr("class", toasterClass),
+        attr("aria-live", "polite"),
+      ],
+      model.shown.map((s) =>
+        toast<Msg>({
+          id: s.id,
+          tone: s.tone,
+          message: s.message,
+          onDismiss: msg.dismiss(s.id),
+        }),
+      ),
+    ),
+  ];
+};

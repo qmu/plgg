@@ -13,6 +13,7 @@ import {
 import {
   firstModel,
   pageHtml,
+  pageRef,
 } from "./site/pagePart.ts";
 
 // The runtime of one guide page on the site: the catalog's
@@ -35,11 +36,11 @@ module.exports = (
   root: Element,
   props: Readonly<{ code: string }>,
 ) => {
+  const { locale, id } = pageRef(props.code);
   lookSheet();
   return sandbox<Model, Msg>({
-    init: [firstModel(), cmdNone()],
+    init: [firstModel(locale), cmdNone()],
     update,
-    view: (model: Model) =>
-      pageHtml(model, props.code.trim()),
+    view: (model: Model) => pageHtml(model, id),
   })(root);
 };

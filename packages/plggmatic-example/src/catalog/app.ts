@@ -1,3 +1,5 @@
+import { feedback } from "./parts.ts";
+import { labels } from "./locale.ts";
 import {
   type SoftStr,
   type Option,
@@ -28,12 +30,10 @@ import {
   type ShellPage,
   shell,
   themeToggle,
-  toast,
   readPreference,
   savePreference,
   openedAttr,
   columnAttr,
-  toasterClass,
   kitAppearanceCss,
   monochrome,
   soft,
@@ -107,6 +107,7 @@ export const init = (
   url: Url,
 ): readonly [Model, Cmd<Msg>] => [
   {
+    locale: "ja",
     path: url.path,
     ...settle(url),
     folded:
@@ -138,11 +139,26 @@ export const init = (
   cmdNone(),
 ];
 
-const MESSAGE: Record<Shown["tone"], SoftStr> = {
-  success: "保存しました",
-  info: "新しいバージョンがあります",
-  warning: "未保存の変更があります",
-  danger: "保存できませんでした",
+const messageFor = (
+  model: Model,
+  tone: Shown["tone"],
+) => {
+  const label = labels(model.locale);
+  return {
+    success: label("保存しました", "Saved."),
+    info: label(
+      "新しいバージョンがあります",
+      "A new version is available.",
+    ),
+    warning: label(
+      "未保存の変更があります",
+      "There are unsaved changes.",
+    ),
+    danger: label(
+      "保存できませんでした",
+      "Could not save.",
+    ),
+  }[tone];
 };
 
 const withToast = (
@@ -239,7 +255,10 @@ export const update = (
             withToast(
               model,
               "danger",
-              "名前は1〜24文字で入力してください",
+              labels(model.locale)(
+                "名前は1〜24文字で入力してください",
+                "Enter a name of 1 to 24 characters.",
+              ),
             ),
             cmdNone(),
           ]
@@ -247,10 +266,13 @@ export const update = (
             withToast(
               {
                 ...model,
-                saved: `${model.name}（${model.role}）`,
+                saved: labels(model.locale)(
+                  `${model.name}（${model.role}）`,
+                  `${model.name} (${model.role})`,
+                ),
               },
               "success",
-              MESSAGE.success,
+              messageFor(model, "success"),
             ),
             cmdNone(),
           ];
@@ -269,7 +291,10 @@ export const update = (
         withToast(
           { ...model, dialog: false },
           "info",
-          "削除操作を完了しました。この例では実際の記録は削除されません。",
+          labels(model.locale)(
+            "削除を確認しました。見本の記録はそのまま残ります。",
+            "Deletion confirmed. The sample record is kept for this demo.",
+          ),
         ),
         cmdNone(),
       ];
@@ -281,7 +306,7 @@ export const update = (
             presses: model.presses + 1,
           },
           m.tone,
-          MESSAGE[m.tone],
+          messageFor(model, m.tone),
         ),
         cmdNone(),
       ];
@@ -387,18 +412,18 @@ const shellPage = (
 ): ShellPage<Msg> => {
   const ids = openIds(model);
   const next = fromNullable(ids[index + 1]);
+  const hrefTo = (id: SoftStr) =>
+    hrefOf(model.path, model.head, [
+      ...model.rest.slice(0, index),
+      id,
+    ]);
   const link = (
     id: SoftStr,
     label: SoftStr,
   ): Html<Msg> =>
     a<Msg>(
       [
-        href(
-          hrefOf(model.path, model.head, [
-            ...model.rest.slice(0, index),
-            id,
-          ]),
-        ),
+        href(hrefTo(id)),
         ...matchOption<
           SoftStr,
           ReadonlyArray<ReturnType<typeof attr>>
@@ -428,7 +453,12 @@ const shellPage = (
             ),
           ),
     wide: page.wide,
-    body: page.body({ model, link }),
+    body: page.body({
+      model,
+      link,
+      assetBase: "./",
+      hrefTo,
+    }),
   };
 };
 
@@ -481,21 +511,7 @@ export const view = (model: Model): Html<Msg> => {
           )(pageOf(id)),
         ),
       }),
-      el(
-        "div",
-        [
-          attr("class", toasterClass),
-          attr("aria-live", "polite"),
-        ],
-        model.shown.map((s) =>
-          toast<Msg>({
-            id: s.id,
-            tone: s.tone,
-            message: s.message,
-            onDismiss: msg.dismiss(s.id),
-          }),
-        ),
-      ),
+      ...feedback(model),
     ],
   );
 };
