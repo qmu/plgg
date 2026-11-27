@@ -9,6 +9,7 @@ import {
   embedParam,
   embeddedAttr,
   frameClass,
+  frameReadyAttr,
 } from "plggmatic/Navigate/model/marker";
 import {
   foldClass,
@@ -86,6 +87,9 @@ export const navigationInitScript: SoftStr =
   // and what a frame says is believed only when it comes
   // from the partner that frame was opened for.
   `var PM=${q(partnersMeta)},EM=${q(embeddersMeta)},EP=${q(embedParam)},EA=${q(embeddedAttr)},FR=${q(frameClass)};` +
+  // set on a partner's column once its page has answered;
+  // how long, in milliseconds, it is waited for
+  `var RD=${q(frameReadyAttr)},FT=4000;` +
   "function metaList(n){var m=document.querySelector('meta[name=\"'+n+'\"]');" +
   "return m?(m.getAttribute('content')||'').split(' ').filter(Boolean):[];}" +
   "var PT=metaList(PM),EB=metaList(EM);" +
@@ -196,7 +200,17 @@ export const navigationInitScript: SoftStr =
   "f.setAttribute('sandbox','allow-scripts allow-same-origin');" +
   "f.setAttribute('referrerpolicy','strict-origin-when-cross-origin');" +
   "f.title=sp.textContent;var src=new URL(x.origin+x.pathname);src.searchParams.set(EP,'1');f.src=src.href;" +
-  "col.appendChild(f);return col;}" +
+  // A partner that does not answer cannot be a column: its
+  // site may be down, or may not let this one frame it, and
+  // the frame would stand empty. A partner's page says its
+  // title as soon as it runs; when none has come in time,
+  // the column is closed and the link is simply followed.
+  "col.appendChild(f);" +
+  "setTimeout(function(){if(col.hasAttribute(RD)||!col.isConnected){return;}" +
+  "var at=columnOf(col);if(at>0){truncate(at-1,true);" +
+  "window.history.replaceState(null,'',urlFor(current().slice(1)));}" +
+  "window.location.assign(x.origin+x.pathname);},FT);" +
+  "return col;}" +
   "function fetchCol(route,span){" +
   "if(abs(route)){return partner(route)&&strip()&&cols().length" +
   "?Promise.resolve(frameCol(route)):Promise.reject(new Error('nav'));}" +
@@ -360,6 +374,7 @@ export const navigationInitScript: SoftStr =
   "try{if(new URL(c[at].getAttribute(C)||'').origin!==ev.origin){return;}}catch(e){return;}" +
   "var d=ev.data;" +
   "if(d.type==='pm:title'&&typeof d.title==='string'){" +
+  "c[at].setAttribute(RD,'');" +
   "var sp=c[at].querySelector(':scope>header>span');if(sp){sp.textContent=d.title.slice(0,120);}sync();return;}" +
   "if(d.type==='pm:open'&&typeof d.href==='string'){var u;try{u=new URL(d.href);}catch(e){return;}" +
   "if(u.protocol!=='https:'&&u.protocol!=='http:'){return;}" +

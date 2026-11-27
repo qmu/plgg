@@ -107,6 +107,9 @@ export const embeddedAttr: SoftStr = `data-${cssPrefix}-embedded`;
 /** The frame a column from another site is shown in. */
 export const frameClass: SoftStr = `${cssPrefix}-frame`;
 
+/** Set on a partner's column once its page has answered. */
+export const frameReadyAttr: SoftStr = `data-${cssPrefix}-frame-ready`;
+
 /** The structure of a column from another site, and of
  * a page while it is shown as one. */
 export const frameCss = (p: SoftStr): SoftStr => `
