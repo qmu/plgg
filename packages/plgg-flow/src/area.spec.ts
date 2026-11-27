@@ -141,3 +141,100 @@ test("a value outside the order is refused by name", () =>
       "a に 月 の値がありません（1月・2月 のどれか）",
     ),
   ));
+
+const listed = [
+  "layout area",
+  "axis 売上 0..100 higher",
+  "axis 月 1月 2月 3月",
+  "node 東 売上=50,100,0",
+  "node 西 売上=25,75,50",
+].join("\n");
+
+test("a node that lists its values is a whole series, drawn the same", () =>
+  check(
+    sceneryOf(listed)
+      .flatMap((s) =>
+        s.kind === "plane"
+          ? [s.points.map((p) => p.y).join()]
+          : [],
+      )
+      .join(" "),
+    toBe("140,0,-140,140 140,70,-70,140"),
+  ));
+
+test("a listed series is held by its last value, behind the one before", () =>
+  check(
+    flowOf(listed)
+      .nodes.map(
+        (n) =>
+          n.id +
+          ":" +
+          n.position.x +
+          "," +
+          n.position.y +
+          "," +
+          n.position.z,
+      )
+      .join(" "),
+    toBe("東:72,140,-44 西:72,0,44"),
+  ));
+
+test("listed series are named by their nodes", () =>
+  check(
+    sceneryOf(listed)
+      .flatMap((s) =>
+        s.kind === "label" &&
+        s.text.startsWith("■")
+          ? [s.text]
+          : [],
+      )
+      .join(),
+    toBe("■ 東,■ 西"),
+  ));
+
+test("a listed area reads back as it was written", () =>
+  check(
+    [parseSpec(listed)]
+      .flatMap((spec) =>
+        isOk(spec)
+          ? [
+              printSpec(
+                specFlow(spec.content),
+                [],
+              ),
+            ]
+          : [],
+      )
+      .join(),
+    toBe(listed),
+  ));
+
+test("an order that was not written is counted from one", () =>
+  check(
+    sceneryOf(
+      listed.replace(
+        "axis 月 1月 2月 3月",
+        "axis 月",
+      ),
+    )
+      .flatMap((s) =>
+        s.kind === "label" &&
+        ["1", "2", "3"].includes(s.text)
+          ? [s.text]
+          : [],
+      )
+      .join(),
+    toBe("1,2,3"),
+  ));
+
+test("a third axis beside listed series is refused", () =>
+  check(
+    [parseSpec(listed + "\naxis 地域 東 西")]
+      .flatMap((spec) =>
+        isErr(spec) ? [spec.content] : [],
+      )
+      .join(),
+    toBe(
+      "系列を 1 行で書くときは、3 つ目の軸は要りません（node がそのまま系列になります）",
+    ),
+  ));

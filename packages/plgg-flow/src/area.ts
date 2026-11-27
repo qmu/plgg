@@ -6,6 +6,12 @@ import {
   matchOption,
   fromNullable,
   getOr,
+  none,
+  some,
+  err,
+  mapResult,
+  type Option,
+  type Result,
 } from "plgg";
 import type { Point3 } from "plgg-board";
 import type {
@@ -14,6 +20,10 @@ import type {
   Scenery,
 } from "./model";
 import type { Axis } from "plgg-flow/classify";
+import type {
+  JsonObject,
+  JsonValue,
+} from "plgg-flow/metadata";
 import {
   along,
   lettering,
@@ -61,11 +71,192 @@ import {
  *   axis 地域 東 西
  *   node 東1 月=1月 地域=東 売上=40
  */
-export type Area = Bars;
+export type Area = Bars &
+  Readonly<{
+    /** Each node is a whole series, its values written
+     * in one list. */
+    listed: boolean;
+  }>;
 
+/** The attribute a listed series is set apart by. */
+const seriesWord = "系列";
+/** The values a node lists on an attribute, when it
+ * lists more than one:  売上=22,30,41 */
+const listOn =
+  (attribute: string) =>
+  (node: FlowNode): Option<readonly string[]> =>
+    pipe(
+      fromNullable(node.data),
+      chainOption((data: JsonObject) =>
+        fromNullable(data[attribute]),
+      ),
+      chainOption(
+        (
+          v: JsonValue,
+        ): Option<readonly string[]> =>
+          String(v).includes(",")
+            ? some(String(v).split(","))
+            : none(),
+      ),
+    );
+/** The order a list is followed along: as written, or
+ * counted from one when it was not. */
+const counted = (
+  across: Axis,
+  nodes: readonly FlowNode[],
+  quantity: string,
+): Axis =>
+  across.values.length > 0
+    ? across
+    : {
+        ...across,
+        values: Array.from(
+          {
+            length: Math.max(
+              0,
+              ...nodes.map((n) =>
+                pipe(
+                  listOn(quantity)(n),
+                  matchOption(
+                    () => 0,
+                    (l: readonly string[]) =>
+                      l.length,
+                  ),
+                ),
+              ),
+            ),
+          },
+          (_, k) => String(k + 1),
+        ),
+      };
+/** A node as the values it stands for: itself, or — when
+ * it lists a series — one for each value of the list. */
+const spread =
+  (quantity: string, across: Axis) =>
+  (node: FlowNode): readonly FlowNode[] =>
+    pipe(
+      listOn(quantity)(node),
+      matchOption(
+        (): readonly FlowNode[] => [node],
+        (list: readonly string[]) =>
+          list.map(
+            (v, k): FlowNode => ({
+              ...node,
+              id: node.id + "#" + (k + 1),
+              data: {
+                ...node.data,
+                [quantity]: v.trim(),
+                [across.attribute]: pipe(
+                  fromNullable(across.values[k]),
+                  getOr(String(k + 1)),
+                ),
+                [seriesWord]: node.id,
+              },
+            }),
+          ),
+      ),
+    );
+const listedIn = (
+  quantity: string,
+  nodes: readonly FlowNode[],
+): readonly FlowNode[] =>
+  bars(nodes).filter((n) =>
+    isSome(listOn(quantity)(n)),
+  );
+/** The values an area is drawn from. */
+const valuesOf = (
+  a: Area,
+  nodes: readonly FlowNode[],
+): readonly FlowNode[] =>
+  a.listed
+    ? bars(nodes).flatMap(
+        spread(a.measure.attribute, a.across),
+      )
+    : bars(nodes);
+
+const asListed = (
+  quantity: Axis,
+  across: Axis,
+  nodes: readonly FlowNode[],
+): Result<Area, string> =>
+  pipe(
+    fieldOf("area")(
+      [
+        quantity,
+        counted(
+          across,
+          nodes,
+          quantity.attribute,
+        ),
+        {
+          attribute: seriesWord,
+          values: listedIn(
+            quantity.attribute,
+            nodes,
+          ).map((n) => n.id),
+        },
+      ],
+      bars(nodes).flatMap(
+        spread(
+          quantity.attribute,
+          counted(
+            across,
+            nodes,
+            quantity.attribute,
+          ),
+        ),
+      ),
+    ),
+    mapResult(
+      (b: Bars): Area => ({ ...b, listed: true }),
+    ),
+  );
 /** The area a set of axis lines describes over a set of
- * nodes; a refusal says which line or node is wrong. */
-export const asArea = fieldOf("area");
+ * nodes; a refusal says which line or node is wrong. A
+ * node may be one value, placed by its attributes, or a
+ * whole series, its values in one list. */
+export const asArea = (
+  axes: readonly Axis[],
+  nodes: readonly FlowNode[],
+): Result<Area, string> =>
+  pipe(
+    fromNullable(axes[0]),
+    chainOption((quantity: Axis) =>
+      pipe(
+        fromNullable(axes[1]),
+        chainOption(
+          (
+            across: Axis,
+          ): Option<Result<Area, string>> =>
+            listedIn(quantity.attribute, nodes)
+              .length === 0
+              ? none()
+              : some(
+                  axes.length > 2
+                    ? err(
+                        "系列を 1 行で書くときは、3 つ目の軸は要りません（node がそのまま系列になります）",
+                      )
+                    : asListed(
+                        quantity,
+                        across,
+                        nodes,
+                      ),
+                ),
+        ),
+      ),
+    ),
+    getOr<Result<Area, string>>(
+      pipe(
+        fieldOf("area")(axes, nodes),
+        mapResult(
+          (b: Bars): Area => ({
+            ...b,
+            listed: false,
+          }),
+        ),
+      ),
+    ),
+  );
 
 /** The side of the mark a value is pointed at by. */
 const dot = 6;
@@ -111,6 +302,33 @@ const marked =
       ),
       getOr(node),
     );
+/** Where a listed series is held by: its last value. */
+const held =
+  (a: Area) =>
+  (node: FlowNode): FlowNode =>
+    pipe(
+      fromNullable(
+        spread(
+          a.measure.attribute,
+          a.across,
+        )(node)
+          .map(marked(a))
+          .filter((n) => n.bare === true)
+          .slice(-1)[0],
+      ),
+      matchOption(
+        () => node,
+        (last: FlowNode): FlowNode => ({
+          ...node,
+          width: dot,
+          height: dot,
+          depth: dot / 2,
+          bare: true,
+          unnamed: true,
+          position: last.position,
+        }),
+      ),
+    );
 /** The graph with every node a mark where its value
  * stands: along the order, up by the quantity, back by
  * its series. */
@@ -119,7 +337,9 @@ export const areaGraph = (
   graph: Graph,
 ): Graph => ({
   ...graph,
-  nodes: graph.nodes.map(marked(a)),
+  nodes: graph.nodes.map(
+    a.listed ? held(a) : marked(a),
+  ),
 });
 
 /** The marks of one series, in the order of the second
@@ -129,7 +349,8 @@ const series = (
   nodes: readonly FlowNode[],
   j: number,
 ): readonly Point3[] =>
-  bars(nodes)
+  valuesOf(a, nodes)
+    .map(marked(a))
     .filter(
       (n) =>
         rowOf(a)(n) === j &&
@@ -280,14 +501,19 @@ export const areaScenery = (
   ...scale(a),
   ...acrossNames(a),
   ...seriesNames(a),
-  ...crown(a, nodes),
+  ...crown(a, valuesOf(a, nodes).map(marked(a))),
 ];
 
 /** Points that bound the area with room for the scale
  * and the names. */
 export const areaExtent = barsExtent;
 /** The lines of the DSL that say the area. */
-export const areaLines = fieldLines("area");
+export const areaLines = (
+  a: Area,
+): readonly (readonly string[])[] =>
+  fieldLines("area")(
+    a.listed ? { ...a, deep: none() } : a,
+  );
 /** Whether the series stand one behind another. */
 export const areaDeep = (a: Area): boolean =>
   isSome(a.deep);
