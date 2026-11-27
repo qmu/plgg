@@ -3,9 +3,15 @@ import {
   type Html,
   el,
   text,
-  attr,
 } from "plgg-view";
-import { cssVar, cssVarRef } from "plggmatic";
+import {
+  cluster,
+  cssVar,
+  cssVarRef,
+  exampleBox,
+  preview,
+  swatches,
+} from "plggmatic";
 import { type Model, type Msg } from "./model.ts";
 
 /**
@@ -62,24 +68,18 @@ export const source = (s: SoftStr): Node =>
   el("pre", [], [el("code", [], [t(s)])]);
 
 /**
- * A live example: the real component, in a ruled box of
- * its own so it is seen against the page's surface and
- * nothing else.
+ * A live example: the real component, in the kit's
+ * example box so it is seen against the page's surface
+ * and nothing else.
  */
 export const example = (
   ...children: ReadonlyArray<Node>
-): Node =>
-  el(
-    "div",
-    [attr("class", "cat-example")],
-    children,
-  );
+): Node => exampleBox<Msg>(children);
 
 /** Examples side by side, wrapping. */
 export const row = (
   ...children: ReadonlyArray<Node>
-): Node =>
-  el("div", [attr("class", "cat-row")], children);
+): Node => cluster<Msg>(children);
 
 export const table = (
   heads: ReadonlyArray<SoftStr>,
@@ -123,56 +123,20 @@ export const screen = (
   src: SoftStr,
   title: SoftStr,
 ): Node =>
-  el(
-    "div",
-    [attr("class", "cat-screen")],
-    [
-      el(
-        "div",
-        [attr("class", "cat-screen-bar")],
-        [
-          el("span", [], [t(title)]),
-          el(
-            "a",
-            [
-              attr("href", src),
-              attr("target", "_blank"),
-              attr("rel", "noopener"),
-            ],
-            [t("新しいタブで開く")],
-          ),
-        ],
-      ),
-      el(
-        "iframe",
-        [
-          attr("src", src),
-          attr("title", title),
-          attr("loading", "lazy"),
-        ],
-        [],
-      ),
-    ],
-  );
+  preview<Msg>({
+    title,
+    src,
+    openLabel: "新しいタブで開く",
+  });
 
 /** One colour token: its swatch, its name, its property. */
-export const swatch = (name: SoftStr): Node =>
-  el(
-    "div",
-    [attr("class", "cat-swatch")],
-    [
-      el(
-        "span",
-        [
-          attr("class", "cat-chip"),
-          attr(
-            "style",
-            `background:${cssVarRef(name)}`,
-          ),
-        ],
-        [],
-      ),
-      el("strong", [], [t(name)]),
-      el("code", [], [t(cssVar(name))]),
-    ],
+export const tokenSwatches = (
+  names: ReadonlyArray<SoftStr>,
+): Node =>
+  swatches<Msg>(
+    names.map((name: SoftStr) => ({
+      name,
+      written: cssVar(name),
+      color: cssVarRef(name),
+    })),
   );

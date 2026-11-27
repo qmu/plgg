@@ -18,7 +18,7 @@ import {
   toolButton,
   toolGroup,
   toolbar,
-  splitter,
+  split,
   rowList,
   codeInput,
   statusLine,
@@ -588,24 +588,23 @@ export const componentPages: ReadonlyArray<Page> =
       group: act,
       lead: "2 つの領域の境界です。ドラッグして、片方を広げた分だけもう片方を狭めます。",
       live: () => [
-        el(
-          "div",
-          [attr("class", "cat-split")],
-          [
-            el("div", [], [t("左の領域")]),
-            splitter<Msg>({
-              label: "左右の幅を変える",
-              orientation: "vertical",
-            }),
-            el("div", [], [t("右の領域")]),
-          ],
-        ),
+        split<Msg>({
+          label: "左右の幅を変える",
+          orientation: "vertical",
+          first: [t("左の領域")],
+          second: [t("右の領域")],
+        }),
       ],
       code: [
-        "splitter({",
+        "split({",
         '  label: "左右の幅を変える",',
         '  orientation: "vertical", // 上下なら "horizontal"',
+        "  first: [...],",
+        "  second: [...],",
         "})",
+        "",
+        "// 境界だけを置くとき",
+        'splitter({ label: "左右の幅を変える", orientation: "vertical" })',
       ],
       notes: [
         "この部品は、ポインターでつかむ境界そのものです。領域の大きさを変える処理は、画面側で受け持ちます。",

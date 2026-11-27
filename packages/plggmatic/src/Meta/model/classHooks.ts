@@ -723,3 +723,31 @@ export const codeInputClass: SoftStr =
 /** The line a surface says its state on. */
 export const statusClass: SoftStr =
   hook("status");
+
+/** The box a thing is shown in, apart from the page. */
+export const exampleClass: SoftStr =
+  hook("example");
+export const exampleItemClass: SoftStr = hook(
+  "example-item",
+);
+/** Things side by side, wrapping when they do not fit. */
+export const clusterClass: SoftStr =
+  hook("cluster");
+/** Two panes with a boundary between them. */
+export const splitClass: SoftStr = hook("split");
+export const splitPaneClass: SoftStr =
+  hook("split-pane");
+/** A colour, shown with its name. */
+export const swatchesClass: SoftStr =
+  hook("swatches");
+export const swatchClass: SoftStr =
+  hook("swatch");
+export const swatchChipClass: SoftStr = hook(
+  "swatch-chip",
+);
+/** Another page, shown in a titled frame. */
+export const previewClass: SoftStr =
+  hook("preview");
+export const previewBarClass: SoftStr = hook(
+  "preview-bar",
+);

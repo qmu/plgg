@@ -88,6 +88,17 @@ export const partsSystemCss = (
 .${p}-rows-row{position:relative;width:max-content;min-width:100%;min-height:1.7em;cursor:default;user-select:none;-webkit-user-select:none}
 .${p}-code-input{display:block;width:100%;min-height:8rem;resize:none;overflow:auto;white-space:pre;tab-size:2}
 .${p}-status{display:block}
+.${p}-example :is(h1,h2,h3):first-child{margin-top:0}
+.${p}-example p:last-child{margin-bottom:0}
+.${p}-cluster{display:flex;flex-wrap:wrap;align-items:center}
+.${p}-split{display:flex;min-height:7rem}
+.${p}-split[data-orientation="horizontal"]{flex-direction:column}
+.${p}-split-pane{flex:1 1 0;min-width:0;min-height:0;overflow:auto}
+.${p}-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))}
+.${p}-swatch{display:grid;grid-template-columns:2.25rem 1fr;grid-template-rows:auto auto;align-items:center}
+.${p}-swatch-chip{grid-row:1 / 3;width:2.25rem;height:2.25rem}
+.${p}-preview-bar{display:flex;align-items:center;justify-content:space-between;height:2.25rem}
+.${p}-preview iframe{display:block;width:100%;height:min(34rem,62vh);border-style:none}
 .${p}-popover{position:relative;display:inline-block}
 .${p}-popover summary{display:inline-flex;align-items:center;cursor:pointer;list-style:none}
 .${p}-popover summary::-webkit-details-marker{display:none}
@@ -259,6 +270,21 @@ ${toned("alert")}
 .${p}-code-input:focus-visible{outline:0;box-shadow:inset 0 -1px 0 ${l.text}}
 .${p}-status{padding:.5rem .875rem;border-top:${l.rule};font-size:.75rem;line-height:1.6;color:${l.muted}}
 .${p}-status[data-error]{${l.current}}
+.${p}-example{margin:1rem 0;padding:1.25rem 1.4rem;border:${l.rule};border-radius:${l.radius}}
+.${p}-example-item + .${p}-example-item{margin-top:.9rem}
+.${p}-example table{margin:0}
+.${p}-cluster{gap:.6rem}
+.${p}-split{border:${l.hair};border-radius:${l.radius}}
+.${p}-split-pane{padding:.75rem;font-size:.875rem}
+.${p}-swatches{gap:.6rem;margin:.75rem 0}
+.${p}-swatch{column-gap:.7rem;padding:.5rem;border:${l.hair};border-radius:${l.radius}}
+.${p}-swatch-chip{border:${l.rule};border-radius:${l.radius}}
+.${p}-swatch strong{font-size:.8125rem;font-weight:600;line-height:1.3}
+.${p}-swatch code{padding:0;background:none;font-size:.7rem;line-height:1.3;color:${l.muted}}
+.${p}-preview{margin:1rem 0;border:${l.rule};border-radius:${l.radius};overflow:hidden}
+.${p}-preview-bar{gap:1rem;padding:0 .4rem 0 .9rem;border-bottom:${l.rule};font-size:.8125rem;font-weight:600}
+.${p}-preview-bar a{font-weight:400;font-size:.75rem}
+.${p}-preview iframe{background:${l.surface}}
 .${p}-popover summary{padding:.45rem .8rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;font-weight:500}
 .${p}-popover summary:hover,.${p}-popover summary:focus-visible,.${p}-popover[open] summary{${l.press};outline:0}
 .${p}-popover-body{padding:.75rem .9rem;border:${l.rule};border-radius:${l.radius};background:${l.surface};color:${l.text};font-size:.875rem;line-height:1.6;box-shadow:${l.elevation}}

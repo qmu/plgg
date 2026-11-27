@@ -47,7 +47,7 @@ import {
   row,
   table,
   screen,
-  swatch,
+  tokenSwatches,
 } from "./parts.ts";
 import { type Page } from "./page.ts";
 import {
@@ -319,18 +319,12 @@ const colors: Page = {
       "を押すと、このページの色見本にも反映されます。",
     ),
     h2("無彩色"),
-    el(
-      "div",
-      [attr("class", "cat-swatches")],
-      neutrals.map((name) => swatch(name)),
-    ),
+    tokenSwatches(neutrals),
     ...semanticRoles.flatMap((role) => [
       h2(role),
-      el(
-        "div",
-        [attr("class", "cat-swatches")],
-        variants.map((variant) =>
-          swatch(`${role}-${variant}`),
+      tokenSwatches(
+        variants.map(
+          (variant) => `${role}-${variant}`,
         ),
       ),
     ]),
