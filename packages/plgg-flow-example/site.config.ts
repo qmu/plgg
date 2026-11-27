@@ -1,3 +1,4 @@
+import { joinedTo } from "../../sites.ts";
 export default {
   title: "plgg-flow",
   description:
@@ -356,5 +357,6 @@ export default {
     },
   ],
   social: [],
-  dev: { allowedHosts: [] },
+  dev: { allowedHosts: [] }, // joined to the other qmu sites by columns
+  ...joinedTo("https://plgg-flow.qmu.co.jp"),
 };

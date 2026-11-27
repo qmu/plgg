@@ -1,3 +1,4 @@
+import { joinedTo } from "../../../sites.ts";
 import { pages } from "../src/catalog/pages.ts";
 import { addressOf } from "../src/site/pagePart.ts";
 import { HOME } from "../src/catalog/address.ts";
@@ -71,9 +72,6 @@ export default {
   sidebar: groups,
   social: [],
   dev: { allowedHosts: [] },
-  // The sites this guide is joined to by columns. qmu.co.jp
-  // may open these pages as columns, and a link here to
-  // qmu.co.jp opens beside.
-  partners: ["https://qmu.co.jp"],
-  embedders: ["https://qmu.co.jp"],
+  // joined to the other qmu sites by columns
+  ...joinedTo("https://plggmatic.qmu.co.jp"),
 };

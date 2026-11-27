@@ -1,0 +1,17 @@
+// The delivery surface of the plgg-flow documentation: a Cloudflare Worker that
+// serves the plggpress build output as static assets — no
+// script of its own. The hostname is a custom domain of the
+// Worker, so wrangler creates and holds its DNS record.
+{
+  "name": "plgg-flow-site",
+  "compatibility_date": "2026-08-01",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "plgg-flow.qmu.co.jp", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

@@ -7,6 +7,7 @@
 // `SiteConfig` TYPE and the `defineSite` validator; this
 // file supplies only the guide's values (ported verbatim
 // from the former `.vitepress/config.ts` and `index.md`).
+import { joinedTo } from "../../sites.ts";
 import {
   defineSite,
   type SidebarItemInput,
@@ -195,6 +196,8 @@ const config = {
       "plgg-guide.qmu.dev",
     ],
   },
+  // joined to the other qmu sites by columns
+  ...joinedTo("https://plgg.qmu.co.jp"),
 };
 
 // Author-time validation through the boundary caster: an Ok
