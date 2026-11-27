@@ -31,6 +31,7 @@ export default {
     "sankey",
     "area",
     "radar",
+    "pie",
     "chart",
     "dsl",
     "wiring",

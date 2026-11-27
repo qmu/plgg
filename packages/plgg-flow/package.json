@@ -287,6 +287,16 @@
         "types": "./dist/radar.d.ts",
         "default": "./dist/radar.cjs.js"
       }
+    },
+    "./pie": {
+      "import": {
+        "types": "./dist/pie.d.ts",
+        "default": "./dist/pie.es.js"
+      },
+      "require": {
+        "types": "./dist/pie.d.ts",
+        "default": "./dist/pie.cjs.js"
+      }
     }
   },
   "types": "dist/index.d.ts",

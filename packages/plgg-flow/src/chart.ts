@@ -52,6 +52,15 @@ import {
   type Radar,
 } from "plgg-flow/radar";
 import {
+  asPie,
+  pieDeep,
+  pieExtent,
+  pieGraph,
+  pieLines,
+  pieScenery,
+  type Pie,
+} from "plgg-flow/pie";
+import {
   asSankey,
   sankeyDeep,
   sankeyExtent,
@@ -92,6 +101,7 @@ import {
  * - {@link Bars} raise nodes as tall as their value;
  * - an {@link Area} follows a value along an order, a
  *   series behind a series;
+ * - a {@link Pie} cuts a whole into its shares;
  * - a {@link Sankey} draws connections as wide as what
  *   they carry.
  */
@@ -102,6 +112,7 @@ export type Chart =
   | Box<"Bars", Bars>
   | Box<"Area", Area>
   | Box<"Radar", Radar>
+  | Box<"Pie", Pie>
   | Box<"Sankey", Sankey>;
 
 const plot$ = () => pattern("Plot")();
@@ -111,6 +122,7 @@ const bars$ = () => pattern("Bars")();
 const sankey$ = () => pattern("Sankey")();
 const area$ = () => pattern("Area")();
 const radar$ = () => pattern("Radar")();
+const pie$ = () => pattern("Pie")();
 
 /** The names `layout` knows a chart by. */
 const kinds: readonly string[] = [
@@ -123,6 +135,7 @@ const kinds: readonly string[] = [
   "line",
   "stack",
   "radar",
+  "pie",
 ];
 export const isChartKind = (
   word: string,
@@ -204,17 +217,27 @@ export const asChart = (
                     ),
                   ),
                 )
-              : kind === "sankey"
+              : kind === "pie"
                 ? some(
                     pipe(
-                      asSankey(axes, graph),
+                      asPie(axes, graph.nodes),
                       mapResult(
-                        (s: Sankey): Chart =>
-                          box("Sankey")(s),
+                        (p: Pie): Chart =>
+                          box("Pie")(p),
                       ),
                     ),
                   )
-                : none();
+                : kind === "sankey"
+                  ? some(
+                      pipe(
+                        asSankey(axes, graph),
+                        mapResult(
+                          (s: Sankey): Chart =>
+                            box("Sankey")(s),
+                        ),
+                      ),
+                    )
+                  : none();
 
 /** The graph laid out as the chart says. */
 export const chartGraph = (
@@ -256,6 +279,11 @@ export const chartGraph = (
       radar$(),
       ({ content }): Graph =>
         radarGraph(content, graph),
+    ],
+    [
+      pie$(),
+      ({ content }): Graph =>
+        pieGraph(content, graph),
     ],
   );
 
@@ -304,6 +332,11 @@ export const chartScenery = (
       ({ content }): readonly Scenery[] =>
         radarScenery(content, graph.nodes),
     ],
+    [
+      pie$(),
+      ({ content }): readonly Scenery[] =>
+        pieScenery(content, graph.nodes),
+    ],
   );
 
 /** Points that bound the chart beyond its nodes, so that
@@ -350,6 +383,11 @@ export const chartExtent = (
       radar$(),
       ({ content }): readonly Point3[] =>
         radarExtent(content),
+    ],
+    [
+      pie$(),
+      ({ content }): readonly Point3[] =>
+        pieExtent(content),
     ],
   );
 
@@ -406,6 +444,13 @@ export const chartLines = (
         content,
       }): readonly (readonly string[])[] =>
         radarLines(content),
+    ],
+    [
+      pie$(),
+      ({
+        content,
+      }): readonly (readonly string[])[] =>
+        pieLines(content),
     ],
   );
 
@@ -501,6 +546,18 @@ export const chartCamera = (
           ? { yaw: -0.42, pitch: -0.16 }
           : { yaw: 0, pitch: 0 },
     ],
+    [
+      pie$(),
+      ({
+        content,
+      }): Readonly<{
+        yaw: number;
+        pitch: number;
+      }> =>
+        pieDeep(content)
+          ? { yaw: -0.4, pitch: -0.3 }
+          : { yaw: 0, pitch: 0 },
+    ],
   );
 
 /** Whether the chart gives nodes their width. */
@@ -515,4 +572,5 @@ export const chartSizes = (
     [sankey$(), (): boolean => true],
     [area$(), (): boolean => true],
     [radar$(), (): boolean => true],
+    [pie$(), (): boolean => true],
   );

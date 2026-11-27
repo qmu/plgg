@@ -218,6 +218,11 @@ export default {
           items: [],
         },
         {
+          text: "全体の中の割合を見る",
+          link: "/plots/pie",
+          items: [],
+        },
+        {
           text: "量がどこへ流れるか",
           link: "/plots/sankey",
           items: [],
