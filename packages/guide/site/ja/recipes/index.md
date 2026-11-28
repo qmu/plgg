@@ -108,3 +108,5 @@ test("only a nonblank title registers", () =>
     ),
   ]));
 ```
+
+[設計の理由](/design/choices/)・[ほかの選択肢](/design/alternatives/)・[型と境界でつまずいたら](/design/friction/)・[パッケージの境界](/design/family/)

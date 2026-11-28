@@ -1,22 +1,5 @@
 # plgg-board — Project coordinates onto a drawing
 
-Create a front-facing camera with `frontCamera`. Pass a point to `project(camera)` to obtain drawing coordinates. Use `orbit` to rotate the `view` and `pan` to shift it. These calculations run independently of the DOM and are used in [plgg-flow diagrams](https://plgg-flow.qmu.co.jp/en/).
+Camera movement and projection work independently of the DOM. plgg-flow uses these coordinates to draw nodes and edges.
 
-```ts
-import { frontCamera, project } from "plgg-board";
-
-const camera = frontCamera({ x: 0, y: 0 });
-console.log(
-  project(camera)({ x: 20, y: 10, z: 0 }),
-);
-```
-
-## Working with the API
-
-`project(camera)(point: Point3) → Point3`
-
-Keep world points separate from their projections so camera motion does not rewrite geometry. project retains depth as well as x and y. Use plgg-flow for graph connectivity and layout rules.
-
-## Convert a drag to world coordinates
-
-pan(dx, dy)(camera) shifts the camera origin. To move an object, pass the screen displacement to worldDelta(camera, delta, depth). Ten pixels of pointer movement need not equal ten world units after zooming.
+See [package boundaries](/design/family/) for dependency direction and [Build a bookshelf](/tutorial/) for an end-to-end application.

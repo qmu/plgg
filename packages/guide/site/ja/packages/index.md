@@ -89,3 +89,5 @@
 | [plggmatic](/packages/plggmatic/) | plgg, plgg-ir-language, plgg-ir-manifest, plgg-ir-syntax, plgg-view |
 | [plggmatic-example](/packages/plggmatic-example/) | plgg, plgg-view, plggmatic |
 | [plggpress](/packages/plggpress/) | plgg, plgg-kit, plggmatic, plgg-http, plgg-server, plgg-view, plgg-md, plgg-highlight, plgg-cli, plgg-bundle, plgg-ir-diagram |
+
+[パッケージの境界](/design/family/)では依存先を、[本棚を作る](/tutorial/)ではアプリでの組み合わせ方を追えます。

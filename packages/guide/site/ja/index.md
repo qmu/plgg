@@ -13,3 +13,5 @@ plgg は TypeScript で入力を検証し、処理を小さな関数に分けて
 ## パッケージのつながり
 
 矢印の左側が右側を使います。plgg-server → plgg-http ← plgg-fetch という関係なので、送る側と受け取る側は同じ応答型を使えます。plgg-db-migration → plgg-sql → plgg は保存側の流れです。文書の処理は plgg-ir-manifest → plgg-ir-language → plgg-ir-syntax → plgg-parser と分かれています。全体は[依存先の一覧](/packages/)を参照してください。
+
+[設計の理由](/design/choices/)・[ほかの選択肢](/design/alternatives/)・[型と境界でつまずいたら](/design/friction/)・[パッケージの境界](/design/family/)

@@ -89,3 +89,5 @@ Each row lists direct runtime dependencies declared by the package on the left. 
 | [plggmatic](/packages/plggmatic/) | plgg, plgg-ir-language, plgg-ir-manifest, plgg-ir-syntax, plgg-view |
 | [plggmatic-example](/packages/plggmatic-example/) | plgg, plgg-view, plggmatic |
 | [plggpress](/packages/plggpress/) | plgg, plgg-kit, plggmatic, plgg-http, plgg-server, plgg-view, plgg-md, plgg-highlight, plgg-cli, plgg-bundle, plgg-ir-diagram |
+
+See [package boundaries](/design/family/) for dependency direction and [Build a bookshelf](/tutorial/) for an end-to-end application.

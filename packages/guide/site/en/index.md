@@ -13,3 +13,5 @@ Keep data free of methods and write standalone functions. Taking configuration f
 ## How the packages fit together
 
 The package on the left uses the one on the right. plgg-server → plgg-http ← plgg-fetch allows both sides of a request to share response types. plgg-db-migration → plgg-sql → plgg is the storage path. Language processing follows plgg-ir-manifest → plgg-ir-language → plgg-ir-syntax → plgg-parser. See the [complete dependency map](/packages/) for the other branches.
+
+[Design choices](/design/choices/) · [Choosing an approach](/design/alternatives/) · [Working through friction](/design/friction/) · [Package boundaries](/design/family/)

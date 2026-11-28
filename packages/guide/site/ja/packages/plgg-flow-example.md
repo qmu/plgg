@@ -1,3 +1,5 @@
 # plgg-flow-example — 図を原稿から試す
 
-図をライブラリに組み込む前に、[作例集](https://plgg-flow.qmu.co.jp/)で DSL の入力と描画結果を見比べられます。markdown と markdown-en に原稿があります。`src/examples.spec.ts` はサイドバーから作例を探し、フェンスの本文を `parseSpec` に渡して実際に節点と接続を調べます。図を追加したら `npm test` で作例として読み込まれることを確認し、`npm run build` でサイトを生成します。
+図の記述と描画結果を見比べる作例集です。画面に組み込む描画部品は plgg-flow、原稿内の接続先や型を検査する処理は plgg-ir-diagram にあります。 [図の作例集](https://plgg-flow.qmu.co.jp/)。
+
+[パッケージの境界](/design/family/)では依存先を、[本棚を作る](/tutorial/)ではアプリでの組み合わせ方を追えます。

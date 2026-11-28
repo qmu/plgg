@@ -302,3 +302,5 @@ curl -H 'Content-Type: application/json' \
   -d '{"title":"Field notes"}' \
   http://127.0.0.1:3000/books
 ```
+
+[Design choices](/design/choices/) · [Choosing an approach](/design/alternatives/) · [Working through friction](/design/friction/) · [Package boundaries](/design/family/)

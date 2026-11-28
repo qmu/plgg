@@ -126,12 +126,40 @@ const config = {
       ],
     },
     {
+      text: label(
+        "設計と判断",
+        "Design decisions",
+      ),
+      items: [
+        item(
+          "/design/choices/",
+          "設計の理由",
+          "Design choices",
+        ),
+        item(
+          "/design/alternatives/",
+          "ほかの選択肢",
+          "Choosing an approach",
+        ),
+        item(
+          "/design/friction/",
+          "型と境界でつまずいたら",
+          "Working through friction",
+        ),
+        item(
+          "/design/family/",
+          "パッケージの境界",
+          "Package boundaries",
+        ),
+      ],
+    },
+    {
       text: label("plgg 本体", "Core library"),
       items: [
         item(
           "/packages/plgg/",
-          "関数を選ぶ",
-          "Choose a function",
+          "本体の役割",
+          "Role of the core",
         ),
         item(
           "/packages/plgg/values-effects/",
