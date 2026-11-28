@@ -827,3 +827,8 @@ export {
   mayHonourRequest,
   publicDocumentJoining,
 } from "plggmatic/Joining/model/policy";
+export {
+  attachJoining,
+  type JoiningAdapter,
+} from "plggmatic/Joining/usecase/attachJoining";
+export { joiningHeaders } from "plggmatic/Joining/model/policy";

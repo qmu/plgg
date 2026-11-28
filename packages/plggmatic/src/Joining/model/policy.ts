@@ -278,3 +278,17 @@ export const publicDocumentJoining = (
   embedders: embedders.map(publicPeer),
   frames,
 });
+
+/** Append the value to the resolved HTML response's CSP. */
+export const joiningHeaders = (
+  policy: JoiningPolicy,
+  resolvedPath: string,
+) => ({
+  "Content-Security-Policy": Object.entries(
+    joiningDirectives(policy, resolvedPath),
+  )
+    .map(
+      ([name, sources]) => name + " " + sources,
+    )
+    .join("; "),
+});

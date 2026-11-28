@@ -14,7 +14,9 @@
     "test:watch": "plgg-test src --watch",
     "coverage": "plgg-test src --coverage",
     "coverage:watch": "plgg-test src --coverage --watch",
-    "preview": "python3 -m http.server --directory dist"
+    "preview": "python3 -m http.server --directory dist",
+    "build:joining": "npm run build && plggpress build --config joining/site.config.ts --contentDir joining/content --outDir dist/joining-child",
+    "demo:joining": "node joining/serve.ts"
   },
   "repository": {
     "type": "git",

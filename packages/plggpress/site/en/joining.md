@@ -25,3 +25,7 @@ Write an ordinary link to a catalog page. Its column shows the partner’s title
 The partner’s HTML runs in a sandboxed iframe on its own origin. It can neither edit the parent document nor navigate the top-level page. The host accepts a request to open a column only from a frame it created for that sender’s registered origin. Putting another hostname in a shared URL cannot grant it access. Local columns load only same-origin HTML, and the browser reads at most twelve additional entries from the URL’s `c` parameter.
 
 With partners configured, the page’s `frame-src` policy limits frame destinations to the site itself, its partners, and its `frames` list, including after redirects. The serving site’s `frame-ancestors` response header controls who may frame its pages. Each partner remains responsible for the content it displays.
+
+## Open a fixed public page from another app
+
+The versioned example in `plggmatic-example` opens the public plggpress page `/guide/` in a column. From that package, run `npm run build:joining` and then `npm run demo:joining`. Follow the link at `http://localhost:51820/`. The child runs on port 51821. Its ordinary `/edit/` page and its 404 responses deny framing.
