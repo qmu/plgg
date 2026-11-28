@@ -423,7 +423,7 @@ export const navigationInitScript: SoftStr =
   "if(dx<0?e.scrollLeft>0:e.scrollLeft+e.clientWidth<e.scrollWidth-1){return;}}" +
   "e=e.parentNode;}" +
   "ev.preventDefault();tell({type:'pm:scroll',dx:dx});},{passive:false});}" +
-  "var SX=0,SL=0,SW=0;" +
+  "var SW=0;" +
   "window.addEventListener('message',function(ev){" +
   "if(PT.indexOf(ev.origin)<0||!ev.data||typeof ev.data!=='object'){return;}" +
   "var c=cols(),at=-1;for(var i=0;i<c.length;i++){" +
@@ -435,17 +435,15 @@ export const navigationInitScript: SoftStr =
   "c[at].setAttribute(RD,'');shade(c[at]);" +
   "var sp=c[at].querySelector(':scope>header>span');if(sp){sp.textContent=d.title.slice(0,120)+' \u2014 '+ev.origin.replace(/^https?:\\/\\//,'');}sync();return;}" +
   // a sideways scroll made inside a frame belongs to the
-  // strip the frame stands in. The strip rests on a column
-  // edge, so the scroll is gathered until it is plainly
-  // meant, then the neighbouring column is brought into
-  // view — one column a gesture, however long it coasts.
+  // strip the frame stands in, and moves it as a scroll
+  // made on the strip would: by the same distance, as it
+  // comes. A snapping strip lets go of its snap while the
+  // gesture lasts and settles on a column once it rests.
   "if(d.type==='pm:scroll'&&typeof d.dx==='number'&&isFinite(d.dx)){" +
-  "var now=Date.now();if(now<SW){return;}" +
-  "if(now-SL>250){SX=0;}SL=now;SX+=Math.max(-600,Math.min(600,d.dx));" +
-  "if(Math.abs(SX)<60){return;}" +
-  "var to=c[at+(SX>0?1:-1)];SX=0;SW=now+450;" +
-  "if(to){to.scrollIntoView({inline:'nearest',block:'nearest',behavior:R0?'auto':'smooth'});}" +
-  "else{var st=strip();if(st){st.scrollBy({left:SX>0?st.clientWidth:-st.clientWidth,behavior:R0?'auto':'smooth'});}}" +
+  "var st=strip();if(!st){return;}" +
+  "st.style.scrollSnapType='none';" +
+  "st.scrollBy({left:Math.max(-600,Math.min(600,d.dx)),behavior:'auto'});" +
+  "clearTimeout(SW);SW=setTimeout(function(){st.style.scrollSnapType='';},160);" +
   "return;}" +
   "if(d.type==='pm:open'&&typeof d.href==='string'){var u;try{u=new URL(d.href);}catch(e){return;}" +
   "if(u.protocol!=='https:'&&u.protocol!=='http:'){return;}" +
