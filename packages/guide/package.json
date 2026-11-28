@@ -11,7 +11,9 @@
     "serve:worker": "wrangler dev --env=\"\"",
     "serve:worker:staging": "wrangler dev --env staging",
     "deploy": "wrangler deploy --env=\"\"",
-    "deploy:staging": "wrangler deploy --env staging"
+    "deploy:staging": "wrangler deploy --env staging",
+    "check:examples": "node check-examples.mjs",
+    "prebuild": "npm run check:examples"
   },
   "repository": {
     "type": "git",

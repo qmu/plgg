@@ -3,8 +3,24 @@
 `el` にはタグ名、属性、子要素を渡し、`text` で文字を置きます。`renderToString` で HTML を取り出せます。操作を受け付ける画面では、モデルから `view` を作り、メッセージを `update` に渡して次のモデルを決めます。[To-Do の実例](/packages/example/)で両方の描画方法を試せます。
 
 ```ts
-import { el, renderToString, text } from "plgg-view";
+import {
+  el,
+  renderToString,
+  text,
+} from "plgg-view";
 
-console.log(renderToString(el("p", [], [text("A & B")])));
+console.log(
+  renderToString(el("p", [], [text("A & B")])),
+);
 // <p>A &amp; B</p>
 ```
+
+## 使い方と制約
+
+`renderToString(node: Html<Msg>) → SoftStr`
+
+同じ `view` をサーバーで文字列化し、ブラウザーではモデルから繰り返し描画できます。HTML 文字列にはクリック時の関数は入りません。操作が必要な画面ではクライアント側のプログラムも起動します。
+
+## 副作用をどこで始めるか
+
+plgg-view/client の `cmdEffect` は、実行すると `Promise`<Msg> が得られる関数を包みます。`update` の中で通信を始めず、実行すべき内容をデータとして返せます。処理が不要な分岐は `cmdNone`() を返します。テストでは実際に通信せず、モデルと返した命令の種類を検査できます。

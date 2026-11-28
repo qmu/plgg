@@ -14,6 +14,7 @@ to prepare the libraries and reference exhibit. From this package, run:
 ```sh
 npm run dev                 # Japanese
 SITE_LOCALE=en npm run dev  # English
+npm run check:examples       # examples only (also runs before build)
 npm run build
 npm run preview
 ```
@@ -22,6 +23,11 @@ The build checks each edition's internal links and writes Japanese to
 `dist/`, then English to `dist/en/`. Finally, `nest-exhibit.ts` copies
 the reference exhibit to `dist/plggmatic-reference/`. Preview the
 combined output to try the language switch.
+
+A TypeScript fence immediately following a third-level heading containing a
+backticked filename becomes a module of that name. This lets later tutorial
+steps and recipes import the exact code shown to the reader. Other fences
+are independent modules. Specs run with plgg-test.
 
 ## Delivery
 

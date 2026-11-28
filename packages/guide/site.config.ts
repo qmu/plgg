@@ -41,14 +41,24 @@ const config = {
           "Your first program",
         ),
         item(
+          "/tutorial/",
+          "本棚を作る",
+          "Build a bookshelf",
+        ),
+        item(
+          "/recipes/",
+          "実装レシピ",
+          "Recipes",
+        ),
+        item(
           "/packages/",
           "用途から選ぶ",
           "Find a package",
         ),
         item(
           "/contributing/conventions/",
-          "例を確かめる",
-          "Check an example",
+          "変更と検証",
+          "Contribute and verify",
         ),
       ],
     },
@@ -92,6 +102,21 @@ const config = {
           "/concepts/async/",
           "非同期処理",
           "Asynchronous steps",
+        ),
+        item(
+          "/concepts/collections/",
+          "レコードと辞書",
+          "Records and dictionaries",
+        ),
+        item(
+          "/concepts/instances/",
+          "インスタンス",
+          "Instances",
+        ),
+        item(
+          "/concepts/narrowing/",
+          "型の絞り込み",
+          "Narrowing",
         ),
         item(
           "/concepts/match/",
@@ -188,6 +213,9 @@ const config = {
         "plgg-flow",
         "plggmatic",
         "plggpress",
+        "guide",
+        "plgg-flow-example",
+        "plggmatic-example",
       ].map(library),
     },
     {

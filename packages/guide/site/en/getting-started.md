@@ -24,3 +24,7 @@ git clone https://github.com/qmu/plgg.git
 cd plgg
 sh scripts/build.sh
 ```
+
+## Change the input
+
+Pass `""` to get a validation failure even though the input is a string. Pass `" "` and it succeeds because it has length one. Rejecting whitespace-only titles requires an application rule. The [bookshelf tutorial](/tutorial/) puts that rule in a single caster shared by input and storage.

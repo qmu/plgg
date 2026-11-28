@@ -10,3 +10,13 @@ const result = compileManifest(
 );
 console.log(result.__tag); // Ok
 ```
+
+## Working with the API
+
+`compileManifest(source) → Result<CompiledManifest, ReadonlyArray<SemDiagnostic>>`
+
+Give a renderer the verified module and use canonical for storage or comparison. Starting consumers from the compiled result avoids interpreting form names a second time. On failure show the diagnostic range in the original input.
+
+## Look up a declaration
+
+entityOf(module, name) and viewOf(module, name) return arrays of matching declarations. An unknown name gives an empty array. When a `view` name comes from configuration, inspect the length or wrap the indexed value in an `Option` before accessing it.

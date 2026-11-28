@@ -48,3 +48,44 @@
 - [plggpress](/packages/plggpress/) — Markdown のサイトを作る
 
 コーディングエージェント hrns の使い方は [hrns のガイド](https://hrns.qmu.co.jp/)にあります。
+
+## ワークスペース内の依存先
+
+左のパッケージが実行時の依存関係として宣言しているものを右に示します。開発時だけ使うビルド・試験ツールは含みません。
+
+| パッケージ | 直接の依存先 |
+| --- | --- |
+| [example](/packages/example/) | plgg, plgg-view, plgg-router, plgg-server |
+| [guide](/packages/guide/) | plggpress |
+| [plgg](/packages/plgg/) | — |
+| [plgg-auth](/packages/plgg-auth/) | plgg, plgg-http, plgg-server, plgg-sql, plgg-db-migration |
+| [plgg-board](/packages/plgg-board/) | plgg |
+| [plgg-bundle](/packages/plgg-bundle/) | — |
+| [plgg-cli](/packages/plgg-cli/) | plgg |
+| [plgg-cms](/packages/plgg-cms/) | plgg, plgg-auth, plgg-db-migration, plgg-http, plgg-kit, plgg-mcp, plgg-md, plgg-server, plgg-sql, plgg-view, plggpress |
+| [plgg-db-migration](/packages/plgg-db-migration/) | plgg, plgg-sql |
+| [plgg-fetch](/packages/plgg-fetch/) | plgg, plgg-http |
+| [plgg-flow](/packages/plgg-flow/) | plgg, plgg-board, plgg-view |
+| [plgg-flow-example](/packages/plgg-flow-example/) | plgg, plgg-board, plgg-flow, plgg-view, plgg-ir-diagram |
+| [plgg-foundry](/packages/plgg-foundry/) | plgg, plgg-kit |
+| [plgg-highlight](/packages/plgg-highlight/) | plgg, plgg-md, plgg-parser, plgg-view |
+| [plgg-http](/packages/plgg-http/) | plgg |
+| [plgg-ir-diagram](/packages/plgg-ir-diagram/) | plgg, plgg-ir-syntax, plgg-ir-language, plgg-parser, plgg-view, plgg-flow, plgg-board, plggmatic |
+| [plgg-ir-language](/packages/plgg-ir-language/) | plgg, plgg-ir-syntax |
+| [plgg-ir-manifest](/packages/plgg-ir-manifest/) | plgg, plgg-ir-syntax, plgg-ir-language |
+| [plgg-ir-syntax](/packages/plgg-ir-syntax/) | plgg, plgg-parser |
+| [plgg-ir-thesis](/packages/plgg-ir-thesis/) | plgg, plgg-ir-syntax, plgg-ir-language |
+| [plgg-ir-thesis-proof](/packages/plgg-ir-thesis-proof/) | plgg, plgg-ir-syntax, plgg-ir-language, plgg-ir-thesis |
+| [plgg-kit](/packages/plgg-kit/) | plgg |
+| [plgg-mcp](/packages/plgg-mcp/) | plgg |
+| [plgg-md](/packages/plgg-md/) | plgg, plgg-parser, plgg-view |
+| [plgg-parser](/packages/plgg-parser/) | plgg |
+| [plgg-router](/packages/plgg-router/) | plgg |
+| [plgg-server](/packages/plgg-server/) | plgg, plgg-http, plgg-view |
+| [plgg-sql](/packages/plgg-sql/) | plgg |
+| [plgg-test](/packages/plgg-test/) | plgg |
+| [plgg-token-metering](/packages/plgg-token-metering/) | plgg |
+| [plgg-view](/packages/plgg-view/) | plgg |
+| [plggmatic](/packages/plggmatic/) | plgg, plgg-ir-language, plgg-ir-manifest, plgg-ir-syntax, plgg-view |
+| [plggmatic-example](/packages/plggmatic-example/) | plgg, plgg-view, plggmatic |
+| [plggpress](/packages/plggpress/) | plgg, plgg-kit, plggmatic, plgg-http, plgg-server, plgg-view, plgg-md, plgg-highlight, plgg-cli, plgg-bundle, plgg-ir-diagram |

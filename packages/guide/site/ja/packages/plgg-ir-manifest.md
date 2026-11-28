@@ -10,3 +10,13 @@ const result = compileManifest(
 );
 console.log(result.__tag); // Ok
 ```
+
+## 使い方と制約
+
+`compileManifest(source) → Result<CompiledManifest, ReadonlyArray<SemDiagnostic>>`
+
+表示側には検証済みの module、保存や差分確認には canonical を渡せます。フォームの名前を画面側でもう一度解釈すると二つの解釈がずれるので、後続処理は検証結果から始めます。診断が返った場合は入力の範囲を示して修正を促します。
+
+## モデルから名前で探す
+
+entityOf(module, name) や viewOf(module, name) は同じ名前の宣言を配列で返します。存在しないときは空の配列です。先頭を取り出せると決めつけると、設定で指定した画面名に誤りがあったときに困ります。配列の長さを調べるか、添字で読んだ値を `Option` にしてください。
