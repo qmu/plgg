@@ -1,3 +1,4 @@
+import { siteJoining } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   type SoftStr,
   pipe,
@@ -124,50 +125,24 @@ const titleOf = (
  */
 const joined = (
   name: SoftStr,
-  origins: SiteConfig["partners"],
+  origins: readonly { readonly origin: string }[],
 ): ReadonlyArray<Html<never, "meta">> =>
-  origins === undefined
-    ? []
-    : pipe(
-        origins,
-        matchOption<
-          ReadonlyArray<SoftStr>,
-          ReadonlyArray<Html<never, "meta">>
-        >(
-          () => [],
-          (list: ReadonlyArray<SoftStr>) =>
-            list.length === 0
-              ? []
-              : [
-                  meta(
-                    [
-                      attr("name", name),
-                      attr(
-                        "content",
-                        list.join(" "),
-                      ),
-                    ],
-                    [],
-                  ),
-                ],
+  origins.length
+    ? [
+        meta(
+          [
+            attr("name", name),
+            attr(
+              "content",
+              origins
+                .map((p) => p.origin)
+                .join(" "),
+            ),
+          ],
+          [],
         ),
-      );
-
-const listed = (
-  origins: SiteConfig["partners"],
-): ReadonlyArray<SoftStr> =>
-  origins === undefined
-    ? []
-    : pipe(
-        origins,
-        matchOption<
-          ReadonlyArray<SoftStr>,
-          ReadonlyArray<SoftStr>
-        >(
-          () => [],
-          (list: ReadonlyArray<SoftStr>) => list,
-        ),
-      );
+      ]
+    : [];
 /**
  * WHAT THIS PAGE MAY HOLD IN A FRAME, said to the browser
  * when partners are named: the page's own site, its
@@ -177,9 +152,9 @@ const listed = (
  * by the browser itself, whatever the page's script does.
  */
 const framed = (
-  config: SiteConfig,
+  policy: ReturnType<typeof siteJoining>,
 ): ReadonlyArray<Html<never, "meta">> =>
-  listed(config.partners).length === 0
+  policy.partners.length === 0
     ? []
     : [
         meta(
@@ -192,8 +167,10 @@ const framed = (
               "content",
               [
                 "frame-src 'self'",
-                ...listed(config.partners),
-                ...listed(config.frames),
+                ...policy.partners.map(
+                  (p) => p.origin,
+                ),
+                ...policy.frames,
               ].join(" "),
             ),
           ],
@@ -208,6 +185,7 @@ const documentHead = (
   theme: Theme,
 ): Html<never, "head"> => {
   const hrefOf = href(config.base);
+  const policy = siteJoining(config);
   return head(
     [],
     [
@@ -223,9 +201,9 @@ const documentHead = (
         [],
       ),
       title([], [text(titleOf(config, doc))]),
-      ...framed(config),
-      ...joined(partnersMeta, config.partners),
-      ...joined(embeddersMeta, config.embedders),
+      ...framed(policy),
+      ...joined(partnersMeta, policy.partners),
+      ...joined(embeddersMeta, policy.embedders),
       link(
         [
           attr("rel", "canonical"),

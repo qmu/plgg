@@ -1,3 +1,4 @@
+import { siteJoining } from "plggpress/SiteConfig/model/SiteConfig";
 import {
   builtins,
   islandAsset,
@@ -107,10 +108,9 @@ export const buildSpecOf = (
   // Who may frame this site is the browser's to enforce,
   // told by a response header: only the configured
   // embedders, and the site itself.
-  const embedders =
-    config.embedders?.__tag === "Some"
-      ? config.embedders.content
-      : [];
+  const embedders = siteJoining(
+    config,
+  ).embedders.map((p) => p.origin);
   if (embedders.length)
     generatedAssets.set(
       "_headers",

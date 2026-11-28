@@ -4,6 +4,7 @@ import {
   columnAttr,
   spanAttr,
   navHookName,
+  matchesOriginScript,
   partnersMeta,
   embeddersMeta,
   embedParam,
@@ -49,13 +50,8 @@ import {
 // which the server renders. The enhancement may fail; the
 // content may not.
 //
-// WHY THE DECISIONS LIVE IN THE SCRIPT. An inline runtime
-// cannot import TypeScript, so any "pure decision module"
-// beside it would be a SECOND implementation of the same
-// rules — the drift this mission exists to remove. Instead
-// the script publishes its own decisions on the hook
-// (`urlFor`, `entries`), so they are driven and asserted
-// in a real browser rather than re-derived offline.
+// The inline runtime embeds the shared origin predicate. Its
+// navigation hook exposes URL and entry decisions to browser tests.
 
 const q = (value: SoftStr): SoftStr =>
   JSON.stringify(value);
@@ -98,8 +94,9 @@ export const navigationInitScript: SoftStr =
   // — and is never fetched: it is a partner's page, shown in
   // a frame, or it is nothing.
   "function abs(r){return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(r)||r.charAt(0)!=='/'||r.charAt(1)==='/'||r.charAt(1)==='\\\\';}" +
+  `var matchesOrigin=${matchesOriginScript};` +
   "function partner(u){try{var x=new URL(u);" +
-  "return (x.protocol==='https:'||x.protocol==='http:')&&PT.indexOf(x.origin)>=0;}catch(e){return false;}}" +
+  "return (x.protocol==='https:'||x.protocol==='http:')&&matchesOrigin(PT,x.origin);}catch(e){return false;}}" +
   // A PAGE OF THIS SITE is a path on this origin and nothing
   // else: resolved once, and held to this origin before
   // anything is asked for.
@@ -397,7 +394,7 @@ export const navigationInitScript: SoftStr =
   // alone.
   "function shade(col){var f=col.querySelector(':scope>iframe.'+FR);if(!f||!f.contentWindow){return;}" +
   "var o;try{o=new URL(col.getAttribute(C)||'').origin;}catch(e){return;}" +
-  "if(PT.indexOf(o)<0){return;}" +
+  "if(!matchesOrigin(PT,o)){return;}" +
   "f.contentWindow.postMessage({type:'pm:scheme',scheme:document.documentElement.classList.contains('dark')?'dark':'light'},o);}" +
   "if(PT.length&&window.MutationObserver){new MutationObserver(function(){" +
   "var c=cols();for(var i=0;i<c.length;i++){shade(c[i]);}})" +
@@ -407,7 +404,7 @@ export const navigationInitScript: SoftStr =
   // be light or dark. Nothing else is read, and the
   // reader's own choice for this site is left as it was.
   "if(EMB){window.addEventListener('message',function(ev){" +
-  "if(ev.source!==window.parent||EB.indexOf(ev.origin)<0||!ev.data||ev.data.type!=='pm:scheme'){return;}" +
+  "if(ev.source!==window.parent||!matchesOrigin(EB,ev.origin)||!ev.data||ev.data.type!=='pm:scheme'){return;}" +
   "if(ev.data.scheme!=='dark'&&ev.data.scheme!=='light'){return;}" +
   "if(!HS){HS=true;document.documentElement.setAttribute(EA,'');}" +
   "if(ev.data.scheme==='dark'){document.documentElement.classList.add('dark');}" +
@@ -425,7 +422,7 @@ export const navigationInitScript: SoftStr =
   "ev.preventDefault();tell({type:'pm:scroll',dx:dx});},{passive:false});}" +
   "var SW=0;" +
   "window.addEventListener('message',function(ev){" +
-  "if(PT.indexOf(ev.origin)<0||!ev.data||typeof ev.data!=='object'){return;}" +
+  "if(!matchesOrigin(PT,ev.origin)||!ev.data||typeof ev.data!=='object'){return;}" +
   "var c=cols(),at=-1;for(var i=0;i<c.length;i++){" +
   "var f=c[i].querySelector(':scope>iframe.'+FR);if(f&&f.contentWindow===ev.source){at=i;}}" +
   "if(at<0){return;}" +
@@ -448,7 +445,7 @@ export const navigationInitScript: SoftStr =
   "if(d.type==='pm:open'&&typeof d.href==='string'){var u;try{u=new URL(d.href);}catch(e){return;}" +
   "if(u.protocol!=='https:'&&u.protocol!=='http:'){return;}" +
   "if(u.origin===window.location.origin){openFrom(at,u.pathname);}" +
-  "else if(PT.indexOf(u.origin)>=0){openFrom(at,u.origin+u.pathname);}}});" +
+  "else if(matchesOrigin(PT,u.origin)){openFrom(at,u.origin+u.pathname);}}});" +
   "if(EMB){tell({type:'pm:title',title:document.title});}" +
   "window.addEventListener('popstate',function(){reconcile();});" +
   // on a hard load of a composition URL, the marks are

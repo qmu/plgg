@@ -17,6 +17,7 @@ import {
   type Defect,
   type PromisedResult,
   none,
+  some,
   err,
   matchOption,
 } from "plgg";
@@ -158,3 +159,29 @@ test("buildSpecOf.linkCheck fails the build on a broken internal link", async ()
       toBe("BrokenLinks")(e.__tag),
     ),
   ));
+
+test("only embedders produce the ordered site-wide header", () =>
+  all([
+    check(
+      spec.generatedAssets?.has("_headers"),
+      toBe(false),
+    ),
+    check(
+      new TextDecoder().decode(
+        buildSpecOf(
+          {
+            ...config,
+            embedders: some([
+              "https://b.test",
+              "https://a.test",
+            ]),
+          },
+          root,
+          "/",
+        ).generatedAssets?.get("_headers"),
+      ),
+      toBe(
+        "/*\n  Content-Security-Policy: frame-ancestors 'self' https://b.test https://a.test\n",
+      ),
+    ),
+  ]));

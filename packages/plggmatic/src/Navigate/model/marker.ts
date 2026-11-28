@@ -1,3 +1,4 @@
+import { matchesOrigin } from "plggmatic/Joining/model/policy";
 import {
   type SoftStr,
   type Option,
@@ -97,6 +98,8 @@ export const documentColumn = <Msg>(
  * of this page, and nothing of it is ever placed in this
  * document.
  */
+export const matchesOriginScript =
+  matchesOrigin.toString();
 export const partnersMeta: SoftStr = `${cssPrefix}-partners`;
 export const embeddersMeta: SoftStr = `${cssPrefix}-embedders`;
 /** The parameter a page is asked for as a column by. */

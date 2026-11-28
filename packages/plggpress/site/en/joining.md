@@ -14,6 +14,8 @@ const connections = {
 
 Enter an exact HTTPS origin, including a port if needed. Leave off the trailing slash, path, and wildcards. HTTP is accepted for `localhost` and `127.0.0.1` during development. Rebuild the sites and apply the [response headers](/operations/) after changing the lists.
 
+plggpress maps these lists to plggmatic’s public-document compatibility policy. The unversioned runtime still grants column access by origin.
+
 ## What the reader sees
 
 Write an ordinary link to a catalog page. Its column shows the partner’s title and hostname. Links inside it can open further columns on the host site or an allowed partner. The host’s light/dark setting follows the reader into the frame, and sideways scrolling moves between columns. If the partner doesn’t respond within four seconds, the column offers a direct link.

@@ -112,7 +112,7 @@ test("emits a leading doctype + complete <html> document", () =>
     ),
   ]));
 
-test('wraps the pre-rendered body in a slot <div> under the site body', () =>
+test("wraps the pre-rendered body in a slot <div> under the site body", () =>
   all([
     // the opaque body rides into the typed shell through
     // the slot <div>, directly inside the site body
@@ -233,3 +233,63 @@ test("emits a base-routed canonical <link>; the only external stylesheet is the 
       ),
     ),
   ]));
+
+test("joined meta preserves site order and keeps widgets out of partners", () => {
+  const html = renderToString(
+    shell(
+      {
+        ...config,
+        partners: some([
+          "https://b.test",
+          "https://a.test",
+        ]),
+        embedders: some(["https://parent.test"]),
+        frames: some(["https://widget.test"]),
+      },
+      homeDoc,
+      bodyFixture,
+    ),
+  );
+  const widgetsOnly = renderToString(
+    shell(
+      {
+        ...config,
+        frames: some(["https://widget.test"]),
+      },
+      homeDoc,
+      bodyFixture,
+    ),
+  );
+  return all([
+    check(
+      html,
+      toContain(
+        'name="pm-partners" content="https://b.test https://a.test"',
+      ),
+    ),
+    check(
+      html,
+      toContain(
+        'name="pm-embedders" content="https://parent.test"',
+      ),
+    ),
+    check(
+      html,
+      toContain(
+        "frame-src &#39;self&#39; https://b.test https://a.test https://widget.test",
+      ),
+    ),
+    check(
+      widgetsOnly,
+      not(
+        toContain(
+          'http-equiv="Content-Security-Policy"',
+        ),
+      ),
+    ),
+    check(
+      widgetsOnly,
+      not(toContain('name="pm-partners"')),
+    ),
+  ]);
+});

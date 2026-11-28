@@ -2,7 +2,7 @@
 
 社内システムで作業しながら、関連する hrns の画面を右隣の列で参照できるようにしたい。社内システムが列を開き、hrns が表示してよい画面と利用者を決める。どちらも相手の認証情報や画面の実装を知る必要はない。plggpress の公開サイトも同じ仕組みに参加できる。
 
-対象は、異なるオリジンに配信された plggmatic 製アプリ間の**閲覧**である。ログイン、承認、編集などの操作は各アプリを直接開いて行う。以下の「現行実装」はリポジトリで確認した動作を記す。それ以降は設計案であり、社内システムと hrns のホスト名、ルート、認証構成は説明用の仮定である。
+対象は、異なるオリジンに配信された plggmatic 製アプリ間の**閲覧**である。ログイン、承認、編集などの操作は各アプリを直接開いて行う。以下の「現行実装」はリポジトリで確認した動作を記す。設定検証とルート判定は実装済みで、版付き接続と認証アプリへの組み込みは設計案である。社内システムと hrns のホスト名、ルート、認証構成は説明用の仮定である。
 
 ## 現行実装
 
@@ -16,17 +16,19 @@
 
 列を配置する部品も既に共通化されている。plggmatic の `shell` は `pages` から `strip` と `documentColumn` のマーカーを持つ画面を組み立てる。一方、plgg-view の `application` はモデルを描画し、同一オリジンのリンクと履歴を管理する。`navigation` を指定すれば、遷移の要求と確定通知を `ParentNavigation` に委ねられる。これは同じアプリ内の取り決めであり、別オリジンの親を認証する機能は持たない。[shell の実装](../src/Shell/usecase/shell.ts)・[application の実装](../../plgg-view/src/Program/usecase/application.ts)
 
-plggpress に依存するのは、設定の検証と、検証した内容を静的 HTML・配信設定に落とす部分である。相手のオリジンが一致した後に「その相手のどのルートを開いてよいか」「誰のデータを表示してよいか」を決める処理は、現行の列ランタイムにはない。[設定と asOrigin](../../plggpress/src/SiteConfig/model/SiteConfig.ts)・[meta の出力](../../plggpress/src/theme/shell.ts)・[_headers の生成](../../plggpress/src/Press/usecase/appSpecs.ts)・[ナビゲーション](../src/Navigate/usecase/navigationScript.ts)・[マーカー](../src/Navigate/model/marker.ts)・[現在の利用手引き](../../plggpress/site/ja/joining.md)
+plggmatic がオリジンの検証と照合を提供し、plggpress が従来の一覧を公開文書用の互換設定へ変換して HTML と配信設定に反映する。相手のオリジンが一致した後に「その相手のどのルートを開いてよいか」「誰のデータを表示してよいか」を決める処理は、現行の列ランタイムにはない。[設定と asOrigin](../../plggpress/src/SiteConfig/model/SiteConfig.ts)・[meta の出力](../../plggpress/src/theme/shell.ts)・[_headers の生成](../../plggpress/src/Press/usecase/appSpecs.ts)・[ナビゲーション](../src/Navigate/usecase/navigationScript.ts)・[マーカー](../src/Navigate/model/marker.ts)・[現在の利用手引き](../../plggpress/site/ja/joining.md)
 
 ## 提案する接続契約
 
 ### 相手とルートを片方向に宣言する
 
-plggmatic に、設定を検証する純粋関数 `defineJoining` を置く。次は社内システムから hrns の稼働状況を開く場合の API 案である。ホスト名とパスは例示用で、`/columns/status` は個人名や業務 ID を含まない固定の閲覧用 URL とする。
+plggmatic の純粋関数 `defineJoining` は必須の自オリジン `origin` と接続設定を検証する。次は社内システムから hrns の稼働状況を開く場合の設定例である。ホスト名とパスは例示用で、`/columns/status` は個人名や業務 ID を含まない固定の閲覧用 URL とする。
 
 ```ts
 // 社内システムの起動時に渡す設定
 const office = defineJoining({
+  origin: "https://office.example.com",
+  parentRoutes: ["/"],
   partners: [{
     origin: "https://hrns.example.com",
     trust: "organization",
@@ -36,6 +38,7 @@ const office = defineJoining({
 
 // hrns のサーバーと画面で共有する設定
 const hrns = defineJoining({
+  origin: "https://hrns.example.com",
   embedders: [{
     origin: "https://office.example.com",
     trust: "organization",
@@ -58,7 +61,7 @@ const hrns = defineJoining({
 | `public` | ログイン状態によらず同じ内容を返す公開ルート。Cookie が付いても個人向け表示に切り替えない。 | 固定の表示名と横スクロール。隣に開けるのは、親が明示的に許す公開ルートだけ。 |
 | `organization` | 双方の運営者が組織向けとして登録した組み合わせ。子が自分のセッションで利用者・テナント・対象データへの閲覧権限を確認したルート。 | 公開ルートに加え、親がその送信元に明示的に許した組織向け閲覧ルートを要求できる。業務データ自体は子の中だけに表示する。 |
 
-親は「どの送信元から、どの宛先へ」を判定し、表にある `pm:open` 相当の要求は個別に許可するまで無効とする。親自身の画面を開く要求にも同じ制限をかける。子はルートが要求する信頼段階と、自分の設定にある親の信頼段階を照合する。相手のメッセージによる昇格や、A が B を、B が C を信頼することによる A から C への許可は認めない。初版では列の親をトップレベルの画面に限定する。
+`mayOpenColumn(origin, path)(policy)` は登録済み partner の固定パスを照合する。`mayHonourRequest(sender, origin, path)(policy)` はさらに `requests` の同じ三項目と送信元の信頼段階を照合する。親は「どの送信元から、どの宛先へ」を判定し、表にある `pm:open` 相当の要求は個別に許可するまで無効とする。親自身の画面を開く要求にも同じ制限をかける。子はルートが要求する信頼段階と、自分の設定にある親の信頼段階を照合する。相手のメッセージによる昇格や、A が B を、B が C を信頼することによる A から C への許可は認めない。初版では列の親をトップレベルの画面に限定する。
 
 ### サーバーで埋め込みの可否を決める
 
@@ -66,7 +69,7 @@ const hrns = defineJoining({
 
 子は閲覧専用の入口を設け、編集、承認、ログインなど通常の業務画面には常に `frame-ancestors 'none'` を返す。利用者が iframe の URL を直接組み立てたり、`pm-embed` を外したりしても、この制限は同じである。閲覧用の入口では、副作用のない GET と閲覧用 API だけを使う。機密データを扱う初期 HTML は空の枠と固定ラベルにとどめ、許可した親との照合後に子が自分の API から取得する。API は要求ごとに認可する。画面遷移や履歴復元のたびにルートを再判定し、対象外ならデータ取得と描画を止め、直接開く案内に戻す。
 
-配信には `joiningDirectives(policy, route)` という補助を用意する。ルーターが解決したルートから CSP のディレクティブを返し、アプリのサーバーまたは配信基盤が既存の CSP に組み込む。たとえば上例で他の iframe を使わないなら、応答に必要な部分は次のようになる。
+配信には `joiningDirectives(policy, route)` が使える。`parentRoutes` は外部の枠を読み込める親画面の固定パスを列挙する。ルーターが解決したルートから CSP のディレクティブを返し、アプリのサーバーまたは配信基盤が既存の CSP に組み込む。たとえば上例で他の iframe を使わないなら、応答に必要な部分は次のようになる。
 
 | HTML を返す画面 | HTTP 応答の CSP に含める指示 |
 | --- | --- |

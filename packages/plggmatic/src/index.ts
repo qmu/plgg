@@ -818,3 +818,12 @@ export {
   monthWeeks,
   calendar,
 } from "plggmatic/Component/usecase/compound";
+export { asOrigin } from "plggmatic/Joining/model/origin";
+export {
+  type JoiningPolicy,
+  defineJoining,
+  joiningDirectives,
+  mayOpenColumn,
+  mayHonourRequest,
+  publicDocumentJoining,
+} from "plggmatic/Joining/model/policy";
